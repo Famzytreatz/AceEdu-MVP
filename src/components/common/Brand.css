@@ -1,0 +1,60 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-navy);
+  text-decoration: none;
+}
+
+.brand__mark {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-navy);
+}
+
+.brand__mark img {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.brand__name {
+  font-family: "Poppins:Bold", sans-serif;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.brand__name span {
+  color: var(--color-cyan);
+}
+
+.brand--footer .brand__mark {
+  width: 2rem;
+  height: 2rem;
+}
+
+.brand--footer .brand__mark img {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.brand--footer .brand__name {
+  font-size: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .brand--footer .brand__mark,
+  .brand--footer .brand__mark img {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .brand--footer .brand__name {
+    font-size: 1.375rem;
+  }
+}

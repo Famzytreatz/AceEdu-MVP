@@ -1,0 +1,97 @@
+.modal-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  background: rgba(3, 18, 46, 0.62);
+}
+
+.modal {
+  position: relative;
+  width: min(100%, 31rem);
+  border-radius: var(--radius-lg);
+  padding: var(--space-10);
+  background: var(--color-white);
+  box-shadow: var(--shadow-modal);
+}
+
+.modal h2 {
+  margin: 0 2rem var(--space-3) 0;
+  color: var(--color-navy);
+  font-family: "Poppins:Bold", sans-serif;
+  font-size: 1.75rem;
+}
+
+.modal > p,
+.modal__success p {
+  margin: 0;
+  color: var(--color-slate);
+  line-height: 1.6;
+}
+
+.modal__close {
+  position: absolute;
+  top: var(--space-5);
+  right: var(--space-5);
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  color: var(--color-navy);
+  cursor: pointer;
+}
+
+.modal__form {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-8);
+}
+
+.modal__form label {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-navy);
+  font-family: "Poppins:Medium", sans-serif;
+  font-size: 0.875rem;
+}
+
+.modal__form input {
+  width: 100%;
+  min-height: 3.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-4);
+  color: var(--color-navy);
+  font: inherit;
+}
+
+.modal__form input:focus,
+.modal__close:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.modal__success {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-5);
+}
+
+.modal__success > svg {
+  color: var(--color-cyan-dark);
+}
+
+.modal-open {
+  overflow: hidden;
+}
+
+@media (max-width: 480px) {
+  .modal {
+    padding: var(--space-8) var(--space-6);
+  }
+}

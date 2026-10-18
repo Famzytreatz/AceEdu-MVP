@@ -1,0 +1,30 @@
+:root {
+  --color-navy: #0b2d6b;
+  --color-cyan: #00c2f2;
+  --color-cyan-dark: #008fb8;
+  --color-slate: #475569;
+  --color-muted: #94a3b8;
+  --color-border: #e2e8f0;
+  --color-surface: #f5f8ff;
+  --color-white: #ffffff;
+  --color-focus: rgba(0, 194, 242, 0.38);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.5rem;
+
+  --shadow-card: 0 0.625rem 1.25rem rgba(0, 0, 0, 0.05);
+  --shadow-button: 0 0.5rem 1rem rgba(11, 45, 107, 0.15);
+  --shadow-modal: 0 1.5rem 4rem rgba(3, 18, 46, 0.24);
+}
