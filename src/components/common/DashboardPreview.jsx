@@ -1,6 +1,8 @@
+
 import { activities, metrics } from "../../data/siteContent"
 import "./DashboardPreview.css"
 
+// DashboardPreview uses sample data from siteContent.js. The detailed prop changes labels and styling.
 export default function DashboardPreview({ detailed = false }) {
   return (
     <article className={`dashboard ${detailed ? "dashboard--detailed" : ""}`}>
@@ -19,6 +21,7 @@ export default function DashboardPreview({ detailed = false }) {
         </div>
       </header>
       <div className="dashboard__body">
+        {/* Each metric is rendered from the metrics array; the label is also used as a stable key. */}
         <div className="dashboard__metrics">
           {metrics.map((metric) => (
             <div className="dashboard__metric" key={metric.label}>
@@ -27,6 +30,7 @@ export default function DashboardPreview({ detailed = false }) {
             </div>
           ))}
         </div>
+        {/* Recent activity entries are generated from the shared activities array. */}
         <div className="dashboard__activity">
           <h4>Recent Activity{detailed ? " — sample entries" : ""}</h4>
           {activities.map((activity) => (
@@ -47,3 +51,4 @@ export default function DashboardPreview({ detailed = false }) {
     </article>
   )
 }
+

@@ -1,3 +1,5 @@
+
+/* Shared base styles for every button variant. */
 .button {
   display: inline-flex;
   min-height: 3.5rem;
@@ -21,6 +23,7 @@
   box-shadow: var(--shadow-button);
 }
 
+/* Variant classes change appearance while keeping the same button structure. */
 .button--primary {
   background: var(--color-navy);
   color: var(--color-white);
@@ -55,3 +58,4 @@
     font-size: 0.9375rem;
   }
 }
+

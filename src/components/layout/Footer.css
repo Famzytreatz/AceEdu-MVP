@@ -1,3 +1,5 @@
+
+/* Footer layout and spacing; child sections define the link and legal rows. */
 .site-footer {
   display: grid;
   gap: var(--space-12);
@@ -98,3 +100,4 @@
     font-size: 0.75rem;
   }
 }
+

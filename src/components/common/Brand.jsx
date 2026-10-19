@@ -1,8 +1,11 @@
+
 import "./Brand.css"
 
+// Shared AceEdu logo. The footer prop selects footer-specific styling and image assets.
 export default function Brand({ footer = false }) {
   return (
     <a
+      // The conditional class lets CSS style the footer logo differently from the header logo.
       className={`brand ${footer ? "brand--footer" : ""}`}
       href="#top"
       aria-label="AceEdu home"
@@ -25,3 +28,4 @@ export default function Brand({ footer = false }) {
     </a>
   )
 }
+

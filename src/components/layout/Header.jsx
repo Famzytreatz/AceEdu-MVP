@@ -1,24 +1,30 @@
+
 import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 import Brand from "../common/Brand"
 import Button from "../ui/Button"
 import "./Header.css"
 
+// Navigation destinations are kept in one array and rendered below with map().
 const links = [
   { href: "#features", label: "Features" },
   { href: "#how-it-works", label: "How It Works" },
   { href: "#contact", label: "Contact" },
 ]
 
+// Header receives onOpenModal from HomePage so its Login and Get Started buttons can open the shared modal.
 export default function Header({ onOpenModal }) {
+  // Tracks whether the mobile navigation drawer is open.
   const [menuOpen, setMenuOpen] = useState(false)
 
+  // If the viewport grows to desktop size, close the mobile drawer; remove the listener on cleanup.
   useEffect(() => {
     const closeOnDesktop = () => window.innerWidth > 768 && setMenuOpen(false)
     window.addEventListener("resize", closeOnDesktop)
     return () => window.removeEventListener("resize", closeOnDesktop)
   }, [])
 
+  // Reuse this handler wherever a navigation action should close the drawer.
   const closeMenu = () => setMenuOpen(false)
 
   return (
@@ -35,7 +41,8 @@ export default function Header({ onOpenModal }) {
             <X size={22} aria-hidden="true" />
           </button>
         </div>
-        {links.map((link) => (
+        {/* Render each navigation link from the links array. Selecting one closes the mobile menu. */}
+      {links.map((link) => (
           <a key={link.href} href={link.href} onClick={closeMenu}>
             {link.label}
           </a>
@@ -60,6 +67,7 @@ export default function Header({ onOpenModal }) {
           Get Started
         </Button>
       </nav>
+      {/* Render the backdrop only while the mobile menu is open. */}
       {menuOpen && (
         <button
           className="nav-scrim"
@@ -86,3 +94,4 @@ export default function Header({ onOpenModal }) {
     </header>
   )
 }
+

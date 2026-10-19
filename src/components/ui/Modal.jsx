@@ -1,8 +1,10 @@
+
 import { useEffect, useId, useState } from "react"
 import { CheckCircle2, X } from "lucide-react"
 import Button from "./Button"
 import "./Modal.css"
 
+// Copy is selected by modal mode so the same form component can serve different actions.
 const modalCopy = {
   started: {
     title: "Get started with AceEdu",
@@ -21,11 +23,15 @@ const modalCopy = {
   },
 }
 
+// Modal receives its mode and close callback from HomePage.
 export default function Modal({ mode, onClose }) {
+  // Local UI state switches the form to a confirmation message after submission.
   const [submitted, setSubmitted] = useState(false)
+  // useId creates a unique id used to connect the dialog to its accessible title.
   const titleId = useId()
   const content = modalCopy[mode]
 
+  // While open, Escape closes the modal and the body class prevents background scrolling.
   useEffect(() => {
     if (!mode) return undefined
     const onKeyDown = (event) => event.key === "Escape" && onClose()
@@ -37,8 +43,10 @@ export default function Modal({ mode, onClose }) {
     }
   }, [mode, onClose])
 
+  // No mode means there is no active dialog, so render nothing.
   if (!mode) return null
 
+  // Prevent a real page reload; this demo currently shows local success rather than sending data to a server.
   function handleSubmit(event) {
     event.preventDefault()
     setSubmitted(true)
@@ -61,7 +69,8 @@ export default function Modal({ mode, onClose }) {
         >
           <X size={22} aria-hidden="true" />
         </button>
-        {submitted ? (
+        {/* After submit, show confirmation; otherwise show the form for the selected modal mode. */}
+      {submitted ? (
           <div className="modal__success" role="status">
             <CheckCircle2 aria-hidden="true" />
             <h2 id={titleId}>Thanks for your interest</h2>
@@ -117,3 +126,4 @@ export default function Modal({ mode, onClose }) {
     </div>
   )
 }
+

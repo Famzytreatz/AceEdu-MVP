@@ -1,6 +1,8 @@
+
 import Brand from "../common/Brand"
 import "./Footer.css"
 
+// Footer contains the brand, in-page navigation links, contact link, and legal links.
 export default function Footer() {
   return (
     <footer className="site-footer" id="contact">
@@ -32,3 +34,4 @@ export default function Footer() {
     </footer>
   )
 }
+

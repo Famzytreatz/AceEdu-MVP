@@ -1,3 +1,5 @@
+
+/* Shared logo layout; modifier classes below adapt it for the footer. */
 .brand {
   display: inline-flex;
   align-items: center;
@@ -6,6 +8,7 @@
   text-decoration: none;
 }
 
+/* The mark is a square container that centers the logo image. */
 .brand__mark {
   display: grid;
   width: 2.5rem;
@@ -45,6 +48,7 @@
   font-size: 1.25rem;
 }
 
+/* On smaller screens, use the alternate footer mark sizing. */
 @media (max-width: 768px) {
   .brand--footer .brand__mark,
   .brand--footer .brand__mark img {
@@ -58,3 +62,4 @@
     font-size: 1.375rem;
   }
 }
+

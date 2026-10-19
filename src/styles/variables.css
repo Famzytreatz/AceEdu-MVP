@@ -1,3 +1,5 @@
+
+/* Design tokens keep colors, spacing, radii, and shadows consistent across components. */
 :root {
   --color-navy: #0b2d6b;
   --color-cyan: #00c2f2;
@@ -28,3 +30,4 @@
   --shadow-button: 0 0.5rem 1rem rgba(11, 45, 107, 0.15);
   --shadow-modal: 0 1.5rem 4rem rgba(3, 18, 46, 0.24);
 }
+
