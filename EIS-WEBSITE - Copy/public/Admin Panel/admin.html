@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eliud Command | Admin Vault</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #00f3ff;      /* Neon Cyan */
+            --primary-dim: rgba(0, 243, 255, 0.1);
+            --accent: #ffd700;       /* Neon Gold */
+            --bg-dark: #050a14;      /* Deep Space */
+            --surface: #0f172a;      /* Dark Panel */
+            --surface-glass: rgba(15, 23, 42, 0.8);
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --sidebar-width: 280px;
+            --emerald: #10b981;
+            --rose: #f43f5e;
+            --border-glow: 1px solid rgba(0, 243, 255, 0.2);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body { 
+            background: var(--bg-dark); 
+            color: var(--text-main); 
+            height: 100vh; 
+            overflow: hidden;
+            background-image: radial-gradient(circle at 15% 50%, rgba(0, 243, 255, 0.08), transparent 25%),
+                              radial-gradient(circle at 85% 30%, rgba(255, 215, 0, 0.05), transparent 25%);
+        }
+
+        .admin-wrapper { display: flex; height: 100%; }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(10, 25, 47, 0.8);
+            backdrop-filter: blur(15px);
+            border-right: var(--border-glow);
+            color: var(--text-muted);
+            display: flex; flex-direction: column;
+            z-index: 10;
+            transition: width 0.3s ease;
+        }
+
+        .brand { 
+            padding: 30px 20px; 
+            display: flex; align-items: center; gap: 15px; 
+            border-bottom: var(--border-glow); 
+        }
+        .logo-circle { 
+            width: 40px; height: 40px; 
+            background: rgba(0, 243, 255, 0.1);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            display: flex; align-items: center; justify-content: center; 
+            border-radius: 8px; font-size: 20px; 
+            box-shadow: 0 0 10px var(--primary-dim);
+        }
+        .brand-info h3 { 
+            color: var(--text-main); 
+            font-size: 16px; font-weight: 800; letter-spacing: 1px; margin: 0; 
+            font-family: 'Orbitron', sans-serif;
+        }
+        .brand-info p { font-size: 11px; opacity: 0.7; margin: 0; }
+
+        .menu { flex: 1; padding: 20px; overflow-y: auto; }
+        .menu-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin: 20px 0 10px; font-weight: 600; padding: 0 15px; }
+        .menu-a {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 15px; text-decoration: none; color: inherit;
+            border-radius: 8px; transition: 0.3s; margin-bottom: 5px; font-weight: 500;
+            cursor: pointer;
+        }
+        .menu-a:hover, .menu-a.active { 
+            background: var(--primary-dim); 
+            color: var(--primary); 
+            box-shadow: inset 3px 0 0 var(--primary);
+        }
+        .menu-a.active { border-right: none; }
+
+        .admin-profile { padding: 20px; background: rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px; }
+        .admin-profile img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; }
+        .profile-info h4 { color: var(--text-main); font-size: 14px; margin: 0; }
+        .profile-info p { font-size: 11px; color: var(--emerald); margin: 0; }
+
+        /* MAIN CONTENT */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        .top-bar {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 20px 40px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: var(--border-glow);
+        }
+        .page-title h1 { 
+            font-size: 24px; font-weight: 800; color: var(--text-main); 
+            letter-spacing: -0.5px; margin: 0; 
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+
+        #content-area { padding: 40px; overflow-y: auto; height: 100%; }
+
+        /* DASHBOARD STAT CARDS */
+        .stat-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 25px;
+        }
+
+        .stat-card {
+            background: var(--surface); 
+            padding: 25px; border-radius: 16px; 
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); 
+            transition: 0.3s;
+            display: flex; align-items: center; gap: 20px;
+        }
+        .stat-card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.15);
+            border-color: var(--primary);
+        }
+        .icon-box { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .icon-box.blue { background: rgba(0, 243, 255, 0.1); color: var(--primary); }
+        .icon-box.gold { background: rgba(255, 215, 0, 0.1); color: var(--accent); }
+        .icon-box.purple { background: rgba(147, 51, 234, 0.1); color: #a855f7; }
+        .stat-card h3 { color: var(--text-muted); font-size: 14px; font-weight: 500; margin: 0; }
+        .stat-card h2 { 
+            color: var(--text-main); font-size: 28px; font-weight: 800; margin: 5px 0 0; 
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* ENROLLMENT & TABLE */
+        .panel { 
+            background: var(--surface); 
+            padding: 30px; border-radius: 16px; 
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+        }
+        .panel-header { margin-bottom: 25px; }
+        .panel-header h2 { 
+            font-size: 20px; margin: 0; 
+            color: var(--text-main);
+            font-family: 'Orbitron', sans-serif;
+        }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
+        .input-group input, .input-group select { 
+            width: 100%; padding: 12px; 
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-main);
+            border-radius: 8px; transition: 0.2s; font-size: 14px;
+        }
+        .input-group input:focus, .input-group select:focus { 
+            border-color: var(--primary); outline: none; 
+            box-shadow: 0 0 15px var(--primary-dim); 
+        }
+
+        .action-btn { 
+            width: 100%; 
+            background: linear-gradient(45deg, #002366, #0047ab);
+            color: var(--text-main); 
+            padding: 15px; 
+            border: 1px solid var(--primary);
+            border-radius: 8px; font-weight: 600; cursor: pointer; 
+            transition: 0.3s; font-size: 16px; margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(0, 35, 102, 0.5);
+        }
+        .action-btn:hover { 
+            background: var(--primary); 
+            color: #000;
+            box-shadow: 0 0 20px var(--primary);
+        }
+
+        #teacherFields {
+            display: none;
+            grid-column: span 2;
+            background: rgba(255, 215, 0, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px dashed rgba(255, 215, 0, 0.3);
+        }
+
+        /* DATA TABLE */
+        .table-container { 
+            background: var(--surface); 
+            border-radius: 16px; overflow: hidden; 
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+        }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th { 
+            text-align: left; padding: 15px 20px; 
+            background: rgba(0,0,0,0.2);
+            color: var(--primary); 
+            font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; 
+            border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+        }
+        .data-table td { 
+            padding: 15px 20px; 
+            border-top: 1px solid rgba(255,255,255,0.05);
+            color: var(--text-muted);
+            font-size: 14px; vertical-align: middle; 
+        }
+        .data-table tr:hover td {
+            background: rgba(255,255,255,0.02);
+            color: var(--text-main);
+        }
+        .table-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 12px; border: 1px solid var(--primary); }
+
+        .status-pill {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .pending { background: rgba(244, 63, 94, 0.1); color: var(--rose); }
+        .active-status { background: rgba(16, 185, 129, 0.1); color: var(--emerald); }
+
+        .action-group { display: flex; gap: 10px; }
+        .action-icon { background: none; border: none; font-size: 16px; cursor: pointer; transition: 0.2s; }
+        .action-icon.verify { color: var(--text-muted); }
+        .action-icon.verify:hover { color: var(--emerald); transform: scale(1.2); }
+        .action-icon.delete { color: var(--text-muted); }
+        .action-icon.delete:hover { color: var(--rose); transform: scale(1.2); }
+
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* USER DETAILS MODAL */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px); }
+        .modal-content { background-color: var(--surface); margin: 5% auto; padding: 0; border: 1px solid var(--primary); width: 50%; border-radius: 15px; box-shadow: 0 0 30px rgba(0, 243, 255, 0.2); animation: slideDown 0.4s; color: var(--text-main); }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; background: rgba(0, 243, 255, 0.05); }
+        .modal-header h2 { margin: 0; font-family: 'Orbitron', sans-serif; color: var(--primary); font-size: 18px; }
+        .close-modal { color: var(--text-muted); font-size: 28px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .close-modal:hover { color: var(--rose); }
+        .modal-body { padding: 30px; display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
+        .modal-passport { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; border: 2px solid var(--accent); box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); }
+        .detail-row { margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
+        .detail-label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; display: block; margin-bottom: 4px; }
+        .detail-value { font-size: 15px; color: var(--text-main); font-weight: 500; }
+        .security-badge { display: inline-block; padding: 5px 10px; background: rgba(0, 243, 255, 0.1); border: 1px solid var(--primary); color: var(--primary); font-size: 12px; border-radius: 4px; margin-top: 10px; font-family: monospace; }
+
+        /* Extra Form Fields */
+        .extra-fields-grid {
+            grid-column: span 2;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            background: rgba(255,255,255,0.02);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: 15px;
+        }
+        .hidden-field { display: none; }
+
+        /* ADVANCED UI ELEMENTS */
+        #toast-container {
+            position: fixed; bottom: 30px; right: 30px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            background: var(--surface); 
+            color: var(--text-main);
+            padding: 16px 24px; border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            display: flex; align-items: center; gap: 12px;
+            transform: translateX(150%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-left: 5px solid var(--emerald); font-weight: 600; font-size: 14px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .toast.error { border-left-color: var(--rose); }
+        .toast.show { transform: translateX(0); }
+
+        .toolbar { display: flex; justify-content: space-between; margin-bottom: 20px; gap: 15px; flex-wrap: wrap; }
+        .search-wrapper { position: relative; flex: 1; max-width: 350px; }
+        .search-wrapper input { 
+            width: 100%; padding: 12px 15px 12px 45px; 
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-main);
+            border-radius: 10px; outline: none; transition: 0.3s; font-size: 14px;
+        }
+        .search-wrapper input:focus { border-color: var(--primary); box-shadow: 0 0 15px var(--primary-dim); }
+        .search-wrapper i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+
+        .btn-export {
+            background: linear-gradient(45deg, #059669, #047857); color: white; border: none; padding: 12px 20px;
+            border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.3s;
+            display: flex; align-items: center; gap: 8px; font-size: 14px;
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);
+        }
+        .btn-export:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4); }
+
+        @media print {
+            body { display: block; height: auto; background: white; }
+            .sidebar, .top-bar, .action-btn, .menu { display: none !important; }
+            .main-content, #content-area { padding: 0; overflow: visible; }
+            .panel { box-shadow: none; border: 1px solid #eee; }
+            #printableArea { position: static; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="admin-wrapper">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="logo-circle">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <div class="brand-info">
+                <h3>ELIUD VAULT</h3>
+                <p>ADMIN COMMAND v3.0</p>
+            </div>
+        </div>
+
+        <nav class="menu">
+            <div class="menu-label">Main</div>
+            <a class="menu-a active" onclick="switchView('dashboard', this)"><i class="fas fa-home fa-fw"></i> Dashboard</a>
+            <a class="menu-a" onclick="switchView('enrollment', this)"><i class="fas fa-user-plus fa-fw"></i> Enrollment</a>
+            <a class="menu-a" onclick="switchView('database', this)"><i class="fas fa-server fa-fw"></i> Master Registry</a>
+            <a class="menu-a" onclick="logout()" style="margin-top: auto; color: var(--rose);"><i class="fas fa-sign-out-alt fa-fw"></i> Secure Logout</a>
+        </nav>
+
+        <div class="admin-profile">
+            <img src="../Admin Panel/owner.JPG" alt="Admin Photo">
+            <div class="profile-info">
+                <h4>Head of School</h4>
+                <p><i class="fas fa-circle" style="font-size: 8px;"></i> SECURE ONLINE</p>
+            </div>
+            <button onclick="viewMyProfile()" style="margin-left: auto; background: var(--accent); border: none; color: var(--primary); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 10px;">VIEW</button>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <header class="top-bar">
+            <div class="page-title">
+                <h1 id="view-title">Dashboard</h1>
+            </div>
+        </header>
+
+        <main id="content-area">
+            
+            <section id="dashboard" class="view-section active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="icon-box blue"><i class="fas fa-user-graduate"></i></div>
+                        <div>
+                            <h3>Total Students</h3>
+                            <h2 id="stat-students">0</h2>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon-box gold"><i class="fas fa-chalkboard-teacher"></i></div>
+                        <div>
+                            <h3>Total Staff</h3>
+                            <h2 id="stat-staff">0</h2>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon-box purple"><i class="fas fa-key"></i></div>
+                        <div>
+                            <h3>Total Access Keys</h3>
+                            <h2 id="stat-ids">0</h2>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="enrollment" class="view-section">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-fingerprint" style="color: var(--accent);"></i> Identity Enrollment Protocol</h2>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>Account Role</label>
+                            <select id="roleSelect" class="input-group" onchange="toggleTeacherFields()">
+                                <option value="student">Student</option>
+                                <option value="teacher">Faculty / Teacher</option>
+                                <option value="sub-admin">Sub-Admin (Staff)</option>
+                                <option value="school-admin">School Admin (Full Access)</option>
+                            </select>
+                        </div>
+                        <div class="input-group" id="classGroup">
+                            <label>Target Class</label>
+                            <select id="regClass" class="input-group" onchange="livePreview()">
+                                <option value="">Select Class...</option>
+                                <optgroup label="Senior Secondary">
+                                    <option value="SSS 1">SSS 1</option>
+                                    <option value="SSS 2">SSS 2</option>
+                                    <option value="SSS 3">SSS 3</option>
+                                </optgroup>
+                                <optgroup label="Junior Secondary">
+                                    <option value="JSS 1">JSS 1</option>
+                                    <option value="JSS 2">JSS 2</option>
+                                    <option value="JSS 3">JSS 3</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="input-group" id="roleGroup" style="display:none;">
+                            <label>Official Designation</label>
+                            <input type="text" id="regRole" placeholder="e.g. Bursar, Vice Principal" onkeyup="livePreview()">
+                        </div>
+                        <div class="input-group" style="grid-column: span 2;">
+                            <label>Full Name (Official Passport Name)</label>
+                            <input type="text" id="regName" placeholder="SURNAME FIRSTNAME" onkeyup="livePreview()">
+                        </div>
+
+                        <!-- NEW FIELDS -->
+                        <div class="extra-fields-grid">
+                            <div class="input-group">
+                                <label>State of Origin</label>
+                                <input type="text" id="stateOfOrigin" placeholder="State">
+                            </div>
+                            <div class="input-group">
+                                <label>House Address</label>
+                                <input type="text" id="address" placeholder="Residential Address">
+                            </div>
+                            
+                            <!-- Toggled Fields -->
+                            <div class="input-group hidden-field" id="field-dob"><label>Date of Birth</label><input type="date" id="dob"></div>
+                            <div class="input-group hidden-field" id="field-gphone"><label>Guardian Phone</label><input type="tel" id="guardianPhone"></div>
+                            
+                            <div class="input-group hidden-field" id="field-phone"><label>Personal Phone</label><input type="tel" id="phone"></div>
+                            <div class="input-group hidden-field" id="field-pass"><label>Login Password</label><input type="password" id="password"></div>
+                        </div>
+
+                        <div id="teacherFields">
+                            <div class="form-grid">
+                                <div class="input-group">
+                                    <label>Teaching Classes (Comma separated)</label>
+                                    <input type="text" id="assignedClasses" placeholder="e.g., SSS 1, SSS 3">
+                                </div>
+                                <div class="input-group">
+                                    <label>Department / Subject</label>
+                                    <input type="text" id="regSubjects" placeholder="e.g., Physics, Maths">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Identity Passport</label>
+                            <input type="file" id="regPhoto" accept="image/*" onchange="previewImage(this)">
+                        </div>
+                        <div class="preview-side" id="printableArea">
+                            <label>Live Card Preview</label>
+                            <div id="cardPreview" style="border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; display: flex; gap: 15px; background: #fff;">
+                                <img id="cardPassport" src="https://via.placeholder.com/80" style="width: 80px; height: 90px; border-radius: 8px; object-fit: cover; border: 2px solid var(--accent);">
+                                <div>
+                                    <h4 id="cardName" style="margin:0; font-size: 14px;">IDENTITY NAME</h4>
+                                    <span id="cardBadge" style="font-size: 9px; background: var(--primary); color: white; padding: 2px 6px; border-radius: 4px;">STUDENT</span>
+                                    <p style="font-size: 11px; margin: 5px 0;">REF: <span id="cardClass">---</span></p>
+                                    <p style="font-size: 11px; margin:0; font-weight: 800; color: var(--rose);">PIN: <span id="cardPin">####</span></p>
+                                    <div id="qrcode" style="margin-top: 5px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="action-btn" onclick="generateIdentity()">
+                        INSTALL & AUTHORIZE <i class="fas fa-check-double"></i>
+                    </button>
+                </div>
+            </section>
+
+            <section id="database" class="view-section">
+                <div class="table-container">
+                    <div style="padding: 20px; border-bottom: var(--border-glow);">
+                        <div class="toolbar">
+                            <div class="search-wrapper">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="dbSearch" placeholder="Search by Name, Role or PIN..." onkeyup="filterDatabase()">
+                            </div>
+                            <button class="btn-export" onclick="exportCSV()"><i class="fas fa-file-csv"></i> Export Data</button>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Identity</th>
+                                <th>Class/Dept</th>
+                                <th>Access PIN</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dbTableBody">
+                            <!-- JS will populate this -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<!-- USER DETAIL MODAL -->
+<div id="userModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-id-card"></i> IDENTITY PROFILE</h2>
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="modalBodyContent">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+</div>
+
+<div id="toast-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        // --- SECURITY GATE ---
+        function checkAccess() {
+            const access = sessionStorage.getItem('adminAuth');
+            if (access !== 'granted') {
+                const pass = typeof window.prompt === 'function'
+                    ? window.prompt('ENTER VAULT ACCESS KEY:')
+                    : 'Admin123';
+
+                if (pass === 'Admin123') {
+                    sessionStorage.setItem('adminAuth', 'granted');
+                } else {
+                    alert('ACCESS DENIED');
+                    window.location.href = '/login';
+                }
+            }
+        }
+        checkAccess();
+
+        // --- ADVANCED UI FUNCTIONS ---
+        function showToast(msg, type='success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i> ${msg}`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
+        // --- ORIGINAL LOGIC FUNCTIONS ---
+        let qrcode = new QRCode(document.getElementById("qrcode"), { width: 45, height: 45 });
+
+        function switchView(viewId, btn) {
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.menu-a').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(viewId).classList.add('active');
+            btn.classList.add('active');
+            
+            document.getElementById('view-title').innerText = btn.innerText;
+
+            if(viewId === 'database' || viewId === 'dashboard') {
+                loadDatabase();
+            }
+        }
+
+        function toggleTeacherFields() {
+            const role = document.getElementById('roleSelect').value;
+            const tFields = document.getElementById('teacherFields');
+            const badge = document.getElementById('cardBadge');
+            const classGroup = document.getElementById('classGroup');
+            const roleGroup = document.getElementById('roleGroup');
+
+            // New Fields Logic
+            const isStudent = role === 'student';
+            document.getElementById('field-dob').style.display = isStudent ? 'block' : 'none';
+            document.getElementById('field-gphone').style.display = isStudent ? 'block' : 'none';
+            
+            const isStaff = role === 'teacher' || role === 'admin' || role === 'sub-admin' || role === 'school-admin';
+            document.getElementById('field-phone').style.display = isStaff ? 'block' : 'none';
+            document.getElementById('field-pass').style.display = isStaff ? 'block' : 'none';
+            
+            tFields.style.display = (role === 'teacher') ? 'block' : 'none';
+            badge.innerText = role.toUpperCase();
+            badge.style.background = (role === 'teacher') ? 'var(--accent)' : (role === 'admin' || role === 'sub-admin' || role === 'school-admin' ? 'var(--rose)' : 'var(--primary)');
+            
+            if (isStudent) {
+                classGroup.style.display = 'block';
+                roleGroup.style.display = 'none';
+            } else {
+                classGroup.style.display = 'none';
+                roleGroup.style.display = 'block';
+            }
+        }
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => document.getElementById('cardPassport').src = e.target.result;
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function livePreview() {
+            document.getElementById('cardName').innerText = document.getElementById('regName').value || "NAME";
+            const role = document.getElementById('roleSelect').value;
+            const des = role === 'student' ? document.getElementById('regClass').value : document.getElementById('regRole').value;
+            document.getElementById('cardClass').innerText = des || "DESIGNATION";
+        }
+
+        async function generateIdentity() {
+            const name = document.getElementById('regName').value;
+            const role = document.getElementById('roleSelect').value;
+            const designation = role === 'student' ? document.getElementById('regClass').value : document.getElementById('regRole').value;
+            const photo = document.getElementById('cardPassport').src;
+
+            if(!name || !designation) return showToast("Please provide Name and Class", "error");
+
+            try {
+                const res = await fetch('/api/admin/enroll', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        fullName: name, role, designation,
+                        assignedClasses: document.getElementById('assignedClasses').value,
+                        subjects: document.getElementById('regSubjects').value,
+                        passport: photo,
+                        dob: document.getElementById('dob').value,
+                        guardianPhone: document.getElementById('guardianPhone').value,
+                        address: document.getElementById('address').value,
+                        stateOfOrigin: document.getElementById('stateOfOrigin').value,
+                        phone: document.getElementById('phone').value,
+                        password: document.getElementById('password').value
+                    })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    document.getElementById('cardPin').innerText = data.pin;
+                    qrcode.makeCode(data.pin);
+                    showToast(`Vault Entry Created! PIN: ${data.pin}`);
+                    setTimeout(() => window.print(), 1000);
+                }
+            } catch (err) { showToast("Vault Connection Error", "error"); }
+        }
+
+        let allUsers = []; // Store for modal access
+
+        async function loadDatabase() {
+            try {
+                const res = await fetch('/api/admin/users');
+                const users = await res.json();
+                allUsers = users;
+
+                document.getElementById('stat-students').innerText = users.filter(u => u.role === 'student').length;
+                document.getElementById('stat-staff').innerText = users.filter(u => ['teacher', 'admin', 'sub-admin'].includes(u.role)).length;
+                document.getElementById('stat-ids').innerText = users.length;
+
+                const tbody = document.getElementById('dbTableBody');
+                tbody.innerHTML = users.map(u => `
+                    <tr>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <img src="${u.passport || 'https://via.placeholder.com/40'}" class="table-avatar">
+                                <div>
+                                    <b style="color: var(--text-main);">${u.fullName}</b>
+                                    <span style="display:block; font-size:12px; color:var(--text-muted);">${u.role}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span style="color: var(--text-main)">${u.designation}</span></td>
+                        <td><code style="background:rgba(0,0,0,0.3); color: var(--accent); padding:4px 8px; border-radius:6px; font-weight:600; border: 1px solid rgba(255,255,255,0.1);">${u.accessPin}</code></td>
+                        <td><span class="status-pill ${u.status === 'Pending' ? 'pending' : 'active-status'}">${u.status}</span></td>
+                        <td>
+                            <div class="action-group">
+                                <button onclick="viewUser('${u._id}')" class="action-icon" style="color:var(--primary); background: rgba(0, 35, 102, 0.1); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" title="View Details"><i class="fas fa-eye"></i></button>
+                                <button onclick="verifyUser('${u._id}')" class="action-icon verify" title="Verify User"><i class="fas fa-check-circle"></i></button>
+                                <button onclick="deleteUser('${u._id}')" class="action-icon delete" title="Delete User"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) { console.error("Database sync failed"); }
+        }
+
+        async function verifyUser(id) {
+            await fetch(`/api/admin/verify/${id}`, {method: 'POST'});
+            showToast("Identity Verified Successfully");
+            loadDatabase();
+        }
+
+        async function deleteUser(id) {
+            if(confirm("Erase this identity from the vault? This action cannot be undone.")) {
+                await fetch(`/api/admin/delete/${id}`, {method: 'DELETE'});
+                showToast("Identity Purged from Vault");
+                loadDatabase();
+            }
+        }
+
+        function filterDatabase() {
+            const input = document.getElementById('dbSearch').value.toUpperCase();
+            const rows = document.getElementById('dbTableBody').getElementsByTagName('tr');
+            for (let row of rows) {
+                const text = row.innerText.toUpperCase();
+                row.style.display = text.indexOf(input) > -1 ? '' : 'none';
+            }
+        }
+
+        function exportCSV() {
+            let csv = [];
+            const rows = document.querySelectorAll("table tr");
+            for (let row of rows) {
+                const cols = row.querySelectorAll("td, th");
+                let rowData = [];
+                for (let col of cols) rowData.push(col.innerText);
+                csv.push(rowData.join(","));
+            }
+            const csvFile = new Blob([csv.join("\n")], {type: "text/csv"});
+            const downloadLink = document.createElement("a");
+            downloadLink.download = "Eliud_Registry.csv";
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = "none";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            showToast("Registry Exported to CSV");
+        }
+
+        function logout() {
+            sessionStorage.removeItem('adminAuth');
+            window.location.href = '/login';
+        }
+
+        // MODAL FUNCTIONS
+        function viewUser(id) {
+            const user = allUsers.find(u => u._id === id);
+            if(!user) return;
+
+            const modal = document.getElementById('userModal');
+            const content = document.getElementById('modalBodyContent');
+            
+            let extraDetails = '';
+            if(user.role === 'student') {
+                extraDetails = `
+                    <div class="detail-row"><span class="detail-label">Date of Birth</span><span class="detail-value">${user.dob || 'N/A'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Guardian Phone</span><span class="detail-value">${user.guardianPhone || 'N/A'}</span></div>
+                `;
+            } else {
+                extraDetails = `
+                    <div class="detail-row"><span class="detail-label">Personal Phone</span><span class="detail-value">${user.phone || 'N/A'}</span></div>
+                    <div class="detail-row"><span class="detail-label">System Password</span><span class="detail-value" style="filter: blur(5px); cursor:pointer; user-select: none;" onclick="revealPassword(this, '${user._id}')">••••••</span></div>
+                `;
+            }
+
+            content.innerHTML = `
+                <div><img src="${user.passport || 'https://via.placeholder.com/150'}" class="modal-passport"></div>
+                <div>
+                    <div class="detail-row"><span class="detail-label">Full Name</span><span class="detail-value">${user.fullName}</span></div>
+                    <div class="detail-row"><span class="detail-label">Role & Designation</span><span class="detail-value">${user.role.toUpperCase()} - ${user.designation}</span></div>
+                    <div class="detail-row"><span class="detail-label">Address</span><span class="detail-value">${user.address || 'N/A'}</span></div>
+                    <div class="detail-row"><span class="detail-label">State of Origin</span><span class="detail-value">${user.stateOfOrigin || 'N/A'}</span></div>
+                    ${extraDetails}
+                    <div class="security-badge"><i class="fas fa-lock"></i> PIN: ${user.accessPin}</div>
+                </div>
+            `;
+            modal.style.display = "block";
+        }
+        function closeModal() { document.getElementById('userModal').style.display = "none"; }
+
+        function revealPassword(element, userId) {
+            if (element.innerText !== '••••••') return;
+
+            const key = prompt("ENTER VAULT ACCESS KEY TO DECRYPT:");
+            if (key === "Admin123") {
+                const user = allUsers.find(u => u._id === userId);
+                element.style.filter = 'none';
+                element.innerText = user ? (user.password || 'No Password Set') : 'Error';
+            } else {
+                alert("ACCESS DENIED: INVALID KEY");
+            }
+        }
+
+        // VIEW MY OWN PROFILE
+        function viewMyProfile() {
+            // Since Master Admin might not be in the DB list if hardcoded, or might be "ADMIN-8090"
+            // We try to find the user by the PIN stored in localStorage (if any) or just show static info
+            // For this system, let's assume Master Admin is the one with role 'admin'.
+            
+            const adminUser = allUsers.find(u => u.role === 'admin');
+            if(adminUser) {
+                viewUser(adminUser._id);
+            } else {
+                // Fallback if no DB record found (e.g. hardcoded auth)
+                const modal = document.getElementById('userModal');
+                const content = document.getElementById('modalBodyContent');
+                content.innerHTML = `
+                    <div style="text-align:center; grid-column: span 2;">
+                        <h3>MASTER CONTROLLER</h3>
+                        <p>System Root Access. No database record required.</p>
+                    </div>`;
+                modal.style.display = "block";
+            }
+        }
+
+        window.onload = loadDatabase;
+    </script>
+</body>
+</html>

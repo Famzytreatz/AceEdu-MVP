@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admissions | Eliud International School</title>
+    <link rel="stylesheet" href="home.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body class="enroll-body">
+
+    <video autoplay muted loop playsinline id="bg-video">
+        <source src="background.mp4" type="video/mp4">
+    </video>
+
+    <div class="video-overlay"></div>
+
+    <header class="enroll-header">
+        <a href="index.html" class="back-btn"><i class="fa fa-arrow-left"></i> Back to Home</a>
+        <div class="logo-area">
+            <img src="logo.png" alt="School Logo" class="form-logo">
+            <h1>ADMISSIONS <span class="gold-text">2026</span></h1>
+            <p>ELIUD INTERNATIONAL SCHOOL</p>
+        </div>
+    </header>
+
+    <section class="form-container">
+        <div class="form-card">
+            <div class="form-sidebar">
+                <h3>Why Eliud?</h3>
+                <ul>
+                    <li><i class="fa fa-check-circle"></i> H.O.L.O.N™ Model</li>
+                    <li><i class="fa fa-check-circle"></i> Secure Identity Portal</li>
+                    <li><i class="fa fa-check-circle"></i> Global Consciousness</li>
+                </ul>
+                <div class="status-box">
+                    <span class="pulse"></span> System Online: Accepting Inquiries
+                </div>
+            </div>
+
+            <form action="https://formsubmit.co/eliudinternationalschool1@gmail.com" method="POST" class="main-form">
+                <input type="hidden" name="_captcha" value="false">
+                <input type="hidden" name="_subject" value="New Admission Inquiry - Eliud Academy">
+                <input type="hidden" name="_template" value="table">
+
+                <h2>Student Inquiry Form</h2>
+                <p class="form-desc">Complete the details below and our admissions office will reach out to you.</p>
+
+                <div class="input-group">
+                    <div class="field">
+                        <label>Student Full Name</label>
+                        <input type="text" name="Student_Name" placeholder="Enter Full Name" required>
+                    </div>
+                    <div class="field">
+                        <label>Class Applying For</label>
+                        <select name="Target_Class" required>
+                            <option value="">Select Level</option>
+                            <option>JSS 1</option><option>JSS 2</option><option>JSS 3</option>
+                            <option>SSS 1</option><option>SSS 2</option><option>SSS 3</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <div class="field">
+                        <label>Parent/Guardian Name</label>
+                        <input type="text" name="Guardian_Name" placeholder="Full Name" required>
+                    </div>
+                    <div class="field">
+                        <label>Contact Phone</label>
+                        <input type="tel" name="Phone_Number" placeholder="0800 000 0000" required>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Email Address</label>
+                    <input type="email" name="Email" placeholder="example@mail.com" required>
+                </div>
+
+                <div class="field">
+                    <label>Additional Information</label>
+                    <textarea name="Message" rows="3" placeholder="Tell us about your child's needs..."></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn">SEND INQUIRY <i class="fa fa-paper-plane"></i></button>
+            </form>
+        </div>
+    </section>
+
+    <footer class="form-footer">
+        <p>© <span id="year"></span> Eliud International School | Security Verified</p>
+    </footer>
+
+    <script>
+        document.getElementById("year").innerHTML = new Date().getFullYear();
+    </script>
+</body>
+</html>

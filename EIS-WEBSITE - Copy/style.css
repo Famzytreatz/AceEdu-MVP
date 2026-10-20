@@ -1,0 +1,490 @@
+/* --- Fix for the Menu Button Visibility --- */
+#menuBtn {
+    display: none; /* Hidden on Desktop */
+    color: #fff;
+    font-size: 28px;
+    cursor: pointer;
+}
+
+@media(max-width: 768px) {
+    #menuBtn {
+        display: block; /* Shows on Mobile */
+        z-index: 1001;
+    }
+    
+    /* Ensure Nav-link is high enough to cover content */
+    .nav-link {
+        z-index: 2000;
+    }
+
+    /* Adjust the text box for mobile screens */
+    .text-box h1 {
+        font-size: 30px;
+    }
+    
+    .classcard {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .card {
+        width: 90%;
+        margin-bottom: 20px;
+    }
+}
+/* --- MOBILE RESPONSIVENESS (MAX-WIDTH: 768px) --- */
+@media screen and (max-width: 768px) {
+    
+    /* 1. Mobile Navigation */
+    .nav-link {
+        position: fixed;
+        right: -200px; /* Hidden by default */
+        top: 0;
+        width: 200px;
+        height: 100vh;
+        background: var(--glass-blue);
+        backdrop-filter: blur(15px);
+        display: flex;
+        flex-direction: column;
+        padding-top: 50px;
+        z-index: 2000;
+        transition: 0.5s;
+    }
+
+    .nav-link ul li {
+        display: block;
+        margin: 20px 0;
+        text-align: center;
+    }
+
+    .menu-icon, .close-icon {
+        display: block;
+        color: #fff;
+        font-size: 22px;
+        cursor: pointer;
+        padding: 10px;
+    }
+
+    /* 2. Hero Section Adjustments */
+    .split-hero {
+        flex-direction: column; /* Stacks image under text */
+        text-align: center;
+        padding: 100px 5% 50px;
+        min-height: auto;
+    }
+
+    .hero-left h1 {
+        font-size: 2.5rem; /* Smaller font for mobile screens */
+    }
+
+    .hero-left p {
+        font-size: 16px;
+        margin: 20px auto;
+    }
+
+    .hero-right {
+        width: 100%;
+        margin-top: 40px;
+    }
+
+    .experience-card {
+        padding: 10px;
+        font-size: 12px;
+        bottom: 10px;
+        right: 10px;
+    }
+
+    /* 3. HOLON Grid for Mobile */
+    .holon-flex {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* 2 cards per row */
+        gap: 15px;
+        padding: 0 5%;
+    }
+
+    .h-card {
+        width: auto; /* Let the grid handle width */
+        padding: 20px 10px;
+    }
+
+    /* Make the last card (Nurturing) span across both columns */
+    .h-card:last-child {
+        grid-column: span 2;
+    }
+
+    /* 4. Banner Adjustments */
+    .blue-glass-box {
+        padding: 30px 20px;
+        margin: 0 5%;
+    }
+    
+    .blue-glass-box h3 {
+        font-size: 1.2rem;
+    }
+}
+
+/* Ensure icons stay hidden on Desktop */
+@media screen and (min-width: 769px) {
+    .menu-icon, .close-icon {
+        display: none;
+    }
+}
+:root {
+    --deep-blue: #001a35;
+    --navy: #002d5b;
+    --gold: #d4af37;
+    --ice-white: #f0f4f8;
+    --glass-blue: rgba(0, 45, 91, 0.9);
+}
+
+body {
+    background-color: var(--ice-white);
+    margin: 0;
+    color: var(--deep-blue);
+    font-family: 'Poppins', sans-serif;
+}
+
+/* CLEAN NAVIGATION */
+.elite-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 8%;
+    background: var(--deep-blue);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.logo-box { display: flex; align-items: center; text-decoration: none; gap: 15px; }
+.logo-box img { width: 55px; }
+.main-title { display: block; color: var(--gold); font-weight: 800; font-size: 1.1rem; }
+.sub-title { display: block; color: #fff; font-size: 0.6rem; letter-spacing: 2px; }
+
+.nav-link ul { list-style: none; margin: 0; padding: 0; }
+.nav-link ul li { display: inline-block; }
+.nav-link ul li a { 
+    color: #fff; 
+    text-decoration: none; 
+    font-weight: 600; 
+    padding: 10px 20px;
+    border: 1px solid transparent;
+    transition: 0.3s;
+}
+
+.portal-link {
+    background: var(--gold);
+    color: var(--deep-blue) !important;
+    border-radius: 5px;
+}
+
+/* HERO SECTION */
+.split-hero {
+    display: flex;
+    min-height: 80vh;
+    background: var(--deep-blue);
+    color: #fff;
+    align-items: center;
+    padding: 0 8%;
+    gap: 40px;
+}
+
+.hero-left h1 { font-size: 3.5rem; line-height: 1.2; }
+.gold-text { color: var(--gold); }
+.identity-tag { color: var(--gold); font-size: 12px; letter-spacing: 3px; margin-bottom: 10px; }
+
+.image-frame { position: relative; border-radius: 15px; overflow: hidden; }
+.image-frame img { width: 100%; display: block; }
+
+/* THE INTERACTIVE CARD PHYSICS */
+.holon-flex {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 50px;
+    perspective: 1000px; /* Adds 3D depth to the container */
+}
+
+.h-card {
+    background: #fff;
+    width: 140px;
+    padding: 30px 15px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy transition */
+    border: 1px solid rgba(0,0,0,0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 1. THE LIFT: Moves up and grows when you hover */
+.h-card:hover {
+    transform: translateY(-15px) scale(1.05);
+    background: var(--navy);
+    box-shadow: 0 20px 40px rgba(0, 31, 63, 0.3);
+    border-color: var(--gold);
+}
+
+.h-card h3 { 
+    color: var(--navy); 
+    font-size: 40px; 
+    margin: 0; 
+    transition: 0.3s; 
+}
+
+.h-card p { 
+    font-weight: 600; 
+    color: #555; 
+    transition: 0.3s; 
+}
+
+/* 2. THE COLOR FLIP: Text turns white on hover */
+.h-card:hover h3, .h-card:hover p {
+    color: #fff;
+}
+
+/* 3. THE LEVERAGE SPECIAL: Constant soft pulse to attract the eye */
+.leverage-card {
+    background: var(--gold);
+    border: 2px solid var(--gold);
+    animation: softPulse 2s infinite;
+}
+
+.leverage-card h3, .leverage-card p {
+    color: var(--deep-blue);
+}
+
+@keyframes softPulse {
+    0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); }
+    70% { box-shadow: 0 0 0 15px rgba(212, 175, 55, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+}
+
+/* 4. THE CLICK EFFECT: Sinks down when actually clicked */
+.h-card:active {
+    transform: translateY(-5px) scale(0.98);
+    transition: 0.1s;
+}
+
+.h-card h3 { color: var(--navy); font-size: 32px; margin: 0; }
+.gold-active { background: var(--gold); }
+
+/* IDENTITY BANNER */
+.id-system-banner {
+    padding: 80px 8%;
+    background: url('ASSETS/b4.JPG') center/cover fixed;
+    display: flex;
+    justify-content: center;
+}
+
+.blue-glass-box {
+    background: var(--glass-blue);
+    backdrop-filter: blur(10px);
+    padding: 40px;
+    border-radius: 20px;
+    color: #fff;
+    text-align: center;
+    max-width: 600px;
+}
+
+.copy-bar { 
+    background: var(--deep-blue); 
+    color: #fff; 
+    text-align: center; 
+    padding: 20px; 
+    font-size: 13px; 
+    opacity: 0.8; 
+}
+.login-page-wrapper{
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(rgba(0,35,102,0.75), rgba(0,35,102,0.75)),
+              url('school-bg.jpg');
+}
+header {
+    background-color: #333; 
+    color: white; 
+    padding: 20px;
+    text-align: center; 
+    font-size: 24px;
+}
+#bg-video {
+    position: fixed;
+      top: 0;
+        left: 0;
+          width: 100%;
+            height: 100%;
+              object-fit: cover;
+                z-index: -2;
+                }
+form {
+    
+      backdrop-filter: blur(6px);          /* glass effect */
+        -webkit-backdrop-filter: blur(6px);
+          padding: 25px;
+            border-radius: 12px;
+              max-width: 420px;
+                margin: auto;
+                }
+                form {
+                    background: rgba(255, 255, 255, 0.6);
+                      backdrop-filter: blur(6px);
+                        -webkit-backdrop-filter: blur(6px);
+                          padding: 25px;
+                            border-radius: 12px;
+                            }
+
+                form input,
+                form textarea,
+                form button {
+                  background: rgba(255, 255, 255, 0.85);
+                  }
+                  body {
+                      margin: 0;
+                        min-height: 100vh;
+                        }
+                        form {
+                            position: static; /* default positioning */
+                              margin: 0 auto;   /* centers the form horizontally */
+                                display: block;   /* ensures it behaves like a block element */
+                                }
+
+                        
+
+                  
+
+
+
+
+
+                  
+
+                  
+
+
+.header {
+    display: flex;
+      align-items: center;
+        justify-content: center;
+          gap: 15px;
+            margin-bottom: 30px;
+            }
+
+            .logo {
+              width: 70px;
+                height: auto;
+                }
+
+
+
+
+
+
+
+h1 {
+    margin: 0; }
+    body {
+        background-image: url("images/inquiry-bg.png");
+          background-size: cover;
+            background-repeat: no-repeat;
+              background-attachment: fixed;
+                background-position: center;
+                  margin: 0;
+                    padding: 0;
+                      font-family: sans-serif;
+                      }
+
+  body {
+      margin: 0;
+        font-family: Arial, sans-serif;
+          background: #f2f7ff;
+          }
+
+          .page-header {
+            background: #0a3d62;
+              color: white;
+                text-align: center;
+                  padding: 40px 20px;
+                  }
+
+                  .registration {
+                    max-width: 700px;
+                      margin: 40px auto;
+                        background: white;
+                          padding: 30px;
+                            border-radius: 10px;
+                            }
+
+                            .registration h2 {
+                              text-align: center;
+                                color: #0a3d62;
+                                }
+
+                                .registration label {
+                                  margin-top: 15px;
+                                    display: block;
+                                      font-weight: bold;
+                                      }
+
+                                      .registration input,
+                                      .registration select,
+                                      .registration textarea {
+                                        width: 100%;
+                                          padding: 12px;
+                                            margin-top: 5px;
+                                              border-radius: 5px;
+                                                border: 1px solid #ccc;
+                                                }
+
+                                                .registration textarea {
+                                                  resize: vertical;
+                                                  }
+
+                                                  .registration button {
+                                                    width: 100%;
+                                                      margin-top: 25px;
+                                                        padding: 14px;
+                                                          background: #0a3d62;
+                                                            color: white;
+                                                              border: none;
+                                                                border-radius: 5px;
+                                                                  font-size: 16px;
+                                                                    cursor: pointer;
+                                                                    }
+
+                                                                    .registration button:hover {
+                                                                      background: #07507a;
+                                                                      }
+
+                                                                      .page-footer {
+                                                                        text-align: center;
+                                                                          padding: 20px;
+                                                                            background: #e6eefc;}
+
+                                                                                          .inquiry {
+                                                                                              background-image: url("images/inquiry-bg.jpg");
+                                                                                                background-size: cover;      /* Makes the image cover the whole area */
+                                                                                                  background-repeat: no-repeat; /* Prevents tiling */
+                                                                                                    background-position: center;  /* Centers the image */
+                                                                                                      padding: 60px 20px;           /* Space inside the form section */
+                                                                                                        border-radius: 10px;          /* Optional: rounded edges for the form */
+                                                                                                        }
+                                                                                                          
+                       .inquiry form {
+                          background: rgba(255, 255, 255, 0.9); /* White with slight transparency */
+                            padding: 30px;
+                              border-radius: 10px;
+                              }
+
+                                                                                 
+                                                                            
+                                                
+
+                                                                            
+  
+                   

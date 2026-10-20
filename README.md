@@ -53,3 +53,6 @@ The dashboard metrics and activities are illustrative mock data in `src/data/sit
 
 All editable source is contained in this project directory. Download or clone the complete repository, open the folder in VS Code, run `npm install`, and then use the scripts above. The preview panel itself is not an export mechanism.
 
+## EIS website
+
+The separate EIS website is included in [`EIS-WEBSITE - Copy`](./EIS-WEBSITE%20-%20Copy/). It remains its own application rather than being merged into the AceEdu Vite app. To run its Express server, install its dependencies from that folder with `npm install`, start MongoDB locally, then run `npm start`. The server is available at `http://localhost:3000`.

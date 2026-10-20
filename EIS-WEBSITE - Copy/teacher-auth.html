@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Faculty | Secure Authentication</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <style>
+      :root {
+        --deep-navy: #0a192f;
+        --cyber-blue: #00d2ff;
+        --gold: #d4af37;
+        --dark-surface: rgba(17, 34, 64, 0.95);
+        --text-main: #e6f1ff;
+      }
+
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: "Inter", "Segoe UI", sans-serif;
+        background-color: var(--deep-navy);
+      }
+
+      .login-page-wrapper {
+        height: 100vh;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background:
+          linear-gradient(rgba(10, 25, 47, 0.9), rgba(10, 25, 47, 0.9)),
+          url("school-bg.jpg") no-repeat center center fixed;
+        background-size: cover;
+      }
+
+      .login-card {
+        position: relative;
+        background: var(--dark-surface);
+        backdrop-filter: blur(15px);
+        width: 90%;
+        max-width: 400px;
+        padding: 40px;
+        border-radius: 20px;
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        text-align: center;
+      }
+
+      .portal-logo {
+        width: 80px;
+        margin-bottom: 15px;
+        filter: drop-shadow(0 0 10px var(--gold));
+      }
+
+      h1 {
+        color: white;
+        margin: 0;
+        font-size: 22px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      p {
+        color: var(--gold);
+        font-size: 14px;
+        margin-top: 5px;
+        opacity: 0.8;
+      }
+
+      #teacherPassword {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 15px;
+        margin: 25px 0;
+        background: rgba(2, 12, 27, 0.7);
+        border: 1px solid rgba(212, 175, 55, 0.4);
+        border-radius: 12px;
+        font-size: 16px;
+        color: var(--gold);
+        text-align: center;
+        transition: 0.3s;
+      }
+
+      #teacherPassword:focus {
+        outline: none;
+        border-color: var(--gold);
+        box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+      }
+
+      .login-btn {
+        width: 100%;
+        padding: 15px;
+        background: var(--gold);
+        color: var(--deep-navy);
+        border: none;
+        border-radius: 12px;
+        font-weight: 800;
+        cursor: pointer;
+        font-size: 16px;
+        transition: 0.3s;
+        text-transform: uppercase;
+      }
+      .login-btn:hover {
+        background: white;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+      }
+      .footer-note {
+        margin-top: 20px;
+        font-size: 11px;
+        color: #8892b0;
+      }
+      .back-link {
+        display: block;
+        margin-top: 15px;
+        color: #8892b0;
+        text-decoration: none;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .back-link:hover {
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-page-wrapper">
+      <div class="login-card">
+        <div class="login-header">
+          <img src="/logo.png" alt="Logo" class="portal-logo" />
+          <h1>Faculty Access</h1>
+          <p>Verify Identity Password</p>
+        </div>
+
+        <div class="login-body">
+          <input
+            type="password"
+            id="teacherPassword"
+            placeholder="Enter Account Password"
+          />
+          <button class="login-btn" onclick="verifyTeacher()">
+            Enter Portal
+          </button>
+          <a onclick="logout()" class="back-link"
+            ><i class="fas fa-arrow-left"></i> Cancel & Logout</a
+          >
+        </div>
+        <div class="footer-note">
+          Restricted Area. Authorized Personnel Only.
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Check if we have a PIN from the first step
+      const userPin = localStorage.getItem("userPin");
+      if (!userPin) window.location.href = "/login";
+
+      async function verifyTeacher() {
+        const password = document.getElementById("teacherPassword").value;
+
+        try {
+          const response = await fetch("/api/teacher/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pin: userPin, password: password }),
+          });
+          const data = await response.json();
+
+          if (data.success) window.location.href = data.redirectUrl;
+          else alert(data.message);
+        } catch (err) {
+          alert("Verification Error");
+        }
+      }
+
+      function logout() {
+        localStorage.clear();
+        window.location.href = "/login";
+      }
+    </script>
+  </body>
+</html>

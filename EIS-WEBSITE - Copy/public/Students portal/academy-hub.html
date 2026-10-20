@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Classroom Hub | Eliud International School</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --bg-body: #0a192f;
+        --bg-surface: #112240;
+        --bg-surface-hover: #1d3457;
+        --primary: #d4af37; /* Gold */
+        --primary-glow: rgba(212, 175, 55, 0.3);
+        --accent: #00d2ff; /* Cyber Blue */
+        --text-main: #f1f5f9;
+        --text-secondary: #94a3b8;
+        --border: rgba(212, 175, 55, 0.2);
+        --radius: 16px;
+        --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      }
+
+      body {
+        background-color: var(--bg-body);
+        background-image:
+          radial-gradient(
+            at 0% 0%,
+            rgba(212, 175, 55, 0.08) 0px,
+            transparent 50%
+          ),
+          radial-gradient(
+            at 100% 0%,
+            rgba(0, 210, 255, 0.05) 0px,
+            transparent 50%
+          );
+        font-family: "Plus Jakarta Sans", sans-serif;
+        color: var(--text-main);
+        margin: 0;
+        min-height: 100vh;
+      }
+
+      /* Modern Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--bg-surface-hover);
+        border-radius: 4px;
+      }
+
+      /* --- NAVBAR - Floating Glass --- */
+      .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 30px;
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .brand {
+        font-family: "Outfit", sans-serif;
+        font-weight: 700;
+        font-size: 1.4rem;
+        background: linear-gradient(to right, #fff, #94a3b8);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .user-pill {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        padding: 6px 12px 6px 6px;
+        border-radius: 50px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: 0.3s;
+      }
+      .user-pill:hover {
+        border-color: var(--primary);
+        box-shadow: 0 0 15px var(--primary-glow);
+      }
+      .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--bg-body);
+      }
+      .user-info {
+        text-align: right;
+        line-height: 1.2;
+      }
+      .user-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: white;
+      }
+      .user-role {
+        font-size: 10px;
+        color: var(--primary);
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
+      /* --- LAYOUT --- */
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 30px 20px;
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 30px;
+      }
+
+      /* --- SIDEBAR --- */
+      .sidebar {
+        position: sticky;
+        top: 100px;
+        height: fit-content;
+      }
+      .class-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 25px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .class-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: var(--primary);
+      }
+      .class-icon {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 15px;
+        background: rgba(212, 175, 55, 0.1);
+        color: var(--primary);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+      }
+      .class-title {
+        font-family: "Outfit", sans-serif;
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+        color: white;
+      }
+      .class-subtitle {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .menu-list {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .menu-item {
+        padding: 12px 15px;
+        border-radius: 10px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: 0.2s;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+      .menu-item:hover {
+        background: rgba(255, 255, 255, 0.03);
+        color: white;
+      }
+      .menu-item.active {
+        background: rgba(212, 175, 55, 0.1);
+        color: var(--primary);
+        border-color: rgba(212, 175, 55, 0.2);
+      }
+
+      /* --- MAIN FEED --- */
+      .feed-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .feed-title {
+        font-family: "Outfit", sans-serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+      }
+
+      /* --- TEACHER ACTIONS --- */
+      .action-bar {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        padding: 15px;
+        border-radius: var(--radius);
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+        align-items: center;
+      }
+      .btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: 0.2s;
+        font-family: "Plus Jakarta Sans", sans-serif;
+      }
+      .btn-primary {
+        background: var(--primary);
+        color: var(--bg-body);
+        box-shadow: 0 4px 12px var(--primary-glow);
+      }
+      .btn-primary:hover {
+        background: #eac545;
+        transform: translateY(-1px);
+      }
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        border: 1px solid var(--border);
+      }
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .btn-danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+      }
+      .btn-danger:hover {
+        background: #ef4444;
+        color: white;
+      }
+
+      /* --- POST CARDS --- */
+      .post-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 25px;
+        margin-bottom: 20px;
+        transition: 0.3s;
+        position: relative;
+      }
+      .post-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 255, 255, 0.15);
+        box-shadow: var(--shadow);
+      }
+
+      .post-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+      }
+      .post-meta {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+      }
+      .post-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        background: var(--bg-body);
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        border: 1px solid var(--border);
+      }
+      .post-info h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: white;
+      }
+      .post-info span {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .post-content {
+        color: #cbd5e1;
+        font-size: 15px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+
+      .attachment {
+        background: var(--bg-body);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: var(--text-main);
+        transition: 0.2s;
+        width: fit-content;
+      }
+      .attachment:hover {
+        border-color: var(--primary);
+        background: rgba(212, 175, 55, 0.05);
+      }
+      .attachment i {
+        color: var(--primary);
+      }
+
+      .post-footer {
+        border-top: 1px solid var(--border);
+        padding-top: 15px;
+        margin-top: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      /* --- ROSTER GRID --- */
+      .roster-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+      }
+      .person-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        transition: 0.2s;
+      }
+      .person-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-3px);
+      }
+      .person-img {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        margin-bottom: 10px;
+        object-fit: cover;
+        border: 2px solid var(--bg-body);
+      }
+      .person-name {
+        font-weight: 700;
+        font-size: 14px;
+        color: white;
+        margin-bottom: 4px;
+      }
+      .person-role {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      /* --- MODAL --- */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.9);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+      }
+      .modal-content {
+        background: var(--bg-surface);
+        padding: 40px;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 600px;
+        border: 1px solid var(--border);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      }
+      .modal-input {
+        width: 100%;
+        padding: 15px;
+        margin: 15px 0;
+        background: var(--bg-body);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: white;
+        font-family: "Plus Jakarta Sans", sans-serif;
+        box-sizing: border-box;
+        outline: none;
+      }
+      .modal-input:focus {
+        border-color: var(--primary);
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          position: static;
+          margin-bottom: 30px;
+        }
+        .action-bar {
+          flex-wrap: wrap;
+        }
+        .btn {
+          flex: 1;
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar">
+      <div
+        class="brand"
+        onclick="window.location.href = '/student-dashboard'"
+        style="cursor: pointer"
+      >
+        <i class="fas fa-shield-alt" style="color: var(--primary)"></i>
+        <span>ELIUD <span style="color: var(--primary)">INTERNATIONAL SCHOOL</span></span>
+      </div>
+      <div class="user-pill">
+        <div class="user-info">
+          <div id="studentName" class="user-name">LOADING...</div>
+          <div id="studentID" class="user-role">ID: ####</div>
+        </div>
+        <img
+          id="studentPhoto"
+          src="https://via.placeholder.com/40"
+          class="user-avatar"
+        />
+      </div>
+    </nav>
+
+    <div class="container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="class-card">
+          <div class="class-icon"><i class="fas fa-graduation-cap"></i></div>
+          <div id="className" class="class-title">INITIALIZING...</div>
+          <div id="accessLevel" class="class-subtitle">VERIFYING ACCESS</div>
+        </div>
+
+        <div class="menu-list">
+          <div
+            onclick="switchTab('stream')"
+            id="tab-stream"
+            class="menu-item active"
+          >
+            <i class="fas fa-stream"></i> Class Stream
+          </div>
+          <div onclick="switchTab('roster')" id="tab-roster" class="menu-item">
+            <i class="fas fa-users"></i> People
+          </div>
+          <div class="menu-item" style="opacity: 0.5; cursor: not-allowed">
+            <i class="fas fa-chart-pie"></i> Grades (Soon)
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main>
+        <!-- Teacher Actions -->
+        <div id="teacherConsole" class="action-bar" style="display: none">
+          <div style="margin-right: auto; font-weight: 700; color: white">
+            Instructor Controls
+          </div>
+          <button class="btn btn-primary" onclick="openCreator()">
+            <i class="fas fa-plus"></i> New Post
+          </button>
+          <button class="btn btn-danger" onclick="startLiveClass()">
+            <i class="fas fa-video"></i> Start an Online Class
+          </button>
+          <button class="btn btn-secondary" onclick="window.close()">
+            <i class="fas fa-sign-out-alt"></i> Exit
+          </button>
+        </div>
+
+        <!-- Feed Header -->
+        <div class="feed-header">
+          <div class="feed-title">Activity Feed</div>
+          <div style="font-size: 13px; color: var(--text-secondary)">
+            <i
+              class="fas fa-circle"
+              style="color: #10b981; font-size: 8px; margin-right: 5px"
+            ></i>
+            Live Updates
+          </div>
+        </div>
+
+        <!-- Stream Content -->
+        <div id="assignmentStream">
+          <!-- Posts go here -->
+        </div>
+
+        <!-- Roster Content -->
+        <div id="classRoster" style="display: none">
+          <h3 style="margin-bottom: 15px; font-size: 18px; color: white">
+            Instructors
+          </h3>
+          <div id="teacherCards" class="roster-grid"></div>
+
+          <h3 style="margin: 30px 0 15px; font-size: 18px; color: white">
+            Students
+          </h3>
+          <div id="studentCards" class="roster-grid"></div>
+        </div>
+      </main>
+    </div>
+
+    <div id="creatorModal" class="modal-overlay">
+      <div class="modal-content">
+        <h2
+          style="
+            margin-top: 0;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: &quot;Outfit&quot;, sans-serif;
+          "
+        >
+          <i class="fas fa-broadcast-tower" style="color: var(--primary)"></i>
+          New Broadcast
+        </h2>
+        <p
+          id="broadcastTarget"
+          style="font-size: 12px; color: var(--primary); margin-bottom: 20px"
+        ></p>
+
+        <input
+          type="text"
+          id="postTitle"
+          class="modal-input"
+          placeholder="Title (e.g., Physics Lesson 1)"
+        />
+        <textarea
+          id="postContent"
+          class="modal-input"
+          rows="4"
+          placeholder="Instructions or content..."
+        ></textarea>
+
+        <div
+          id="filePreview"
+          style="
+            display: none;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px dashed var(--primary);
+            font-size: 12px;
+          "
+        >
+          <span id="fileName"></span>
+          <button
+            onclick="clearFile()"
+            style="
+              float: right;
+              border: none;
+              background: none;
+              color: red;
+              cursor: pointer;
+            "
+          >
+            &times;
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 15px">
+          <input
+            type="file"
+            id="mediaUpload"
+            hidden
+            onchange="processFile(this)"
+          />
+          <button
+            onclick="document.getElementById('mediaUpload').click()"
+            class="btn"
+            style="
+              background: rgba(255, 255, 255, 0.1);
+              color: white;
+              font-size: 12px;
+              flex: 1;
+              justify-content: center;
+            "
+          >
+            <i class="fa fa-paperclip"></i> Attach Media
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 15px">
+          <button
+            id="transmitBtn"
+            onclick="submitPost()"
+            class="btn btn-primary"
+            style="flex: 2; justify-content: center"
+          >
+            TRANSMIT
+          </button>
+          <button
+            onclick="closeCreator()"
+            class="btn"
+            style="
+              flex: 1;
+              background: rgba(255, 255, 255, 0.1);
+              color: white;
+              justify-content: center;
+            "
+          >
+            CANCEL
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let attachedFileData = null;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        let identity = JSON.parse(localStorage.getItem("studentIdentity"));
+
+        if (!identity) {
+          identity = {
+            fullName: localStorage.getItem("userName"),
+            accessPin: localStorage.getItem("userPin"),
+            designation: localStorage.getItem("userClass"),
+            role: localStorage.getItem("userPin")?.startsWith("TCH")
+              ? "teacher"
+              : "student",
+          };
+        }
+
+        if (!identity.accessPin) return (window.location.href = "/login");
+
+        document.getElementById("studentName").innerText = (
+          identity.fullName || "User"
+        ).toUpperCase();
+        document.getElementById("studentID").innerText =
+          "ID: " + identity.accessPin;
+
+        const activeClass = identity.designation || "Unassigned Class";
+        document.getElementById("className").innerText = activeClass;
+        document.getElementById("accessLevel").innerText = (
+          identity.role || "STUDENT"
+        ).toUpperCase();
+        document.getElementById("broadcastTarget").innerText =
+          "Targeting: " + activeClass;
+
+        if (identity.passport) {
+          document.getElementById("studentPhoto").src = identity.passport;
+        }
+
+        if (
+          identity.role === "teacher" ||
+          identity.accessPin.startsWith("TCH")
+        ) {
+          document.getElementById("teacherConsole").style.display = "flex";
+        }
+
+        loadContent(activeClass);
+      });
+
+      async function loadContent(className) {
+        const stream = document.getElementById("assignmentStream");
+        const identity = JSON.parse(localStorage.getItem("studentIdentity"));
+        const isTeacher =
+          identity.role === "teacher" || identity.accessPin.startsWith("TCH");
+
+        try {
+          const res = await fetch(
+            `/api/classroom/content/${encodeURIComponent(className)}`,
+          );
+          const data = await res.json();
+
+          if (data && data.length > 0) {
+            stream.innerHTML = data
+              .map((post) => {
+                // 1. Handle Media (Images, Videos, PDFs)
+                let mediaHTML = "";
+                if (post.fileUrl) {
+                  if (post.fileUrl.includes("image/")) {
+                    mediaHTML = `<img src="${post.fileUrl}" style="width:100%; border-radius:10px; margin-top:10px; border: 1px solid rgba(255,255,255,0.1);">`;
+                  } else if (post.fileUrl.includes("video/")) {
+                    mediaHTML = `<video controls style="width:100%; border-radius:10px; margin-top:10px;"><source src="${post.fileUrl}"></video>`;
+                  } else {
+                    mediaHTML = `<div style="margin-top:10px; background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
+                            <a href="${post.fileUrl}" download style="color:var(--accent); text-decoration:none; font-weight:bold; font-size:13px;">
+                                <i class="fa fa-file-download"></i> Download Attached Material
+                            </a>
+                        </div>`;
+                  }
+                }
+
+                // 2. Teacher Delete Button logic
+                const deleteBtn = isTeacher
+                  ? `<button onclick="deletePost('${post._id}')" style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:16px;">
+                        <i class="fa fa-trash-alt"></i>
+                    </button>`
+                  : "";
+
+                // 3. The Full Card Structure
+                return `
+                    <div class="post-card" id="post-${post._id}">
+                        <div class="post-header">
+                            <div class="post-meta">
+                                <div class="post-icon">
+                                    <i class="fas ${post.type === "assignment" ? "fa-book-open" : "fa-bullhorn"}"></i>
+                                </div>
+                                <div class="post-info">
+                                    <h3>${post.title}</h3>
+                                    <span>${post.author || "Instructor"} • ${new Date(post.createdAt).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            ${deleteBtn}
+                        </div>
+                        
+                        <div class="post-content">
+                            ${post.contentBody || ""}
+                        </div>
+
+                        ${mediaHTML ? `<div style="margin-top: 15px;">${mediaHTML}</div>` : ""}
+                        
+                        <div class="post-footer">
+                            <span><i class="far fa-comment"></i> Comments disabled</span>
+                            <span>${post.type === "assignment" ? "Assignment" : "Announcement"}</span>
+                        </div>
+                    </div>
+                `;
+              })
+              .join("");
+          } else {
+            stream.innerHTML = `<div style="text-align:center; padding:50px; color:var(--text-muted); opacity:0.5;">
+                <i class="fa fa-cloud-sun" style="font-size:40px;"></i>
+                <p>The classroom is quiet. No posts found.</p>
+            </div>`;
+          }
+        } catch (err) {
+          stream.innerHTML =
+            "<p style='text-align:center;'>Feed synchronization failed.</p>";
+        }
+      }
+      async function deletePost(postId) {
+        if (
+          !confirm(
+            "Are you sure you want to permanently delete this transmission?",
+          )
+        )
+          return;
+
+        try {
+          const res = await fetch(`/api/content/${postId}`, {
+            method: "DELETE",
+          });
+
+          if (res.ok) {
+            // Smoothly remove from UI without refreshing
+            const element = document.getElementById(`post-${postId}`);
+            element.style.opacity = "0";
+            setTimeout(() => element.remove(), 300);
+          } else {
+            alert("Delete failed. Access denied.");
+          }
+        } catch (err) {
+          console.error("Delete Error:", err);
+        }
+      }
+
+      function switchTab(view) {
+        const streamTab = document.getElementById("assignmentStream");
+        const rosterTab = document.getElementById("classRoster");
+        const streamBtn = document.getElementById("tab-stream");
+        const rosterBtn = document.getElementById("tab-roster");
+
+        if (view === "stream") {
+          streamTab.style.display = "block";
+          rosterTab.style.display = "none";
+          streamBtn.classList.add("active");
+          rosterBtn.classList.remove("active");
+        } else {
+          streamTab.style.display = "none";
+          rosterTab.style.display = "block";
+          rosterBtn.classList.add("active");
+          streamBtn.classList.remove("active");
+          fetchRoster();
+        }
+      }
+
+      async function fetchRoster() {
+        const className = document.getElementById("className").innerText;
+        try {
+          const res = await fetch(
+            `/api/classroom/roster/${encodeURIComponent(className)}`,
+          );
+          const data = await res.json();
+          document.getElementById("teacherCards").innerHTML = data.teachers
+            .map(
+              (t) => `
+                <div class="person-card">
+                    <img src="${t.passport || "https://ui-avatars.com/api/?name=" + t.fullName}" class="person-img">
+                    <div class="person-name">${t.fullName}</div>
+                    <div class="person-role">FACULTY</div>
+                </div>`,
+            )
+            .join("");
+          document.getElementById("studentCards").innerHTML = data.students
+            .map(
+              (s) => `
+                <div class="person-card">
+                    <img src="${s.passport || "https://ui-avatars.com/api/?name=" + s.fullName}" class="person-img">
+                    <div class="person-name">${s.fullName}</div>
+                    <div class="person-role">ID: ${s.accessPin}</div>
+                </div>`,
+            )
+            .join("");
+        } catch (err) {
+          console.error("Roster Error:", err);
+        }
+      }
+
+      function openCreator() {
+        document.getElementById("creatorModal").style.display = "flex";
+      }
+      function closeCreator() {
+        document.getElementById("creatorModal").style.display = "none";
+        clearFile();
+      }
+
+      function processFile(input) {
+        const file = input.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            attachedFileData = e.target.result;
+            document.getElementById("filePreview").style.display = "block";
+            document.getElementById("fileName").innerText =
+              "📎 Ready: " + file.name;
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+
+      function clearFile() {
+        attachedFileData = null;
+        document.getElementById("mediaUpload").value = "";
+        document.getElementById("filePreview").style.display = "none";
+      }
+
+      async function submitPost() {
+        const title = document.getElementById("postTitle").value;
+        const body = document.getElementById("postContent").value;
+        const className = document.getElementById("className").innerText;
+
+        // Get teacher's name from the UI or localStorage
+        const teacherName = document.getElementById("studentName").innerText;
+
+        const btn = document.getElementById("transmitBtn");
+        if (!title || !body) return alert("Please fill title and content");
+
+        btn.innerText = "TRANSMITTING...";
+        btn.disabled = true;
+
+        try {
+          const res = await fetch("/api/content/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title,
+              contentBody: body,
+              targetClass: className,
+              fileUrl: attachedFileData,
+              author: teacherName, // <--- Send the name here
+              type: attachedFileData ? "assignment" : "material",
+            }),
+          });
+
+          if (res.ok) {
+            alert("Broadcast sent!");
+            location.reload();
+          }
+        } catch (err) {
+          btn.innerText = "TRANSMIT";
+          btn.disabled = false;
+        }
+      }
+
+      function startLiveClass() {
+        const className = document.getElementById("className").innerText;
+        window.open(
+          `https://meet.jit.si/EliudAcademy-${className.replace(/\s+/g, "-")}`,
+          "_blank",
+        );
+      }
+    </script>
+  </body>
+</html>

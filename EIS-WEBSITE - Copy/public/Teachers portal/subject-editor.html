@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Subject Management | Faculty Workspace</title>
+    <style>
+        :root { --navy: #002366; --gold: #D4AF37; --white: #ffffff; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; }
+        .header { background: var(--navy); color: var(--gold); padding: 20px; border-bottom: 4px solid var(--gold); display: flex; justify-content: space-between; }
+        .container { max-width: 900px; margin: 30px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: var(--navy); }
+        input, select, textarea { width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn-post { background: var(--navy); color: var(--gold); padding: 15px 30px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; font-size: 16px; }
+        .btn-post:hover { background: #001a4d; transform: translateY(-2px); }
+        .badge { background: #eef2f7; color: var(--navy); padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <span class="badge" id="currentSubjectDisplay">MATHEMATICS</span>
+            <h2 id="currentClassDisplay">JSS 1 Control Panel</h2>
+        </div>
+        <button onclick="history.back()" style="background:transparent; border:1px solid var(--gold); color:var(--gold); cursor:pointer;">Exit Classroom</button>
+    </div>
+
+    <div class="container">
+        <h3>Create New Content</h3>
+        <p style="color: #666;">This information will be instantly visible to students in this class.</p>
+        
+        <div class="form-group">
+            <label>Content Type</label>
+            <select id="contentType">
+                <option value="lesson">📖 Daily Lesson Note</option>
+                <option value="assignment">📝 Homework Assignment</option>
+                <option value="notice">🔔 Urgent Announcement</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Topic Title</label>
+            <input type="text" id="topic" placeholder="e.g., Introduction to Algebra">
+        </div>
+
+        <div class="form-group">
+            <label>Detailed Content</label>
+            <textarea id="mainContent" rows="10" placeholder="Type your lesson notes or assignment instructions here..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Deadline (Only for Assignments)</label>
+            <input type="date" id="deadline">
+        </div>
+
+        <button class="btn-post" onclick="uploadToPortal()">Publish to Student Portal</button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+  {
+  "name": "eis-website",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Famzytreatz/EIS-WEBSITE.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Famzytreatz/EIS-WEBSITE/issues"
+  },
+  "homepage": "https://github.com/Famzytreatz/EIS-WEBSITE#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "mongo": "^0.1.0",
+    "mongoose": "^9.1.5",
+    "node.js": "^0.0.1-security"
+  }
+}

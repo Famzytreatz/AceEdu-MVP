@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Principal Portal | Eliud Admin</title>
+    <link rel="stylesheet" href="/home.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/Admin%20Panel/identity-installation.css">
+    
+    <style>
+        :root {
+            --panel-bg: rgba(0, 31, 63, 0.05);
+            --gold-glow: 0 0 15px rgba(212, 175, 55, 0.4);
+            --cyber-blue: #00d2ff;
+            --gold: #d4af37;
+        }
+
+        /* --- ELITE BACKGROUND --- */
+        body {
+            background: linear-gradient(rgba(0, 17, 34, 0.92), rgba(0, 31, 63, 0.95)), url('/ASSETS/students.JPG');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* --- COMMAND NAV STYLING --- */
+        .admin-command-nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 4%; height: 85px; background: rgba(0, 15, 30, 0.95);
+            backdrop-filter: blur(20px); border-bottom: 2px solid var(--gold);
+            position: fixed; top: 0; width: 100%; z-index: 2000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .nav-left { display: flex; align-items: center; gap: 20px; }
+        .nav-seal { width: 50px; filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.3)); }
+        .nav-divider { width: 1px; height: 40px; background: rgba(255,255,255,0.2); }
+        .nav-brand-info { display: flex; flex-direction: column; }
+        .nav-title { font-family: 'Cinzel', serif; font-size: 1.2rem; color: white; letter-spacing: 2px; font-weight: 700; }
+        .nav-subtitle { font-size: 10px; color: var(--gold); letter-spacing: 3px; font-weight: 600; }
+
+        .nav-center { background: rgba(255,255,255,0.03); padding: 10px 25px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); }
+        .system-status { display: flex; align-items: center; gap: 15px; color: #fff; font-size: 13px; font-family: 'Courier New', monospace; }
+        .pulse-icon { width: 8px; height: 8px; background: #00ff00; border-radius: 50%; box-shadow: 0 0 10px #00ff00; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        .nav-right { display: flex; align-items: center; gap: 30px; }
+        .admin-profile { display: flex; align-items: center; gap: 10px; color: #fff; font-size: 11px; font-weight: 600; }
+        .exit-link { display: flex; align-items: center; gap: 10px; color: white; text-decoration: none; font-size: 11px; font-weight: 800; border: 1px solid rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 5px; transition: 0.3s; cursor: pointer;}
+        .exit-link:hover { background: #ff4d4d; border-color: #ff4d4d; }
+
+        /* --- LAYOUT --- */
+        .admin-container { max-width: 1100px; margin: 140px auto 60px; padding: 20px; }
+        .section-header h2 { color: white; font-family: 'Cinzel', serif; text-align: center;}
+        .section-header p { color: #b0c4de; text-align: center; margin-bottom: 40px;}
+
+        /* --- DASHBOARD STATS --- */
+        .staff-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: rgba(0, 15, 30, 0.7); padding: 20px; border-radius: 15px; border-left: 4px solid var(--cyber-blue); backdrop-filter: blur(10px); }
+        .stat-card h4 { color: #b0c4de; margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-card h2 { margin: 10px 0; color: white; font-family: 'Cinzel', serif; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.98); padding: 50px; border-radius: 25px;
+            box-shadow: 0 30px 70px rgba(0,0,0,0.3); border: 1px solid rgba(212, 175, 55, 0.3);
+            display: grid; grid-template-columns: 1fr 1.5fr; gap: 50px;
+        }
+
+        /* --- FORM ELEMENTS --- */
+        .passport-upload { text-align: center; border-right: 1px solid #eee; padding-right: 50px; display: flex; flex-direction: column; justify-content: center; }
+        .preview-box { width: 200px; height: 250px; background: #f0f4f8; margin: 0 auto 25px; border: 3px dashed var(--gold); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        #passportPreview { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .form-group { margin-bottom: 25px; }
+        label { display: block; font-weight: 700; font-size: 14px; color: #001f3f; margin-bottom: 10px; }
+        input, select { width: 100%; padding: 15px; border: 2px solid #e0e6ed; border-radius: 10px; background: #fcfdfe; outline: none; font-size: 16px; transition: 0.3s; }
+        input:focus { border-color: var(--gold); box-shadow: var(--gold-glow); }
+        .install-btn { background: linear-gradient(45deg, #001f3f, #003366); color: white; width: 100%; padding: 18px; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.4s; }
+        .install-btn:hover { background: var(--gold); color: #001f3f; transform: translateY(-3px); }
+
+        /* --- RECENT ACTIVITY --- */
+        .recent-list { background: rgba(0, 15, 30, 0.7); padding: 25px; border-radius: 15px; margin-top: 30px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
+        .recent-list h3 { color: white; font-family: 'Cinzel', serif; margin-top: 0; font-size: 1.1rem; }
+        .recent-item { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .recent-item:last-child { border-bottom: none; }
+
+        /* --- REGISTRY TABLE STYLES --- */
+        .registry-section { margin-top: 80px; }
+        .search-box { position: relative; width: 300px; }
+        .search-box i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--gold); }
+        .search-box input { width: 100%; padding: 12px 12px 12px 40px; background: rgba(255,255,255,0.1); border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 30px; color: white; outline: none; }
+        .search-box input::placeholder { color: #b0c4de; }
+
+        .table-container { background: rgba(255, 255, 255, 0.98); border-radius: 20px; overflow-x: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.4); margin-top: 20px; }
+        .elite-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 800px; }
+        .elite-table thead { background: #001f3f; color: var(--gold); text-align: left; }
+        .elite-table th, .elite-table td { padding: 18px 25px; border-bottom: 1px solid #eee; }
+        
+        .table-img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); }
+        .role-badge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .role-student { background: #e3f2fd; color: #1976d2; }
+        .role-teacher { background: #f3e5f5; color: #7b1fa2; }
+        .role-admin { background: #fff3e0; color: #e65100; }
+
+        #resultDisplay { display: none; text-align: center; padding: 20px; }
+        .pin-output { font-family: 'Courier New', monospace; font-size: 24px; font-weight: 900; color: #d4af37; letter-spacing: 5px; }
+
+        @media (max-width: 900px) {
+            .nav-center { display: none; }
+            .glass-panel { grid-template-columns: 1fr; padding: 30px; }
+            .passport-upload { border-right: none; border-bottom: 1px solid #eee; padding-bottom: 30px; padding-right: 0;}
+            .staff-controls { grid-template-columns: 1fr; }
+            .broadcast-grid { grid-template-columns: 1fr !important; }
+        }
+
+        /* PROFILE MODAL */
+        .modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px); }
+        .modal-content { background-color: #001f3f; margin: 10% auto; padding: 0; border: 1px solid var(--gold); width: 400px; border-radius: 15px; box-shadow: 0 0 30px rgba(212, 175, 55, 0.2); animation: slideDown 0.4s; color: white; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; background: rgba(212, 175, 55, 0.1); }
+        .modal-header h2 { margin: 0; font-family: 'Cinzel', serif; color: var(--gold); font-size: 18px; }
+        .close-modal { color: #b0c4de; font-size: 28px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .close-modal:hover { color: white; }
+        .modal-body { padding: 30px; text-align: center; }
+        .profile-img-lg { width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--gold); object-fit: cover; margin-bottom: 15px; }
+        .profile-detail { margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; text-align: left; }
+        .profile-label { font-size: 10px; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; display: block; }
+        .profile-value { font-size: 14px; color: white; font-family: 'Courier New', monospace; }
+    </style>
+</head>
+<body>
+    <body>
+
+    <div id="bootSequence" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #00d2ff; font-family: 'Courier New', monospace;">
+        <div id="bootLogo" style="margin-bottom: 20px; transition: 1s;">
+            <img src="/logo.png" style="width: 80px; filter: drop-shadow(0 0 10px #00d2ff);">
+        </div>
+        <div style="width: 200px; height: 2px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin-bottom: 15px;">
+            <div id="bootProgress" style="width: 0%; height: 100%; background: #00d2ff; box-shadow: 0 0 15px #00d2ff; transition: 0.5s;"></div>
+        </div>
+        <div id="bootText" style="font-size: 10px; letter-spacing: 2px; text-transform: uppercase;">Initializing Vault Core...</div>
+    </div>
+
+    <nav class="admin-command-nav">
+        <div class="nav-left">
+            <img src="/logo.png" alt="Eliud Seal" class="nav-seal">
+            <div class="nav-divider"></div>
+            <div class="nav-brand-info">
+                <span class="nav-title">ELIUD <span class="gold-text">INTERNATIONAL</span> SCHOOL</span>
+                <span class="nav-subtitle">ADMIN CONTROL // SUB-ADMIN PORTAL</span>
+            </div>
+        </div>
+        <div class="nav-center">
+            <div class="system-status">
+                <span class="pulse-icon"></span>
+                <span id="liveClock">00:00:00 AM</span>
+                <span class="status-text">VAULT CONNECTION SECURE</span>
+            </div>
+        </div>
+        <div class="nav-right">
+            <div class="admin-profile">
+                <i class="fa fa-user-shield"></i> <span id="staffNameDisplay">STAFF TERMINAL</span>
+                <button onclick="openMyProfile()" style="margin-left: 10px; background: var(--gold); color: #001f3f; border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 10px;">VIEW PROFILE</button>
+            </div>
+            <a onclick="logout()" class="exit-link"><span>EXIT HUB</span> <i class="fa fa-sign-out-alt"></i></a>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+
+        <div id="staffGreeting" style="margin-bottom: 35px; border-left: 4px solid var(--cyber-blue); padding-left: 20px;">
+            <h1 style="color: white; font-family: 'Cinzel', serif; margin: 0; font-size: 1.8rem; letter-spacing: 1px;">
+                PRINCIPAL <span style="color: var(--cyber-blue);">DASHBOARD</span>
+            </h1>
+            <div style="display: flex; align-items: center; gap: 15px; margin-top: 8px;">
+                <span style="background: rgba(0, 210, 255, 0.1); color: var(--cyber-blue); padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: 700; border: 1px solid rgba(0, 210, 255, 0.3); text-transform: uppercase;">
+                    OPERATOR: <span id="operatorName">SECURE_USER</span>
+                </span>
+                <span id="accessLevelDisplay" style="color: rgba(255,255,255,0.5); font-family: 'Courier New', monospace; font-size: 10px;">
+                    <i class="fa fa-eye"></i> READ-ONLY ACCESS
+                </span>
+            </div>
+        </div>
+        
+        <div class="staff-controls">
+            <div class="stat-card">
+                <h4>Total Enrolled Today</h4>
+                <h2 id="todayCount">0</h2>
+            </div>
+            <div class="stat-card" style="border-left-color: #4ade80;">
+                <h4>System Status</h4>
+                <h2 style="color: #4ade80;">SYSTEM ONLINE</h2>
+            </div>
+        </div>
+
+        <div class="broadcast-section" style="margin-bottom: 50px; background: rgba(0, 20, 40, 0.8); padding: 30px; border-radius: 20px; border: 1px solid var(--gold); backdrop-filter: blur(10px);">
+            <h3 style="color: white; font-family: 'Cinzel', serif; margin-bottom: 20px;">
+                <i class="fa fa-satellite-dish gold-text"></i> Communications Command
+            </h3>
+            
+            <div class="broadcast-grid" style="display: grid; grid-template-columns: 1fr 2fr auto; gap: 15px;">
+                <select id="msgTarget" style="background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                    <option value="student">Broadcast to Students</option>
+                    <option value="teacher">Broadcast to Teachers</option>
+                    <option value="all">Broadcast to All Units</option>
+                </select>
+                
+                <input type="text" id="msgContent" placeholder="Enter secure transmission message..." 
+                       style="background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                
+                <button onclick="sendBroadcast()" class="install-btn" style="width: auto; padding: 0 30px; background: var(--gold); color: black;">
+                    <i class="fa fa-paper-plane"></i> TRANSMIT
+                </button>
+            </div>
+            
+            <div id="broadcastStatus" style="margin-top: 10px; font-size: 11px; color: #4ade80; font-family: monospace; display: none;">
+                📡 TRANSMISSION SUCCESSFUL: MESSAGE LOGGED IN VAULT
+            </div>
+        </div>
+
+        <!-- ENROLLMENT SECTION (Hidden for Principal, Visible for School Admin) -->
+        <div id="enrollmentSection" style="display: none;">
+            <div class="section-header">
+                <h2><i class="fa fa-shield-alt gold-text"></i> Identity Installation Protocol</h2>
+                <p>Register new institutional members into the secure Elite Vault.</p>
+            </div>
+
+            <div class="glass-panel">
+                <div class="passport-upload">
+                    <label>Official Passport Photo</label>
+                    <div class="preview-box" onclick="document.getElementById('passportInput').click()">
+                        <i class="fa fa-camera" id="uploadPlaceholder" style="font-size: 60px; color: #d4af37; opacity: 0.5;"></i>
+                        <img id="passportPreview" src="#" alt="Passport">
+                    </div>
+                    <input type="file" id="passportInput" accept="image/*" hidden>
+                    <p style="font-size: 11px; color: #666;">High-resolution professional photo required.</p>
+                </div>
+
+                <div class="details-form">
+                    <form id="enrollmentForm">
+                        <div class="form-group">
+                            <label><i class="fa fa-user"></i> Full Legal Name</label>
+                            <input type="text" id="fullName" placeholder="Enter student/staff name..." required>
+                        </div>
+                        <div class="row" style="display: flex; gap: 20px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label><i class="fa fa-id-badge"></i> System Role</label>
+                                <select id="role" required onchange="toggleFields()">
+                                    <option value="" disabled selected>Select Role</option>
+                                    <option value="student">Student Scholar</option>
+                                    <option value="teacher">Faculty / Staff</option>
+                                    <option value="sub-admin">Principal / Sub-Admin</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label><i class="fa fa-layer-group"></i> Designation</label>
+                                <select id="designationSelect" class="modal-input">
+                                    <option value="">Select Classroom</option>
+                                    <option value="JSS 1">JSS 1</option>
+                                    <option value="JSS 2">JSS 2</option>
+                                    <option value="JSS 3">JSS 3</option>
+                                    <option value="SSS 1">SSS 1</option>
+                                    <option value="SSS 2">SSS 2</option>
+                                    <option value="SSS 3">SSS 3</option>    
+                                </select>
+                                <input type="text" id="designationInput" class="modal-input" placeholder="Job Title / Role" style="display:none;">
+                            </div>
+                        </div>
+
+                        <!-- DYNAMIC FIELDS -->
+                        <div id="extraFields" style="display: none; border-top: 1px solid #eee; padding-top: 20px; margin-top: 10px;">
+                            
+                            <!-- Common Fields -->
+                            <div class="row" style="display: flex; gap: 20px;">
+                                <div class="form-group" style="flex: 1;"><label>State of Origin</label><input type="text" id="stateOfOrigin" placeholder="State"></div>
+                                <div class="form-group" style="flex: 1;"><label>House Address</label><input type="text" id="address" placeholder="Residential Address"></div>
+                            </div>
+
+                            <!-- Student Specific -->
+                            <div id="studentSpecific" style="display: none;">
+                                <div class="row" style="display: flex; gap: 20px;">
+                                    <div class="form-group" style="flex: 1;"><label>Date of Birth</label><input type="date" id="dob"></div>
+                                    <div class="form-group" style="flex: 1;"><label>Guardian Phone</label><input type="tel" id="guardianPhone" placeholder="Parent's Contact"></div>
+                                </div>
+                            </div>
+
+                            <!-- Teacher/Admin Specific -->
+                            <div id="staffSpecific" style="display: none;">
+                                <div class="row" style="display: flex; gap: 20px;">
+                                    <div class="form-group" style="flex: 1;"><label>Personal Phone</label><input type="tel" id="phone" placeholder="Mobile Number"></div>
+                                    <div class="form-group" style="flex: 1;"><label>Secure Password</label><input type="password" id="password" placeholder="Login Password"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="install-btn"><i class="fa fa-cogs"></i> Generate Secure Identity</button>
+                    </form>
+
+                    <div id="resultDisplay">
+                        <i class="fa fa-check-circle" style="font-size: 40px; color: #48bb78; margin-bottom: 15px;"></i>
+                        <h3 style="color: #2f855a; margin: 0;">Installation Complete</h3>
+                        <div style="margin: 20px 0; background: #f9fbff; padding: 15px; border-radius: 10px; border: 1px solid #eee;">
+                            <p style="font-size:11px; color:#666; margin-bottom: 5px;">Secure Access PIN:</p>
+                            <div class="pin-output" id="finalPin">---</div>
+                        </div>
+                        <button onclick="location.reload()" style="background:none; border:none; color:#001f3f; cursor:pointer; font-weight:700; text-decoration:underline;">Register Another</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="registry-section">
+            <div class="registry-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                    <h2 style="color: white; font-family: 'Cinzel', serif; margin: 0;">Identity <span class="gold-text">Registry</span></h2>
+                    <p style="color: #b0c4de; font-size: 13px; margin: 5px 0 0 0;">Authorized view of all encrypted database identities.</p>
+                </div>
+                <div class="search-box">
+                    <i class="fa fa-search"></i>
+                    <input type="text" id="registrySearch" placeholder="Search by Name or PIN..." onkeyup="filterRegistry()">
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="elite-table">
+                    <thead>
+                        <tr>
+                            <th>Passport</th>
+                            <th>Full Name</th>
+                            <th>Role</th>
+                            <th>Designation</th>
+                            <th>Access PIN</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="registryBody">
+                        <tr><td colspan="6" style="text-align:center; padding: 40px; color: #999;">Loading Secure Registry...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer style="margin-top: 80px; padding: 40px 0; border-top: 1px solid rgba(212, 175, 55, 0.1); text-align: center;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: 0.4; transition: 0.3s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.4'">
+            <div style="height: 1px; width: 100px; background: linear-gradient(90deg, transparent, var(--gold), transparent); margin-bottom: 10px;"></div>
+            
+            <a href="/admin" style="text-decoration: none; color: #b0c4de; font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 2px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa fa-fingerprint" style="color: var(--gold);"></i> 
+                ENCRYPTED MASTER TERMINAL ACCESS
+            </a>
+            
+            <p style="color: rgba(255,255,255,0.3); font-size: 9px; margin: 5px 0 0 0; font-family: sans-serif;">
+                &copy; 2026 ELIUD INTERNATIONAL SCHOOL OS | v2.0.4 CORE-ENGINE
+            </p>
+        </div>
+    </footer>
+
+    <!-- MY PROFILE MODAL -->
+    <div id="myProfileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa fa-id-card"></i> MY OPERATOR PROFILE</h2>
+                <span class="close-modal" onclick="document.getElementById('myProfileModal').style.display='none'">&times;</span>
+            </div>
+            <div class="modal-body" id="myProfileContent">
+                <!-- Populated by JS -->
+                <p>Loading Profile...</p>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- 1. BOOT SEQUENCE LOGIC (The Fix for the Hanging Screen) ---
+    async function startSystem() {
+        const progress = document.getElementById('bootProgress');
+        const bootText = document.getElementById('bootText');
+        const overlay = document.getElementById('bootSequence');
+        
+        // Simulated Loading Stages
+        const stages = [
+            { p: 20, t: "Establishing Satellite Link..." },
+            { p: 45, t: "Decrypting Vault Core..." },
+            { p: 75, t: "Authenticating Admin Credentials..." },
+            { p: 100, t: "System Ready." }
+        ];
+
+        for (let stage of stages) {
+            await new Promise(resolve => setTimeout(resolve, 600)); // Smooth timing
+            progress.style.width = stage.p + "%";
+            bootText.innerText = stage.t;
+        }
+
+        // Fade out and Reveal
+        setTimeout(() => {
+            overlay.style.opacity = '0';
+            overlay.style.pointerEvents = 'none'; // Allow clicking through
+            setTimeout(() => overlay.remove(), 1000);
+            
+            // Trigger background loads
+            loadRegistry();
+            updateOperatorInfo();
+            checkPermissions(); // Check if School Admin or Principal
+        }, 500);
+    }
+
+    // --- 2. CORE SYSTEM FUNCTIONS ---
+    function updateClock() { 
+        document.getElementById('liveClock').innerText = new Date().toLocaleTimeString(); 
+    }
+    setInterval(updateClock, 1000); 
+
+    function updateOperatorInfo() {
+        const adminName = localStorage.getItem('adminName') || "CHIEF_OPERATOR";
+        document.getElementById('operatorName').innerText = adminName;
+        document.getElementById('staffNameDisplay').innerText = adminName;
+    }
+
+    // --- 3. ROLE-BASED ACCESS CONTROL ---
+    function checkPermissions() {
+        const role = localStorage.getItem('userRole');
+        const enrollmentSection = document.getElementById('enrollmentSection');
+        const accessDisplay = document.getElementById('accessLevelDisplay');
+
+        if (role === 'school-admin') {
+            enrollmentSection.style.display = 'block';
+            accessDisplay.innerHTML = '<i class="fa fa-unlock"></i> FULL ADMIN ACCESS';
+            accessDisplay.style.color = '#4ade80';
+        } else {
+            enrollmentSection.style.display = 'none';
+            accessDisplay.innerHTML = '<i class="fa fa-eye"></i> READ-ONLY ACCESS';
+        }
+    }
+
+    // --- 4. ENROLLMENT LOGIC (Restored) ---
+    function toggleFields() {
+        const role = document.getElementById('role').value;
+        const extraFields = document.getElementById('extraFields');
+        const studentSpecific = document.getElementById('studentSpecific');
+        const staffSpecific = document.getElementById('staffSpecific');
+        const desSelect = document.getElementById('designationSelect');
+        const desInput = document.getElementById('designationInput');
+
+        if(role) extraFields.style.display = 'block';
+        
+        const isStudent = role === 'student';
+        studentSpecific.style.display = isStudent ? 'block' : 'none';
+        staffSpecific.style.display = !isStudent ? 'block' : 'none';
+        
+        if (isStudent) {
+            desSelect.style.display = 'block';
+            desInput.style.display = 'none';
+        } else {
+            desSelect.style.display = 'none';
+            desInput.style.display = 'block';
+        }
+    }
+
+    const passportInput = document.getElementById('passportInput');
+    const passportPreview = document.getElementById('passportPreview');
+    const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+    let base64Image = "";
+
+    if(passportInput) {
+        passportInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    base64Image = e.target.result;
+                    passportPreview.src = base64Image;
+                    passportPreview.style.display = 'block';
+                    uploadPlaceholder.style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Broadcast Function
+    async function sendBroadcast() {
+        const target = document.getElementById('msgTarget').value;
+        const content = document.getElementById('msgContent').value;
+        const statusDiv = document.getElementById('broadcastStatus');
+
+        if (!content) return alert("Please enter a message content.");
+
+        try {
+            const response = await fetch('/api/admin/broadcast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target, content })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                document.getElementById('msgContent').value = '';
+                statusDiv.style.display = 'block';
+                setTimeout(() => statusDiv.style.display = 'none', 3000);
+            } else {
+                alert("Broadcast Failed");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Transmission Error");
+        }
+    }
+
+    // Load Registry & Stats
+    async function loadRegistry() {
+        try {
+            // Using a relative path is safer for local/server hosting
+            const response = await fetch('/api/admin/users');
+            if(!response.ok) throw new Error("Database Offline");
+            
+            const users = await response.json();
+            const tbody = document.getElementById('registryBody');
+            tbody.innerHTML = '';
+            
+            if(!users || users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color: #666;">No identities found in vault.</td></tr>';
+                return;
+            }
+
+            users.forEach(user => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><img src="${user.passport || 'https://ui-avatars.com/api/?name='+user.fullName}" class="table-img"></td>
+                        <td style="font-weight: 700; color: #001f3f;">${user.fullName}</td>
+                        <td><span class="role-badge role-${user.role}">${user.role}</span></td>
+                        <td style="color: #666;">${user.designation}</td>
+                        <td style="font-family: monospace; font-weight: 800; color: #d4af37; font-size: 16px;">${user.accessPin}</td>
+                        <td><span style="color:#2e7d32; font-weight:600;"><i class="fa fa-circle" style="font-size:8px;"></i> Active</span></td>
+                    </tr>
+                `;
+            });
+
+            const today = new Date().toLocaleDateString();
+            const todayEnrollments = users.filter(u => new Date(u.regDate).toLocaleDateString() === today);
+            document.getElementById('todayCount').innerText = todayEnrollments.length;
+
+        } catch (err) { 
+            console.error("Registry Sync Failed", err); 
+            document.getElementById('registryBody').innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">VAULT SYNC ERROR</td></tr>';
+        }
+    }
+
+    // Enrollment Protocol
+    const form = document.getElementById('enrollmentForm');
+    if(form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = e.target.querySelector('.install-btn');
+            const originalText = submitBtn.innerHTML;
+            
+            if(!base64Image) return alert("Please upload a passport photo first.");
+
+            submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ENCRYPTING...';
+            
+            const data = {
+                fullName: document.getElementById('fullName').value,
+                role: document.getElementById('role').value,
+                designation: document.getElementById('role').value === 'student' 
+                    ? document.getElementById('designationSelect').value 
+                    : document.getElementById('designationInput').value,
+                passport: base64Image,
+                dob: document.getElementById('dob').value,
+                guardianPhone: document.getElementById('guardianPhone').value,
+                address: document.getElementById('address').value,
+                stateOfOrigin: document.getElementById('stateOfOrigin').value,
+                phone: document.getElementById('phone').value,
+                password: document.getElementById('password').value
+            };
+
+            try {
+                const response = await fetch('/api/admin/enroll', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('enrollmentForm').style.display = 'none';
+                    document.getElementById('resultDisplay').style.display = 'block';
+                    document.getElementById('finalPin').innerText = result.pin;
+                    loadRegistry(); 
+                }
+            } catch (err) { 
+                alert("Identity Installation Failed. Check Server Connection."); 
+                submitBtn.innerHTML = originalText;
+            }
+        });
+    }
+
+    // Start everything on load
+    window.addEventListener('load', startSystem);
+
+    function logout() {
+        localStorage.clear();
+        window.location.href = "/login";
+    }
+
+    // --- PROFILE VIEW LOGIC ---
+    async function openMyProfile() {
+        const modal = document.getElementById('myProfileModal');
+        const content = document.getElementById('myProfileContent');
+        modal.style.display = 'block';
+        
+        const pin = localStorage.getItem('userPin');
+        // We can reuse the teacher profile endpoint or create a generic one. 
+        // Since sub-admins are stored in User collection, we can fetch by PIN.
+        // For now, let's assume we can use a generic fetch or the teacher one if structure matches.
+        // But better to use the admin users list or a specific endpoint.
+        // Let's use the existing users list in memory if available, or fetch fresh.
+        
+        try {
+            const response = await fetch('/api/admin/users'); // Fetch all to find self (secure enough for sub-admin)
+            const users = await response.json();
+            const me = users.find(u => u.accessPin === pin);
+            
+            if(me) {
+                content.innerHTML = `
+                    <img src="${me.passport || '/logo.png'}" class="profile-img-lg">
+                    <div class="profile-detail"><span class="profile-label">Full Name</span><span class="profile-value">${me.fullName}</span></div>
+                    <div class="profile-detail"><span class="profile-label">Role</span><span class="profile-value">${me.role.toUpperCase()}</span></div>
+                    <div class="profile-detail"><span class="profile-label">Access PIN</span><span class="profile-value">${me.accessPin}</span></div>
+                    <div class="profile-detail"><span class="profile-label">Phone</span><span class="profile-value">${me.phone || 'N/A'}</span></div>
+                    <div class="profile-detail"><span class="profile-label">Address</span><span class="profile-value">${me.address || 'N/A'}</span></div>
+                `;
+            }
+        } catch(e) { content.innerHTML = "Error loading profile."; }
+    }
+</script>
+   
+</body>
+</html>

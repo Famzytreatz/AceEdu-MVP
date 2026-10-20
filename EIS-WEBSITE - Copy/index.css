@@ -1,0 +1,87 @@
+:root {
+    --navy: #001f3f;
+    --gold: #d4af37;
+    --glass: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; scroll-behavior: smooth; }
+
+/* NAVIGATION */
+.glass-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 8%;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+    background: rgba(0, 31, 63, 0.8);
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.logo { display: flex; align-items: center; text-decoration: none; color: white; gap: 10px; }
+.logo img { width: 50px; }
+.logo span { font-weight: 800; letter-spacing: 2px; }
+
+.nav-links ul { display: flex; align-items: center; list-style: none; gap: 25px; }
+.nav-links ul li a { color: white; text-decoration: none; font-size: 13px; font-weight: 600; transition: 0.3s; }
+.nav-links ul li a:hover { color: var(--gold); }
+
+.btn-glass { border: 1px solid var(--gold); padding: 8px 20px; border-radius: 30px; }
+.btn-gold { background: var(--gold); color: var(--navy) !important; padding: 8px 20px; border-radius: 30px; }
+
+/* HERO */
+.hero {
+    height: 100vh;
+    background: linear-gradient(rgba(0,31,63,0.8), rgba(0,31,63,0.8)), url('ASSETS/students.JPG');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    padding: 0 10%;
+    color: white;
+}
+
+.gold-text { color: var(--gold); }
+.hero h1 { font-size: 4.5rem; font-weight: 800; line-height: 1.1; margin: 20px 0; }
+
+.main-btn { background: var(--gold); padding: 15px 35px; border-radius: 50px; text-decoration: none; color: #000; font-weight: 700; transition: 0.5s; display: inline-block; }
+.main-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(212,175,55,0.4); }
+
+/* PATHWAYS (GLASS CARDS) */
+.pathways { padding: 100px 10%; background: #fdfdfd; text-align: center; }
+.pathway-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-top: 50px; }
+
+.glass-card {
+    background: white;
+    padding: 50px 30px;
+    border-radius: 25px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.05);
+    transition: 0.5s ease;
+    border: 1px solid #eee;
+}
+
+.glass-card:hover { transform: translateY(-15px); border-color: var(--gold); }
+.glass-card i { font-size: 40px; color: var(--navy); margin-bottom: 20px; }
+.featured { border: 2px solid var(--gold); background: #fffcf5; }
+
+/* MOBILE RESPONSIVE */
+@media (max-width: 768px) {
+    .hero h1 { font-size: 2.5rem; }
+    .nav-links {
+        position: fixed;
+        background: var(--navy);
+        height: 100vh;
+        width: 100%;
+        top: 0;
+        right: -100%;
+        transition: 0.5s;
+        display: flex;
+        justify-content: center;
+    }
+    .nav-links ul { flex-direction: column; padding-top: 100px; }
+    .fa-bars { color: white; font-size: 25px; cursor: pointer; }
+    .fa-times { color: white; position: absolute; top: 30px; right: 30px; font-size: 25px; }
+}

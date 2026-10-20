@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Eliud website</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+    />
+  </head>
+  <body>
+ <nav class="elite-nav">
+    <a href="index.html" class="logo-box">
+        <img src="ASSETS/eis2.png" alt="Logo" />
+        <div class="logo-text">
+            <span class="main-title">ELIUD INTERNATIONAL SCHOOL</span>
+        </div>
+    </a>
+    <i class="fa fa-bars menu-icon" onclick="showMenu()"></i>
+    
+    <div class="nav-link" id="navLinks">
+        <i class="fa fa-times close-icon" onclick="hideMenu()"></i>
+        <ul>
+            <li><a href="login.html" class="portal-link">STUDENT PORTAL</a></li>
+            <li><a href="register.html">ENROLLMENT</a></li>
+        </ul>
+    </div>
+</nav>
+
+<section class="split-hero">
+    <div class="hero-left">
+        <div class="identity-tag">IDENTITY SECURED • EST. 2011</div>
+        <h1>Global <span class="gold-text">Competence</span> Starts Here.</h1>
+        <p>We install character and creativity using the H.O.L.O.N™ model—a holistic approach designed for the modern world.</p>
+        <div class="hero-cta">
+            <a href="#holon" class="btn-solid">OUR PHILOSOPHY</a>
+        </div>
+    </div>
+    <div class="hero-right">
+        <div class="image-frame">
+            <img src="ASSETS/b4.JPG" alt="Eliud School View">
+            <div class="experience-card">
+                <h2>15+</h2>
+                <p>Years of Excellence</p>
+            </div>
+        </div>
+    </div>
+</section>
+<section class="holon-section" id="holon">
+    <div class="header-center">
+        <h2>The <span class="gold-text">H.O.L.O.N™</span> Model</h2>
+        <div class="title-underline"></div>
+    </div>
+
+    <div class="holon-flex">
+        <div class="h-card"><h3>H</h3><p>Holistic</p></div>
+        <div class="h-card"><h3>O</h3><p>Organized</p></div>
+        <div class="h-card leverage-card"><h3>L</h3><p>Leveraged</p></div>
+        <div class="h-card"><h3>O</h3><p>Organic</p></div>
+        <div class="h-card"><h3>N</h3><p>Nurturing</p></div>
+    </div>
+</section>
+
+     
+
+<section class="id-system-banner">
+    <div class="blue-glass-box">
+        <div class="icon-circle"><i class="fa fa-id-card-o"></i></div>
+        <h3>Automated Identity Installation</h3>
+        <p>We’ve replaced manual registration with a secure admin-led process. Your child's identity is installed directly into our system via passport verification, generating a private dashboard that rhymes
+
+
+    <script>
+        var navLinks = document.getElementById("navLinks");
+
+        function showMenu() {
+            navLinks.style.right = "0";
+        }
+
+        function hideMenu() {
+            navLinks.style.right = "-200px";
+        }
+
+        // Auto-update Footer Year
+        document.getElementById("year").innerHTML = new Date().getFullYear();
+    </script>
+</body>
+</html>
+  </body>
+</html>

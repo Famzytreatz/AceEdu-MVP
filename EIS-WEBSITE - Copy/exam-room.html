@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SECURE EXAM | Eliud Internatinal School</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --danger: #ef4444;
+        --success: #4ade80;
+        --bg-body: #020617;
+        --bg-surface: #0f172a;
+        --card-bg: #1e293b;
+        --text-main: #f1f5f9;
+        --text-secondary: #94a3b8;
+        --gold: #d4af37;
+      }
+
+      body {
+        background: var(--bg-body);
+        color: var(--text-main);
+        font-family: "Plus Jakarta Sans", sans-serif;
+        margin: 0;
+        overflow: hidden;
+        user-select: none; /* Prevents highlighting text */
+      }
+
+      /* THE TOP LOCK BAR */
+      .exam-header {
+        background: var(--bg-surface);
+        padding: 15px 40px;
+        border-bottom: 2px solid var(--danger);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .exam-title h3 {
+        margin: 0;
+        font-family: "Outfit", sans-serif;
+        font-size: 1.2rem;
+      }
+      .timer-box {
+        background: var(--danger);
+        padding: 5px 20px;
+        border-radius: 5px;
+        font-weight: 800;
+        font-size: 20px;
+        color: white;
+      }
+
+      /* THE EXAM WORKSPACE */
+      .exam-container {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        height: calc(100vh - 70px);
+      }
+
+      .question-area {
+        padding: 30px;
+        overflow-y: auto;
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .q-card {
+        background: var(--card-bg);
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        border-left: 5px solid var(--gold);
+      }
+      .q-card p {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+      }
+      .q-card h2 {
+        font-family: "Outfit", sans-serif;
+        font-size: 1.3rem;
+        margin-top: 0;
+        margin-bottom: 20px;
+      }
+      .options label {
+        display: block;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.2s;
+        border: 1px solid transparent;
+      }
+      .options label:hover {
+        background: rgba(212, 175, 55, 0.1);
+        border-color: var(--gold);
+      }
+      .options input[type="radio"] {
+        margin-right: 10px;
+        accent-color: var(--gold);
+      }
+
+      .submit-btn {
+        background: var(--gold);
+        color: var(--bg-body);
+        padding: 15px 40px;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+        font-size: 1rem;
+      }
+      .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+      }
+
+      .options label.correct-answer {
+        background: rgba(74, 222, 128, 0.1);
+        border-color: var(--success);
+      }
+      .options label.wrong-answer {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: var(--danger);
+      }
+
+      /* STUDENT SIDEBAR MONITOR */
+      .monitor-sidebar {
+        background: var(--bg-surface);
+        padding: 20px;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .monitor-photo {
+        width: 100%;
+        height: 150px;
+        border: 2px solid var(--gold);
+        border-radius: 10px;
+        object-fit: cover;
+        margin-bottom: 15px;
+      }
+      .monitor-sidebar h4 {
+        margin-top: 0;
+        margin-bottom: 5px;
+        color: var(--text-main);
+      }
+      .monitor-sidebar p {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+      }
+      .security-log small {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        display: block;
+        margin-bottom: 10px;
+      }
+      .status-badge {
+        color: var(--success);
+        font-size: 0.8rem;
+        margin-top: 5px;
+        display: block;
+      }
+      .status-badge i {
+        font-size: 8px;
+        margin-right: 5px;
+      }
+
+      /* Message Box */
+      .message-box {
+        background: var(--card-bg);
+        padding: 40px;
+        border-radius: 15px;
+        text-align: center;
+        margin: 50px auto;
+        max-width: 600px;
+        border: 1px solid var(--gold);
+      }
+      .message-box h1 {
+        color: var(--gold);
+        font-family: "Outfit", sans-serif;
+        font-size: 2rem;
+      }
+      .message-box p {
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+      }
+      .message-box .btn {
+        background: var(--gold);
+        color: var(--bg-body);
+        padding: 10px 25px;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 20px;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      @media (max-width: 768px) {
+        .exam-container {
+          grid-template-columns: 1fr;
+          height: calc(
+            100vh - 120px
+          ); /* Adjust for header and potential footer */
+        }
+        .monitor-sidebar {
+          display: none; /* Hide sidebar on small screens */
+        }
+        .exam-header {
+          padding: 10px 20px;
+        }
+        .exam-title h3 {
+          font-size: 1rem;
+        }
+        .timer-box {
+          font-size: 1rem;
+          padding: 3px 10px;
+        }
+        .question-area {
+          padding: 20px;
+        }
+        .q-card h2 {
+          font-size: 1.1rem;
+        }
+        .submit-btn {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body oncontextmenu="return false;">
+    <div id="exam-list-wrapper" style="display: none">
+      <header class="exam-header">
+        <div class="exam-title">
+          <h3>Available Examinations</h3>
+          <span id="student-id-tag-list" style="color: var(--gold)"
+            >ID: VERIFIED</span
+          >
+        </div>
+        <a
+          href="/student-dashboard"
+          style="color: white; text-decoration: none; font-size: 14px"
+        >
+          <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+      </header>
+      <div class="question-area" id="exam-list-container">
+        <!-- Exam list will be rendered here -->
+      </div>
+    </div>
+
+    <div id="exam-wrapper" style="display: none">
+      <header class="exam-header">
+        <div class="exam-title">
+          <h3 id="exam-title-display">Loading Exam...</h3>
+          <span id="student-id-tag" style="color: var(--gold)"
+            >ID: VERIFIED</span
+          >
+        </div>
+        <div class="timer-box" id="timer">00:00</div>
+      </header>
+
+      <div class="exam-container">
+        <main class="question-area">
+          <div id="questions-container">
+            <!-- Questions will be loaded here by JavaScript -->
+            <div class="message-box" id="loading-message">
+              <h1><i class="fas fa-spinner fa-spin"></i> Loading Exam...</h1>
+              <p>Please wait while we prepare your questions.</p>
+            </div>
+          </div>
+          <button class="submit-btn" id="submit-exam-btn" style="display: none">
+            SUBMIT FINAL ANSWERS
+          </button>
+        </main>
+
+        <aside class="monitor-sidebar">
+          <img
+            id="monitor-photo"
+            src="https://via.placeholder.com/150"
+            class="monitor-photo"
+          />
+          <h4>Student: <span id="s-name">Loading...</span></h4>
+          <p>Class: <span id="s-class">...</span></p>
+          <hr style="border-color: rgba(255, 255, 255, 0.1)" />
+          <div class="security-log">
+            <small>SECURITY STATUS</small>
+            <span class="status-badge"
+              ><i class="fas fa-circle"></i> Biometric Linked</span
+            >
+            <span class="status-badge"
+              ><i class="fas fa-circle"></i> Tab Locked</span
+            >
+            <span class="status-badge"
+              ><i class="fas fa-circle"></i> Focus Monitored</span
+            >
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="message-box" id="exam-message" style="display: none">
+      <h1 id="message-title"></h1>
+      <p id="message-text"></p>
+      <a href="/student-dashboard" class="btn">Return to Dashboard</a>
+    </div>
+
+    <!-- NEW: Post-Submission Results View -->
+    <div class="message-box" id="exam-results" style="display: none">
+      <h1 id="results-title"></h1>
+      <p id="results-score"></p>
+      <div id="results-actions" style="margin-top: 30px">
+        <button id="review-answers-btn" class="submit-btn">
+          Review Answers
+        </button>
+        <a
+          href="/student-dashboard"
+          class="submit-btn"
+          style="
+            background: #555;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+          "
+          >Return to Dashboard</a
+        >
+      </div>
+    </div>
+
+    <script>
+      let examData = null;
+      let studentIdentity = null;
+      let currentAttemptId = null;
+      let timerInterval = null;
+      let answers = [];
+      let isExamActive = false;
+
+      // SECURITY ALERT: If user leaves the page
+      window.onblur = function () {
+        if (isExamActive) {
+          alert(
+            "MALPRACTICE WARNING: You left the exam screen. This incident has been logged for the Admin.",
+          );
+          // In a real system, you'd send a log to the server here.
+        }
+      };
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        studentIdentity = JSON.parse(localStorage.getItem("studentIdentity"));
+        if (!studentIdentity || !studentIdentity.accessPin) {
+          displayMessage(
+            "Access Denied",
+            "Please log in to access the exam portal.",
+          );
+          return;
+        }
+
+        document.getElementById("s-name").innerText = studentIdentity.fullName;
+        document.getElementById("s-class").innerText =
+          studentIdentity.designation;
+        document.getElementById("student-id-tag").innerText =
+          "ID: " + studentIdentity.accessPin;
+        if (studentIdentity.passport) {
+          document.getElementById("monitor-photo").src =
+            studentIdentity.passport;
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const examId = urlParams.get("examId");
+        const classId = urlParams.get("classId");
+
+        if (examId) {
+          // If there's an examId, load that specific exam
+          document.getElementById("exam-wrapper").style.display = "block";
+          startSpecificExam(examId);
+        } else if (classId) {
+          // If there's only a classId, show the list of available exams
+          document.getElementById("exam-wrapper").style.display = "none";
+          document.getElementById("exam-list-wrapper").style.display = "block";
+          document.getElementById("student-id-tag-list").innerText =
+            "ID: " + studentIdentity.accessPin;
+          loadAvailableExams(classId, studentIdentity.accessPin);
+        } else {
+          displayMessage(
+            "Invalid Access",
+            "No exam or class ID provided. Please use the Exam Portal link from your dashboard.",
+          );
+        }
+      });
+
+      async function startSpecificExam(examId) {
+        // Stop the dashboard expiration timers to ensure no conflict with the exam timer
+        if (expirationInterval) clearInterval(expirationInterval);
+
+        try {
+          // Start the exam attempt
+          const startRes = await fetch(
+            `/api/exams/student/${examId}/start?studentId=${studentIdentity.accessPin}&classId=${studentIdentity.designation}`,
+          );
+          const startData = await startRes.json();
+          if (!startData.success) {
+            displayMessage("Exam Access Error", startData.message);
+            return;
+          }
+
+          examData = startData.exam;
+          currentAttemptId = startData.attemptId;
+
+          isExamActive = true; // Enable security check
+          document.getElementById("exam-title-display").innerText =
+            examData.title;
+          document.getElementById("loading-message").style.display = "none";
+          document.getElementById("submit-exam-btn").style.display = "block";
+
+          renderQuestions();
+          startTimer(examData.durationMinutes);
+        } catch (error) {
+          console.error("Error loading exam:", error);
+          displayMessage(
+            "Connection Error",
+            "Failed to load exam. Please check your internet connection.",
+          );
+        }
+      }
+
+      function displayMessage(title, text) {
+        document.getElementById("exam-wrapper").style.display = "none";
+        document.getElementById("exam-message").style.display = "block";
+        document.getElementById("message-title").innerText = title;
+        document.getElementById("message-text").innerText = text;
+        clearInterval(timerInterval); // Stop any running timer
+      }
+
+      function displayResultsPage(data, isTimedOut) {
+        document.getElementById("exam-wrapper").style.display = "none";
+        document.getElementById("exam-list-wrapper").style.display = "none";
+        document.getElementById("exam-message").style.display = "none";
+
+        const resultsContainer = document.getElementById("exam-results");
+        resultsContainer.style.display = "block";
+
+        document.getElementById("results-title").innerText = "Exam Submitted!";
+        document.getElementById("results-score").innerText =
+          `Your final score is ${data.score} out of ${data.totalQuestions}. ${isTimedOut ? "Time ran out." : ""}`;
+
+        const reviewBtn = document.getElementById("review-answers-btn");
+        reviewBtn.onclick = () => {
+          resultsContainer.style.display = "none";
+          renderReview(data.exam, data.studentAnswers);
+        };
+      }
+
+      let expirationInterval = null;
+
+      function startExpirationTimers() {
+        if (expirationInterval) clearInterval(expirationInterval);
+
+        expirationInterval = setInterval(() => {
+          const timers = document.querySelectorAll(".expiration-timer");
+          timers.forEach((timer) => {
+            const expiresAt = new Date(timer.dataset.expires).getTime();
+            const now = new Date().getTime();
+            const distance = expiresAt - now;
+
+            if (distance < 0) {
+              timer.innerHTML =
+                "<span style='color:var(--danger)'>EXPIRED</span>";
+              const btn = timer.parentElement.querySelector(".submit-btn");
+              if (btn) {
+                btn.style.display = "none";
+              }
+            } else {
+              const hours = Math.floor(
+                (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+              );
+              const minutes = Math.floor(
+                (distance % (1000 * 60 * 60)) / (1000 * 60),
+              );
+              const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+              timer.innerHTML = `<i class="fas fa-clock"></i> Expires in: ${hours}h ${minutes}m ${seconds}s`;
+            }
+          });
+        }, 1000);
+      }
+
+      async function loadAvailableExams(classId, studentId) {
+        const container = document.getElementById("exam-list-container");
+        container.innerHTML = `<div class="message-box"><h1><i class="fas fa-spinner fa-spin"></i> Fetching Exams...</h1></div>`;
+
+        try {
+          const res = await fetch(
+            `/api/exams/student/${classId}?studentId=${studentId}`,
+          );
+          const data = await res.json();
+
+          if (!data.success || data.exams.length === 0) {
+            container.innerHTML = `<div class="message-box"><h1>No Exams Found</h1><p>There are currently no active exams for your class.</p></div>`;
+            return;
+          }
+
+          container.innerHTML = data.exams
+            .map((exam) => {
+              let buttonHtml = "";
+              let statusText = "";
+              const expirationHtml = `<div class="expiration-timer" data-expires="${exam.expiresAt}" style="color: var(--gold); font-weight:bold; margin-bottom: 10px; font-family: monospace;"></div>`;
+
+              switch (exam.status) {
+                case "available":
+                  buttonHtml = `<a href="/exam-room.html?examId=${exam._id}" class="submit-btn">Start Exam</a>`;
+                  statusText = `<p style="color: var(--success);">Attempts Remaining: ${exam.attemptsRemaining}</p>`;
+                  break;
+                case "no_attempts_left":
+                  buttonHtml = `<button class="submit-btn" disabled style="background: #555; cursor: not-allowed;">Attempt Limit Reached</button>`;
+                  statusText = `<p style="color: var(--danger);">You have used all your attempts.</p>`;
+                  break;
+                case "expired":
+                  buttonHtml = `<button class="submit-btn" disabled style="background: #555; cursor: not-allowed;">Expired</button>`;
+                  statusText = `<p style="color: var(--text-secondary);">This exam has expired on ${new Date(exam.expiresAt).toLocaleString()}.</p>`;
+                  break;
+              }
+
+              return `
+                      <div class="q-card">
+                          <h2>${exam.title}</h2>
+                          <p>Duration: ${exam.durationMinutes} minutes</p>
+                          ${expirationHtml}
+                          <p>Attempts Allowed: ${exam.attemptsAllowed}</p>
+                          ${statusText}
+                          <div style="margin-top: 20px;">${buttonHtml}</div>
+                      </div>
+                  `;
+            })
+            .join("");
+          startExpirationTimers();
+        } catch (error) {
+          console.error("Error fetching exams:", error);
+          container.innerHTML = `<div class="message-box"><h1>Connection Error</h1><p>Could not fetch the list of available exams.</p></div>`;
+        }
+      }
+
+      function renderQuestions() {
+        const container = document.getElementById("questions-container");
+        container.innerHTML = ""; // Clear loading message
+
+        examData.questions.forEach((q, qIndex) => {
+          const qCard = document.createElement("div");
+          qCard.className = "q-card";
+          qCard.innerHTML = `
+                <p>Question ${qIndex + 1} of ${examData.questions.length}</p>
+                <h2>${q.questionText}</h2>
+                <div class="options">
+                    ${q.options
+                      .map(
+                        (option, optIndex) => `
+                        <label>
+                            <input type="radio" name="q${qIndex}" value="${optIndex}" onchange="recordAnswer(${qIndex}, ${optIndex})">
+                            ${option}
+                        </label>
+                    `,
+                      )
+                      .join("")}
+                </div>
+            `;
+          container.appendChild(qCard);
+        });
+      }
+
+      function renderReview(exam, studentAnswers) {
+        document.getElementById("exam-wrapper").style.display = "block";
+        // Disable all inputs and hide timer/submit button
+        document.getElementById("timer").style.display = "none";
+        document.getElementById("submit-exam-btn").style.display = "none";
+        isExamActive = false; // Stop onblur security
+
+        const container = document.getElementById("questions-container");
+        container.innerHTML = ""; // Clear questions
+        const answers = studentAnswers || []; // Ensure answers is an array
+
+        exam.questions.forEach((q, qIndex) => {
+          const studentAnswer = answers.find((a) => a.questionIndex === qIndex);
+          const studentChoice = studentAnswer
+            ? studentAnswer.selectedOptionIndex
+            : -1;
+          const correctChoice = q.correctAnswerIndex;
+
+          const qCard = document.createElement("div");
+          qCard.className = "q-card";
+
+          let optionsHtml = q.options
+            .map((option, optIndex) => {
+              let labelClass = "";
+              let indicator = "";
+
+              if (optIndex === correctChoice) {
+                labelClass = "correct-answer";
+                indicator =
+                  ' <i class="fas fa-check-circle" style="color: var(--success);"></i>';
+              }
+              if (
+                optIndex === studentChoice &&
+                studentChoice !== correctChoice
+              ) {
+                labelClass = "wrong-answer";
+                indicator =
+                  ' <i class="fas fa-times-circle" style="color: var(--danger);"></i>';
+              }
+
+              return `
+                  <label class="${labelClass}">
+                      <input type="radio" name="q${qIndex}" value="${optIndex}" ${optIndex === studentChoice ? "checked" : ""} disabled>
+                      ${option}
+                      ${indicator}
+                  </label>
+              `;
+            })
+            .join("");
+
+          qCard.innerHTML = `
+              <p>Question ${qIndex + 1}</p>
+              <h2>${q.questionText}</h2>
+              <div class="options">${optionsHtml}</div>
+          `;
+          container.appendChild(qCard);
+        });
+      }
+
+      function recordAnswer(questionIndex, selectedOptionIndex) {
+        const existingAnswerIndex = answers.findIndex(
+          (a) => a.questionIndex === questionIndex,
+        );
+        if (existingAnswerIndex !== -1) {
+          answers[existingAnswerIndex].selectedOptionIndex =
+            selectedOptionIndex;
+        } else {
+          answers.push({ questionIndex, selectedOptionIndex });
+        }
+      }
+
+      function startTimer(durationMinutes) {
+        let timeRemaining = durationMinutes * 60; // seconds
+        const timerDisplay = document.getElementById("timer");
+
+        timerInterval = setInterval(() => {
+          const minutes = Math.floor(timeRemaining / 60);
+          const seconds = timeRemaining % 60;
+
+          timerDisplay.innerText = `${minutes
+            .toString()
+            .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+
+          if (timeRemaining <= 0) {
+            clearInterval(timerInterval);
+            submitExam(true); // Submit automatically when time runs out
+          }
+          timeRemaining--;
+        }, 1000);
+      }
+
+      document
+        .getElementById("submit-exam-btn")
+        .addEventListener("click", () => submitExam(false));
+
+      async function submitExam(isTimedOut) {
+        isExamActive = false; // Disable security check
+        clearInterval(timerInterval); // Stop the timer
+        document.getElementById("submit-exam-btn").disabled = true;
+        document.getElementById("submit-exam-btn").innerText = "Submitting...";
+
+        try {
+          const submitRes = await fetch(
+            `/api/exams/student/${examData._id}/submit`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                attemptId: currentAttemptId,
+                answers,
+                submissionType: isTimedOut ? "timeout" : "manual",
+              }),
+            },
+          );
+          const submitData = await submitRes.json();
+
+          if (submitData.success) {
+            displayResultsPage(submitData, isTimedOut);
+          } else {
+            displayMessage(
+              "Submission Failed",
+              submitData.message || "There was an error submitting your exam.",
+            );
+          }
+        } catch (error) {
+          console.error("Error submitting exam:", error);
+          displayMessage(
+            "Network Error",
+            "Failed to submit exam. Please check your connection.",
+          );
+        }
+      }
+    </script>
+  </body>
+</html>

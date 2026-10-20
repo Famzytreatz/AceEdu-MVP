@@ -1,0 +1,1168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exam Portal | Faculty Command</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --deep-navy: #0a192f;
+        --dark-surface: #112240;
+        --primary: #d4af37; /* Gold */
+        --secondary: #00d2ff; /* Cyber Blue */
+        --danger: #ef4444;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Inter", sans-serif;
+        background-color: var(--deep-navy);
+        color: var(--text-main);
+        display: flex;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* --- SIDEBAR --- */
+      .sidebar {
+        width: 260px;
+        background: #020c1b;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        flex-direction: column;
+        padding: 30px 20px;
+        position: fixed;
+        height: 100vh;
+        z-index: 100;
+      }
+
+      .profile-card {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .profile-card img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        border: 3px solid var(--primary);
+        object-fit: cover;
+        margin-bottom: 10px;
+      }
+      .profile-card h3 {
+        margin: 0;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 20px;
+        font-weight: 700;
+        color: white;
+        letter-spacing: 1px;
+      }
+      .profile-card p {
+        margin: 5px 0 0 0;
+        font-size: 12px;
+        color: var(--primary);
+        font-family: monospace;
+      }
+
+      .menu-item {
+        display: flex;
+        align-items: center;
+        padding: 14px 18px;
+        color: var(--text-muted);
+        text-decoration: none;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        transition: 0.3s;
+        font-size: 14px;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+      .menu-item:hover,
+      .menu-item.active {
+        background: rgba(212, 175, 55, 0.08);
+        color: var(--primary);
+        border-color: rgba(212, 175, 55, 0.2);
+      }
+
+      .logout-btn {
+        margin-top: auto;
+        background: none;
+        border: none;
+        color: var(--danger);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: bold;
+        padding: 14px 18px;
+        width: 100%;
+        border-radius: 8px;
+        font-family: "Rajdhani", sans-serif;
+        letter-spacing: 1px;
+      }
+      .logout-btn:hover {
+        background: rgba(239, 68, 68, 0.1);
+      }
+
+      /* --- MAIN CONTENT --- */
+      .main-content {
+        margin-left: 260px;
+        flex-grow: 1;
+        padding: 40px;
+      }
+      .page-header h1 {
+        font-family: "Rajdhani", sans-serif;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: white;
+        margin: 0 0 5px 0;
+        font-size: 2.5rem;
+      }
+      .page-header p {
+        color: var(--text-muted);
+        margin: 0 0 40px 0;
+        font-family: "Inter", sans-serif;
+      }
+
+      /* --- FORM STYLES --- */
+      .form-panel {
+        background: var(--dark-surface);
+        padding: 30px;
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      .form-group label {
+        display: block;
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        background: var(--deep-navy);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text-main);
+        border-radius: 6px;
+        transition: 0.2s;
+        font-size: 14px;
+        box-sizing: border-box;
+        font-family: "Inter", sans-serif;
+      }
+      .form-group input:focus,
+      .form-group select:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+      }
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+      }
+
+      .submit-btn {
+        width: 100%;
+        padding: 15px;
+        background: var(--primary);
+        color: var(--deep-navy);
+        border: none;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 16px;
+        cursor: pointer;
+        transition: 0.3s;
+        font-family: "Rajdhani", sans-serif;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .submit-btn:hover {
+        transform: translateY(-2px);
+        background: white;
+      }
+
+      /* --- QUESTION CARD --- */
+      #questionsList .question-card {
+        background: var(--deep-navy);
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+      .question-header label {
+        color: var(--primary);
+        font-weight: bold;
+      }
+      .remove-q-btn {
+        background: none;
+        border: none;
+        color: var(--danger);
+        cursor: pointer;
+      }
+      .options-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+      .correct-answer-group {
+        margin-top: 15px;
+        background: rgba(212, 175, 55, 0.08);
+        padding: 10px;
+        border-radius: 8px;
+      }
+      .correct-answer-group label {
+        margin-right: 15px;
+        font-size: 13px;
+      }
+
+      .exam-builder-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        align-items: flex-start;
+      }
+
+      .question-builder-panel {
+        background: var(--dark-surface);
+        padding: 30px;
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .panel-header h3 {
+        margin: 0 0 5px 0;
+        color: white;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 18px;
+      }
+
+      .panel-header p {
+        margin: 0 0 25px 0;
+        font-size: 14px;
+        color: var(--text-muted);
+      }
+
+      /* View Switching */
+      .view-section {
+        display: none;
+        animation: fadeIn 0.4s ease-out;
+      }
+      .view-section.active {
+        display: block;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Results View Enhancements */
+      .result-card {
+        background: var(--dark-surface);
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        margin-bottom: 15px;
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        align-items: center;
+        gap: 20px;
+        transition: 0.3s;
+      }
+      .result-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+      .history-card {
+        background: var(--dark-surface);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        margin-bottom: 15px;
+        transition: 0.3s;
+      }
+      .history-card-header {
+        padding: 20px;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 20px;
+        cursor: pointer;
+      }
+      .history-card-header:hover {
+        background: rgba(212, 175, 55, 0.05);
+      }
+      .history-card-content {
+        padding: 0 20px 20px 20px;
+        border-top: 1px solid rgba(212, 175, 55, 0.2);
+        display: none; /* Hidden by default */
+      }
+      .result-card-icon {
+        font-size: 24px;
+        color: var(--primary);
+        background: rgba(212, 175, 55, 0.1);
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+      }
+      .result-card-stats {
+        text-align: center;
+        padding: 0 20px;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .stat-value {
+        display: block;
+        font-size: 22px;
+        font-weight: 700;
+        color: white;
+        font-family: "Rajdhani", sans-serif;
+      }
+      .stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+      .view-submissions-btn {
+        background: var(--primary);
+        color: var(--deep-navy);
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .view-submissions-btn:hover {
+        background: white;
+      }
+
+      /* Modal Enhancements */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+      }
+      .modal-content {
+        background-color: var(--dark-surface);
+        margin: 5% auto;
+        padding: 0;
+        border: 1px solid var(--primary);
+        width: 80%;
+        max-width: 800px;
+        border-radius: 15px;
+        box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
+        animation: slideDown 0.4s;
+        color: var(--text-main);
+      }
+      @keyframes slideDown {
+        from {
+          transform: translateY(-30px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(212, 175, 55, 0.05);
+      }
+      .modal-header h2 {
+        margin: 0;
+        font-family: "Rajdhani", sans-serif;
+        color: var(--primary);
+        font-size: 18px;
+      }
+      .close-modal {
+        color: var(--text-muted);
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .close-modal:hover {
+        color: var(--danger);
+      }
+      .modal-body {
+        padding: 30px;
+      }
+      .results-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        background: var(--deep-navy);
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+      .summary-item .stat-label {
+        color: var(--text-muted);
+      }
+      .summary-item .stat-value {
+        color: var(--primary);
+        font-size: 28px;
+      }
+      .print-btn {
+        background: transparent;
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        padding: 8px 15px;
+        cursor: pointer;
+        font-weight: bold;
+        border-radius: 6px;
+        transition: 0.3s;
+      }
+      .print-btn:hover {
+        background: var(--primary);
+        color: var(--deep-navy);
+      }
+      .table-wrapper {
+        overflow-x: auto;
+      }
+      .modal-body table {
+        width: 100%;
+        border-collapse: collapse;
+        color: var(--text-main);
+        margin-top: 20px;
+      }
+      .modal-body th {
+        text-align: left;
+        padding: 12px 15px;
+        color: var(--primary);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-bottom: 2px solid rgba(212, 175, 55, 0.2);
+      }
+      .modal-body td {
+        padding: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 14px;
+      }
+      .modal-body tbody tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      @media (max-width: 900px) {
+        .sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 20px;
+        }
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+        .options-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="profile-card">
+        <img
+          id="teacherPassport"
+          src="https://via.placeholder.com/80"
+          alt="Teacher Photo"
+        />
+        <h3 id="teacherName">Loading...</h3>
+        <p id="teacherPin">ID: TCH-######</p>
+      </div>
+      <nav class="menu">
+        <a class="menu-item" href="/teachers"
+          ><i class="fas fa-chalkboard-teacher fa-fw"></i> Classroom Hub</a
+        >
+        <div
+          class="menu-label"
+          style="
+            margin: 20px 0 10px 15px;
+            font-size: 11px;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+          "
+        >
+          EXAM PORTAL
+        </div>
+        <a class="menu-item active" onclick="switchTab('create', this)"
+          ><i class="fas fa-file-signature fa-fw"></i> Set Questions</a
+        >
+        <a class="menu-item" onclick="switchTab('history', this)"
+          ><i class="fas fa-clock fa-fw"></i> Exam History</a
+        >
+        <a class="menu-item" onclick="switchTab('results', this)"
+          ><i class="fas fa-poll fa-fw"></i> View Results</a
+        >
+      </nav>
+      <button class="logout-btn" onclick="logout()">
+        <i class="fas fa-power-off"></i> LOGOUT
+      </button>
+    </aside>
+
+    <main class="main-content">
+      <header class="page-header">
+        <h1 id="pageTitle">Set Questions</h1>
+        <p id="pageDesc">
+          Create and deploy secure, timed assessments for your students.
+        </p>
+      </header>
+
+      <!-- 1. CREATE EXAM VIEW -->
+      <section id="createView" class="view-section active">
+        <form id="examCreationForm">
+          <div class="exam-builder-grid">
+            <!-- Left Column: Question Builder -->
+            <div class="question-builder-panel">
+              <div class="panel-header">
+                <h3>Question Bank</h3>
+                <p>Add or remove questions for this examination.</p>
+              </div>
+              <div id="questionsList">
+                <!-- Questions will be dynamically added here -->
+              </div>
+              <button
+                type="button"
+                onclick="addQuestion()"
+                style="
+                  background: transparent;
+                  border: 1px solid var(--primary);
+                  color: var(--primary);
+                  padding: 10px 20px;
+                  border-radius: 5px;
+                  cursor: pointer;
+                  margin-top: 15px;
+                "
+              >
+                <i class="fas fa-plus-circle"></i> Add Question
+              </button>
+            </div>
+
+            <!-- Right Column: Configuration -->
+            <div class="config-panel">
+              <div class="form-panel">
+                <div class="panel-header">
+                  <h3>Exam Configuration</h3>
+                  <p>Set the parameters for this exam.</p>
+                </div>
+                <div class="form-group">
+                  <label for="examTitle">Exam Title</label>
+                  <input
+                    type="text"
+                    id="examTitle"
+                    placeholder="e.g., SSS 1 Mathematics Mid-Term"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="examTargetClass">Target Class</label>
+                  <select id="examTargetClass" required></select>
+                </div>
+                <div class="form-row" style="grid-template-columns: 1fr 1fr 1fr">
+                  <div class="form-group">
+                    <label for="durationMinutes">Exam Timer (Mins)</label>
+                    <input
+                      type="number"
+                      id="durationMinutes"
+                      value="60"
+                      min="1"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="validityMinutes">Expires In (Mins)</label>
+                    <input
+                      type="number"
+                      id="validityMinutes"
+                      value="1440"
+                      min="1"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="attemptsAllowed">Attempts</label>
+                    <input
+                      type="number"
+                      id="attemptsAllowed"
+                      value="1"
+                      min="1"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <button type="submit" class="submit-btn" style="margin-top: 20px">
+                CREATE & DEPLOY EXAM
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <!-- 2. HISTORY VIEW -->
+      <section id="historyView" class="view-section">
+        <div id="examHistoryContainer"></div>
+      </section>
+
+      <!-- 3. RESULTS VIEW -->
+      <section id="resultsView" class="view-section">
+        <div id="resultsListContainer">
+          <p style="text-align: center; color: var(--text-dim)">
+            Select an exam to view submitted results.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Results Modal -->
+    <div id="resultsModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="resultsTitle">Exam Results</h2>
+          <span class="close-modal" onclick="closeResultsModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+          <div
+            style="
+              margin-bottom: 20px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <span
+              id="resultsClass"
+              style="color: var(--text-muted); font-size: 14px"
+              >Class: ---</span
+            >
+            <button onclick="printResults()" class="print-btn">
+              <i class="fas fa-print"></i> Print Results
+            </button>
+          </div>
+
+          <div
+            id="resultsSummary"
+            class="results-summary"
+            style="display: none"
+          >
+            <!-- Summary items will be injected here -->
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>ID</th>
+                  <th>Score</th>
+                  <th>Percentage</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="resultsTableBody">
+                <!-- Rows go here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let teacherData = {};
+      let questionCounter = 0;
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        const userPin = localStorage.getItem("userPin");
+        if (!userPin || !userPin.startsWith("TCH")) {
+          logout();
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/teacher/profile/${userPin}`);
+          teacherData = await response.json();
+
+          document.getElementById("teacherName").innerText =
+            teacherData.fullName;
+          document.getElementById("teacherPin").innerText = `ID: ${userPin}`;
+
+          const photoImg = document.getElementById("teacherPassport");
+          if (teacherData.passport) {
+            photoImg.src = teacherData.passport;
+          }
+
+          const classes = teacherData.assignedClasses
+            ? teacherData.assignedClasses.split(",").map((c) => c.trim())
+            : [];
+          const select = document.getElementById("examTargetClass");
+          // Also add JSS classes if not already present for selection
+          const jssClasses = ["JSS 1", "JSS 2", "JSS 3"];
+          jssClasses.forEach(jssClass => {
+            if (!classes.includes(jssClass)) {
+              classes.push(jssClass);
+            }
+          });
+          classes.sort(); // Optional: sort the classes alphabetically
+          select.innerHTML = classes
+            .map((c) => `<option value="${c}">${c}</option>`)
+            .join("");
+
+          addQuestion(); // Initialize with one question
+        } catch (error) {
+          console.error("Profile Error", error);
+          logout();
+        }
+      });
+
+      function logout() {
+        localStorage.clear();
+        window.location.href = "/login";
+      }
+
+      function switchTab(viewName, btn) {
+        // Update Menu
+        document
+          .querySelectorAll(".menu-item")
+          .forEach((i) => i.classList.remove("active"));
+        if (btn) btn.classList.add("active");
+
+        // Update Views
+        document
+          .querySelectorAll(".view-section")
+          .forEach((v) => v.classList.remove("active"));
+        document.getElementById(viewName + "View").classList.add("active");
+
+        // Update Header
+        const title = document.getElementById("pageTitle");
+        const desc = document.getElementById("pageDesc");
+
+        if (viewName === "create") {
+          title.innerText = "Set Questions";
+          desc.innerText = "Create and deploy secure, timed assessments.";
+        } else if (viewName === "history") {
+          title.innerText = "Exam History";
+          desc.innerText = "Review and print past questions you have created.";
+          loadExamHistory(localStorage.getItem("userPin"));
+        } else if (viewName === "results") {
+          title.innerText = "Submitted Results";
+          desc.innerText =
+            "View scores and performance data for deployed exams.";
+          loadResultsDashboard(localStorage.getItem("userPin"));
+        }
+      }
+
+      function addQuestion() {
+        questionCounter++;
+        const qId = `q-${questionCounter}`;
+        const container = document.getElementById("questionsList");
+
+        const div = document.createElement("div");
+        div.className = "question-card";
+        div.id = qId;
+        div.innerHTML = `
+                <div class="question-header">
+                    <label>Question ${questionCounter}:</label>
+                    <button type="button" class="remove-q-btn" onclick="this.parentElement.parentElement.remove()"><i class="fas fa-trash"></i> Remove</button>
+                </div>
+                <div class="form-group">
+                    <textarea placeholder="Enter question text..." rows="2" required></textarea>
+                </div>
+                <div class="options-grid">
+                    <input type="text" placeholder="Option A" required>
+                    <input type="text" placeholder="Option B" required>
+                    <input type="text" placeholder="Option C" required>
+                    <input type="text" placeholder="Option D" required>
+                </div>
+                <div class="correct-answer-group">
+                    <label style="color: var(--gold); font-weight: bold;">Correct Answer:</label>
+                    <label><input type="radio" name="correct-${qId}" value="0" required> A</label>
+                    <label><input type="radio" name="correct-${qId}" value="1"> B</label>
+                    <label><input type="radio" name="correct-${qId}" value="2"> C</label>
+                    <label><input type="radio" name="correct-${qId}" value="3"> D</label>
+                </div>
+            `;
+        container.appendChild(div);
+      }
+
+      document
+        .getElementById("examCreationForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const submitBtn = e.target.querySelector(".submit-btn");
+          submitBtn.disabled = true;
+          submitBtn.innerText = "DEPLOYING...";
+
+          const questions = [];
+          const questionDivs = document.querySelectorAll(
+            "#questionsList .question-card",
+          );
+
+          for (const qDiv of questionDivs) {
+            const questionText = qDiv.querySelector("textarea").value;
+            const optionInputs = qDiv.querySelectorAll(
+              '.options-grid input[type="text"]',
+            );
+            const options = Array.from(optionInputs).map(
+              (input) => input.value,
+            );
+            const correctRadio = qDiv.querySelector(
+              `input[type="radio"]:checked`,
+            );
+
+            if (!questionText || options.some((opt) => !opt) || !correctRadio) {
+              alert("Please fill all fields for every question.");
+              submitBtn.disabled = false;
+              submitBtn.innerText = "CREATE & DEPLOY EXAM";
+              return;
+            }
+            questions.push({
+              questionText,
+              options,
+              correctAnswerIndex: parseInt(correctRadio.value),
+            });
+          }
+
+          const examPayload = {
+            teacherId: localStorage.getItem("userPin"),
+            title: document.getElementById("examTitle").value,
+            targetClass: document.getElementById("examTargetClass").value,
+            durationMinutes: parseInt(
+              document.getElementById("durationMinutes").value,
+            ),
+            validityMinutes: parseInt(
+              document.getElementById("validityMinutes").value,
+            ),
+            attemptsAllowed: parseInt(
+              document.getElementById("attemptsAllowed").value,
+            ),
+            questions: questions,
+          };
+
+          try {
+            const response = await fetch("/api/exams/create", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(examPayload),
+            });
+            const data = await response.json();
+            if (data.success) {
+              alert(`Exam "${examPayload.title}" created successfully!`);
+              e.target.reset();
+              document.getElementById("questionsList").innerHTML = "";
+              addQuestion();
+            } else {
+              throw new Error(data.message || "Failed to create exam.");
+            }
+          } catch (error) {
+            alert(`Error: ${error.message}`);
+          } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "CREATE & DEPLOY EXAM";
+          }
+        });
+
+      async function loadExamHistory(teacherId) {
+        const container = document.getElementById("examHistoryContainer");
+        container.innerHTML = `<p style="text-align: center; color: var(--text-muted);">Loading history...</p>`;
+
+        try {
+          const res = await fetch(`/api/exams/teacher/${teacherId}`);
+          const data = await res.json();
+
+          if (!data.success || data.exams.length === 0) {
+            container.innerHTML = `<p style="text-align: center; color: var(--text-muted);">You have not created any exams yet.</p>`;
+            return;
+          }
+
+          container.innerHTML = data.exams
+            .map(
+              (exam) => `
+              <div class="history-card" id="history-exam-${exam._id}">
+                  <div class="history-card-header" onclick="toggleHistoryQuestions('${exam._id}')">
+                      <div class="result-card-icon"><i class="fas fa-scroll"></i></div>
+                      <div>
+                          <h3 style="margin: 0; color: white;">${exam.title}</h3>
+                          <p style="font-size: 12px; color: var(--text-muted); margin: 5px 0 0;">
+                              For: ${exam.targetClass} | Questions: ${exam.questions.length} | Created: ${new Date(exam.createdAt).toLocaleDateString()}
+                          </p>
+                      </div>
+                      <div style="text-align: right;">
+                          <i id="history-toggle-icon-${exam._id}" class="fas fa-chevron-down" style="color: var(--text-muted);"></i>
+                      </div>
+                  </div>
+                  <div class="history-card-content" id="history-content-${exam._id}">
+                      <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                          <button onclick="printExam('history-exam-${exam._id}')" class="print-btn">
+                              <i class="fas fa-print"></i> Print Questions
+                          </button>
+                      </div>
+                      <div class="printable-content">
+                          ${exam.questions.map((q, qIndex) => `
+                              <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                  <p style="font-weight: bold; color: var(--primary);">Q${qIndex + 1}: ${q.questionText}</p>
+                                  <ul style="list-style-type: none; padding-left: 15px; font-size: 14px;">
+                                      ${q.options.map((opt, optIndex) => `
+                                          <li style="${optIndex === q.correctAnswerIndex ? 'color: var(--primary); font-weight: bold;' : ''}">
+                                              <span style="display: inline-block; width: 20px;">${String.fromCharCode(65 + optIndex)}.</span> ${opt} ${optIndex === q.correctAnswerIndex ? ' <i class="fas fa-check" style="color: #4ade80;"></i>' : ''}
+                                          </li>
+                                      `).join('')}
+                                  </ul>
+                              </div>
+                          `).join('')}
+                      </div>
+                  </div>
+              </div>
+          `,
+            )
+            .join("");
+        } catch (error) {
+          console.error("Error fetching exam history:", error);
+          container.innerHTML = `<p style="text-align: center; color: var(--danger);">Failed to load exam history.</p>`;
+        }
+      }
+
+      function toggleHistoryQuestions(examId) {
+        const content = document.getElementById(`history-content-${examId}`);
+        const icon = document.getElementById(`history-toggle-icon-${examId}`);
+        if (content.style.display === "block") {
+          content.style.display = "none";
+          icon.classList.replace("fa-chevron-up", "fa-chevron-down");
+        } else {
+          content.style.display = "block";
+          icon.classList.replace("fa-chevron-down", "fa-chevron-up");
+        }
+      }
+
+      async function loadResultsDashboard(teacherId) {
+        const container = document.getElementById("resultsListContainer");
+        container.innerHTML = `<p style="text-align: center; color: var(--text-muted);">Loading exams...</p>`;
+
+        try {
+          const res = await fetch(`/api/exams/teacher/${teacherId}`);
+          const data = await res.json();
+
+          if (!data.success || data.exams.length === 0) {
+            container.innerHTML = `<p style="text-align: center; color: var(--text-muted);">No exams found.</p>`;
+            return;
+          }
+
+          container.innerHTML = data.exams
+            .map(
+              (exam) => `
+              <div class="result-card">
+                  <div class="result-card-icon"><i class="fas fa-poll-h"></i></div>
+                  <div class="result-card-details">
+                      <h3 style="margin: 0; color: white; font-size: 16px;">${exam.title}</h3>
+                      <p style="margin: 5px 0 0; font-size: 12px; color: var(--text-muted);">
+                          Class: ${exam.targetClass} | Questions: ${exam.questions.length}
+                      </p>
+                  </div>
+                  <div class="result-card-stats">
+                      <span class="stat-value">${exam.submissionCount}</span>
+                      <span class="stat-label">Submissions</span>
+                  </div>
+                  <button onclick="viewResults('${exam._id}')" class="view-submissions-btn">
+                      View
+                  </button>
+              </div>`,
+            )
+            .join("");
+        } catch (error) {
+          container.innerHTML = `<p style="text-align: center; color: var(--danger);">Failed to load exams.</p>`;
+        }
+      }
+
+      function printExam(examCardId) {
+        const card = document.getElementById(examCardId);
+        const title = card.querySelector("h3").innerText;
+        const details = card.querySelector("p").innerText;
+        const contentToPrint =
+          card.querySelector(".printable-content").innerHTML;
+
+        const printWindow = window.open("", "", "height=800,width=1000");
+        printWindow.document.write("<html><head><title>Print Exam</title>");
+        printWindow.document.write(`
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+                p { margin: 5px 0; }
+                ul { list-style-type: none; padding-left: 0; }
+                li { margin-bottom: 5px; }
+                .printable-content div { page-break-inside: avoid; }
+            </style>
+        `);
+        printWindow.document.write("</head><body>");
+        printWindow.document.write(`<h1>${title}</h1><p>${details}</p><hr>`);
+        printWindow.document.write(contentToPrint);
+        printWindow.document.write("</body></html>");
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 250);
+      }
+
+      async function viewResults(examId) {
+        const modal = document.getElementById("resultsModal");
+        const tbody = document.getElementById("resultsTableBody");
+        const summaryContainer = document.getElementById("resultsSummary");
+
+        tbody.innerHTML =
+          '<tr><td colspan="5" style="text-align:center; padding: 20px;">Loading...</td></tr>';
+        summaryContainer.style.display = "none";
+        modal.style.display = "block";
+
+        try {
+          const res = await fetch(`/api/exams/${examId}/results`);
+          const data = await res.json();
+
+          if (data.success) {
+            document.getElementById("resultsTitle").innerText = data.examTitle;
+            document.getElementById("resultsClass").innerText =
+              `Class: ${data.targetClass}`;
+
+            if (data.results.length === 0) {
+              tbody.innerHTML =
+                '<tr><td colspan="5" style="text-align:center; padding: 20px;">No attempts recorded yet.</td></tr>';
+              return;
+            }
+            // Calculate and display summary
+            const submissionCount = data.results.length;
+            const totalPossibleScore = data.results[0]?.total || 0;
+            const totalScore = data.results.reduce(
+              (acc, r) => acc + (r.score || 0),
+              0,
+            );
+            const avgScore =
+              submissionCount > 0
+                ? (totalScore / submissionCount).toFixed(1)
+                : 0;
+            const avgPct =
+              totalPossibleScore > 0
+                ? Math.round((avgScore / totalPossibleScore) * 100)
+                : 0;
+
+            summaryContainer.innerHTML = `
+            <div class="summary-item">
+                <span class="stat-label">Total Submissions</span>
+                <span class="stat-value">${submissionCount}</span>
+            </div>
+            <div class="summary-item">
+                <span class="stat-label">Average Score</span>
+                <span class="stat-value">${avgScore} / ${totalPossibleScore}</span>
+            </div>
+            <div class="summary-item">
+                <span class="stat-label">Class Average</span>
+                <span class="stat-value">${avgPct}%</span>
+            </div>
+        `;
+            summaryContainer.style.display = "grid";
+
+            // Populate table
+            tbody.innerHTML = data.results
+              .map((r) => {
+                const pct = Math.round((r.score / r.total) * 100);
+                const color = pct >= 50 ? "#4ade80" : "#ef4444";
+                return `
+                        <tr>
+                            <td>${r.studentName}</td>
+                            <td style="font-family: monospace; color: var(--primary);">${r.studentId}</td>
+                            <td>${r.score} / ${r.total}</td>
+                            <td style="color: ${color}; font-weight: bold;">${pct}%</td>
+                            <td style="text-transform: uppercase; font-size: 11px;">${r.status}</td>
+                        </tr>
+                    `;
+              })
+              .join("");
+          }
+        } catch (e) {
+          console.error(e);
+          tbody.innerHTML =
+            '<tr><td colspan="5" style="text-align:center; color: red;">Error loading results.</td></tr>';
+        }
+      }
+
+      function closeResultsModal() {
+        document.getElementById("resultsModal").style.display = "none";
+      }
+
+      function printResults() {
+        const modalBody = document
+          .querySelector("#resultsModal .modal-body")
+          .cloneNode(true);
+        modalBody.querySelector(".print-btn").remove();
+
+        const title = document.getElementById("resultsTitle").innerText;
+        const classInfo = document.getElementById("resultsClass").innerText;
+
+        const printWindow = window.open("", "", "height=800,width=1000");
+        printWindow.document.write("<html><head><title>Print Results</title>");
+        printWindow.document.write(`
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+                th { background: #f2f2f2; }
+                .results-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; border: 1px solid #ccc; padding: 1rem; border-radius: 5px; text-align: center; }
+            </style>
+        `);
+        printWindow.document.write("</head><body>");
+        printWindow.document.write(`<h1>${title}</h1><p>${classInfo}</p>`);
+        printWindow.document.write(modalBody.innerHTML);
+        printWindow.document.write("</body></html>");
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 250);
+      }
+    </script>
+  </body>
+</html>
