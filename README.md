@@ -4,13 +4,20 @@ A responsive React and Vite implementation of the AceEdu school-management SaaS 
 
 ## Prerequisites
 
-- Node.js 20 or newer
+- Node.js 20.19 or newer, or 22.12 or newer (Node.js 22 is recommended)
 - npm 10 or newer
 
 ## Setup
 
 ```bash
 npm install
+npm run dev
+```
+
+Open the URL printed by Vite; the default is `http://localhost:8443/`. If port 8443 is already in use, choose another port in PowerShell and restart:
+
+```powershell
+$env:PORT = "5173"
 npm run dev
 ```
 
