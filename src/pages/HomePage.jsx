@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from "react";
 import DashboardPreview from "../components/common/DashboardPreview";
 import Footer from "../components/layout/Footer";
@@ -177,7 +178,8 @@ export default function HomePage() {
         </section>
       </main>
       <Footer />
-      <Modal mode={modalMode} onClose={closeModal} />
+      <Modal mode={modalMode} onClose={closeModal} onOpenModal={setModalMode} />
     </>
   );
 }
+

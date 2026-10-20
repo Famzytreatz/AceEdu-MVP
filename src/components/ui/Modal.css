@@ -1,46 +1,60 @@
 
-/* Full-screen overlay sits above the page and centers the dialog. */
+/* AceEdu modal system: uses the shared navy/cyan design tokens. */
 .modal-backdrop {
   position: fixed;
   z-index: 100;
   inset: 0;
   display: grid;
   place-items: center;
-  padding: var(--space-6);
-  background: rgba(3, 18, 46, 0.62);
+  overflow-y: auto;
+  padding: clamp(0.75rem, 3vw, 2rem);
+  background: rgba(3, 18, 46, 0.66);
+  overscroll-behavior: contain;
 }
 
-/* Dialog surface containing the form or confirmation state. */
 .modal {
   position: relative;
-  width: min(100%, 31rem);
+  width: min(100%, 34rem);
+  max-height: min(90dvh, 56rem);
+  overflow-y: auto;
+  border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: var(--radius-lg);
-  padding: var(--space-10);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
   background: var(--color-white);
   box-shadow: var(--shadow-modal);
+  overscroll-behavior: contain;
+}
+
+.modal--wide {
+  width: min(100%, 48rem);
+}
+
+.modal__heading {
+  padding-right: 2.25rem;
 }
 
 .modal h2 {
-  margin: 0 2rem var(--space-3) 0;
+  margin: 0 0 var(--space-3);
   color: var(--color-navy);
   font-family: "Poppins:Bold", sans-serif;
-  font-size: 1.75rem;
+  font-size: clamp(1.5rem, 3vw, 1.875rem);
+  line-height: 1.2;
 }
 
-.modal > p,
-.modal__success p {
+.modal__heading > p {
   margin: 0;
   color: var(--color-slate);
+  font-size: 0.9375rem;
   line-height: 1.6;
 }
 
 .modal__close {
   position: absolute;
-  top: var(--space-5);
-  right: var(--space-5);
+  top: 1rem;
+  right: 1rem;
   display: grid;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 2.5rem;
+  height: 2.5rem;
   place-items: center;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -49,53 +63,341 @@
   cursor: pointer;
 }
 
+.modal__close:hover {
+  background: var(--color-surface);
+}
+
 .modal__form {
   display: grid;
   gap: var(--space-5);
-  margin-top: var(--space-8);
+  margin-top: var(--space-6);
 }
 
-.modal__form label {
+.modal__field {
   display: grid;
-  gap: var(--space-2);
+  min-width: 0;
+  align-content: start;
+  gap: 0.45rem;
   color: var(--color-navy);
   font-family: "Poppins:Medium", sans-serif;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
-.modal__form input {
+.modal__field input,
+.modal__field select,
+.modal__field textarea {
   width: 100%;
-  min-height: 3.25rem;
+  min-width: 0;
+  min-height: 3rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: 0 var(--space-4);
+  padding: 0.75rem 0.875rem;
+  background: var(--color-white);
   color: var(--color-navy);
   font: inherit;
+  font-family: "Poppins:Regular", sans-serif;
 }
 
-.modal__form input:focus,
-.modal__close:focus-visible {
+.modal__field input::placeholder {
+  color: var(--color-muted);
+}
+
+.modal__field input:focus,
+.modal__field select:focus,
+.modal__field textarea:focus,
+.modal__close:focus-visible,
+.modal__password-toggle:focus-visible,
+.modal__text-button:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 
-.modal__success {
+.modal__required {
+  color: #b42318;
+}
+
+.modal__grid {
   display: grid;
-  justify-items: start;
-  gap: var(--space-5);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
 }
 
-.modal__success > svg {
-  color: var(--color-cyan-dark);
+.modal__password-wrap {
+  position: relative;
+  display: block;
 }
 
-.modal-open {
-  overflow: hidden;
+.modal__password-wrap input {
+  padding-right: 3rem;
 }
 
-@media (max-width: 480px) {
+.modal__password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--color-slate);
+  cursor: pointer;
+}
+
+.modal__inline-row,
+.modal__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.modal__checkbox {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  color: var(--color-slate);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.modal__checkbox input {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.15rem;
+  accent-color: var(--color-navy);
+}
+
+.modal__checkbox--wide,
+.modal__full {
+  grid-column: 1 / -1;
+}
+
+.modal__text-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #087eaa;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.modal__text-button:hover {
+  text-decoration: underline;
+}
+
+.modal__submit {
+  width: 100%;
+}
+
+.modal__switch {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.modal__progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.modal__progress li {
+  display: grid;
+  justify-items: center;
+  gap: 0.375rem;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.modal__progress li > span {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-white);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.modal__progress li.is-active {
+  color: var(--color-navy);
+}
+
+.modal__progress li.is-active > span {
+  border-color: var(--color-cyan);
+  background: var(--color-cyan);
+  color: var(--color-navy);
+}
+
+.modal__progress small {
+  font-size: 0.6875rem;
+}
+
+.modal__actions {
+  justify-content: flex-end;
+  margin-top: 0.25rem;
+}
+
+.modal__actions .button {
+  min-width: 8rem;
+}
+
+.modal__section-title {
+  margin-bottom: -0.5rem;
+  color: var(--color-navy);
+  font-family: "Poppins:SemiBold", sans-serif;
+  font-size: 0.9375rem;
+}
+
+.modal__hint {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.modal__error {
+  margin: -0.5rem 0 0;
+  color: #b42318;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.modal__review {
+  display: grid;
+  gap: 0.625rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  overflow-wrap: anywhere;
+}
+
+.modal__review h3 {
+  margin: 0.25rem 0 0.125rem;
+  color: var(--color-navy);
+  font-family: "Poppins:SemiBold", sans-serif;
+  font-size: 0.9375rem;
+}
+
+.modal__review p {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.modal__interests {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+}
+
+.modal__interests legend {
+  padding: 0 0.25rem;
+  color: var(--color-navy);
+  font-family: "Poppins:Medium", sans-serif;
+  font-size: 0.8125rem;
+}
+
+.modal__interest-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.modal__notice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75rem;
+  margin-top: var(--space-5);
+  border: 1px solid #b9eaf5;
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  background: #effbfe;
+  color: var(--color-navy);
+}
+
+.modal__notice > svg {
+  margin-top: 0.125rem;
+  color: #087eaa;
+}
+
+.modal__notice p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.modal__notice .modal__text-button {
+  grid-column: 2;
+}
+
+@media (max-width: 560px) {
+  .modal-backdrop {
+    align-items: start;
+    padding: 0.5rem;
+  }
+
+  .modal,
+  .modal--wide {
+    width: 100%;
+    max-height: calc(100dvh - 1rem);
+    border-radius: 1rem;
+    padding: 1.25rem;
+  }
+
+  .modal__heading {
+    padding-right: 2rem;
+  }
+
+  .modal h2 {
+    font-size: 1.375rem;
+  }
+
+  .modal__grid,
+  .modal__interest-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .modal__inline-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .modal__actions {
+    align-items: stretch;
+  }
+
+  .modal__actions .button {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .modal__progress small {
+    font-size: 0.625rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
   .modal {
-    padding: var(--space-8) var(--space-6);
+    scroll-behavior: auto;
   }
 }
 
