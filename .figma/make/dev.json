@@ -1,3 +1,4 @@
+
 {
   // Files whose changes trigger the install script + dev server restart.
   // Glob syntax: doublestar (supports **, *, ?, [abc], {a,b}). Paths are
@@ -19,3 +20,4 @@
   // Files whose changes trigger only a dev server restart (no install).
   "restartOn": []
 }
+

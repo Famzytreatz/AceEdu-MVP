@@ -1,3 +1,4 @@
+
 # AceEdu Frontend
 
 A responsive React and Vite implementation of the AceEdu school-management SaaS landing page. The interface is based on the supplied desktop and mobile Figma designs and uses traditional CSS only.
@@ -51,3 +52,4 @@ The dashboard metrics and activities are illustrative mock data in `src/data/sit
 ## Source handoff
 
 All editable source is contained in this project directory. Download or clone the complete repository, open the folder in VS Code, run `npm install`, and then use the scripts above. The preview panel itself is not an export mechanism.
+

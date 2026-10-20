@@ -1,3 +1,4 @@
+
 import {
   BookOpen,
   CalendarDays,
@@ -6,17 +7,20 @@ import {
   Users,
 } from "lucide-react"
 
+// Illustrative dashboard figures used by DashboardPreview; these are sample values, not live school data.
 export const metrics = [
   { label: "Total Students", value: "1,240" },
   { label: "Active Teachers", value: "45" },
   { label: "Classes", value: "24" },
 ]
 
+// Sample activity messages shown in the dashboard preview.
 export const activities = [
   "Attendance recorded for SS3A",
   "New student record created for John Doe",
 ]
 
+// Marketing feature content. Icon components and asset paths let the page render matching visuals.
 export const features = [
   {
     title: "Student Records",
@@ -56,6 +60,7 @@ export const features = [
   },
 ]
 
+// Copy and benefit lists for the administrator and teacher audience cards.
 export const roles = [
   {
     title: "For school administrators",
@@ -81,6 +86,7 @@ export const roles = [
   },
 ]
 
+// Ordered descriptions used by the How It Works section.
 export const steps = [
   {
     title: "Set Up Your School",
@@ -96,3 +102,4 @@ export const steps = [
       "Start managing daily attendance, records, classes, and results.",
   },
 ]
+

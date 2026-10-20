@@ -1,3 +1,5 @@
+
+/* Main header positions the brand and navigation controls in one row. */
 .site-header {
   position: relative;
   z-index: 20;
@@ -10,6 +12,7 @@
   background: var(--color-white);
 }
 
+/* Navigation links are laid out for the desktop header; mobile rules adapt this menu. */
 .site-nav {
   display: flex;
   align-items: center;
@@ -33,6 +36,7 @@
   display: none;
 }
 
+/* Mobile navigation rules switch the links into a drawer layout. */
 @media (max-width: 768px) {
   .site-header {
     min-height: 5.5rem;
@@ -118,3 +122,4 @@
     background: rgba(3, 18, 46, 0.5);
   }
 }
+

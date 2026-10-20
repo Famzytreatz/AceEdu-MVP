@@ -1,12 +1,13 @@
-import { useCallback, useState } from "react"
-import DashboardPreview from "../components/common/DashboardPreview"
-import Footer from "../components/layout/Footer"
-import Header from "../components/layout/Header"
-import Button from "../components/ui/Button"
-import Modal from "../components/ui/Modal"
-import { features, roles, steps } from "../data/siteContent"
-import "./HomePage.css"
+import { useCallback, useState } from "react";
+import DashboardPreview from "../components/common/DashboardPreview";
+import Footer from "../components/layout/Footer";
+import Header from "../components/layout/Header";
+import Button from "../components/ui/Button";
+import Modal from "../components/ui/Modal";
+import { features, roles, steps } from "../data/siteContent";
+import "./HomePage.css";
 
+// Small reusable section heading: props supply the title, description, and optional centered layout.
 function SectionIntro({ title, description, centered = false }) {
   return (
     <div
@@ -15,9 +16,11 @@ function SectionIntro({ title, description, centered = false }) {
       <h2>{title}</h2>
       <p>{description}</p>
     </div>
-  )
+  );
 }
 
+// The hero combines the main headline, calls to action, and dashboard preview.
+// onOpenModal is a callback from HomePage, so these buttons can request a specific modal.
 function Hero({ onOpenModal }) {
   return (
     <section className="hero" aria-labelledby="hero-title">
@@ -39,9 +42,10 @@ function Hero({ onOpenModal }) {
       </div>
       <DashboardPreview />
     </section>
-  )
+  );
 }
 
+// Render feature cards from the shared features data rather than hard-coding each card.
 function Features() {
   return (
     <section className="content-section features" id="features">
@@ -70,9 +74,10 @@ function Features() {
         )}
       </div>
     </section>
-  )
+  );
 }
 
+// Show the role-specific benefits stored in the roles data array.
 function RoleSupport() {
   return (
     <section className="content-section role-support">
@@ -110,9 +115,10 @@ function RoleSupport() {
         ))}
       </div>
     </section>
-  )
+  );
 }
 
+// Render the numbered setup steps; index + 1 displays user-facing numbering starting at 1.
 function HowItWorks() {
   return (
     <section className="workflow" id="how-it-works">
@@ -133,13 +139,17 @@ function HowItWorks() {
         ))}
       </ol>
     </section>
-  )
+  );
 }
 
+// HomePage assembles all landing-page sections and owns the modal state used by its children.
 export default function HomePage() {
-  const [modalMode, setModalMode] = useState(null)
-  const closeModal = useCallback(() => setModalMode(null), [])
+  // null means no modal is open; strings such as "login", "demo", or "started" select a modal.
+  const [modalMode, setModalMode] = useState(null);
+  // Keep a stable close callback for the Modal component.
+  const closeModal = useCallback(() => setModalMode(null), []);
 
+  // Pass the state setter to components that need to open a modal, then render the selected modal.
   return (
     <>
       <Header onOpenModal={setModalMode} />
@@ -169,5 +179,5 @@ export default function HomePage() {
       <Footer />
       <Modal mode={modalMode} onClose={closeModal} />
     </>
-  )
+  );
 }

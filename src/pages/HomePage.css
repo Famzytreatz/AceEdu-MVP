@@ -1,3 +1,5 @@
+
+/* Hero uses two columns on wider screens: message/actions and dashboard preview. */
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -6,6 +8,7 @@
   padding: 6.25rem clamp(2rem, 5.5vw, 5rem);
 }
 
+/* Stack the headline/copy and action buttons with consistent spacing. */
 .hero__content {
   display: grid;
   gap: var(--space-8);
@@ -40,6 +43,7 @@
   min-height: 31.25rem;
 }
 
+/* Shared layout for centered informational sections. */
 .school-overview,
 .workflow {
   display: grid;
@@ -80,6 +84,7 @@
   background: var(--color-white);
 }
 
+/* CSS Grid controls the number and spacing of feature cards. */
 .features__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -273,3 +278,4 @@
 .final-cta .button {
   min-width: 10.75rem;
 }
+
