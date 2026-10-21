@@ -14,7 +14,7 @@ async function uploadToPortal() {
         deadline: document.getElementById('deadline').value
     };
 
-    const response = await fetch('http://localhost:3000/teacher/post-content', {
+    const response = await fetch('/api/content/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(postData)

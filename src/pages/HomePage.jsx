@@ -144,7 +144,7 @@ function HowItWorks() {
 }
 
 // HomePage assembles all landing-page sections and owns the modal state used by its children.
-export default function HomePage() {
+export default function HomePage({ onRegister, onLogin, backendError }) {
   // null means no modal is open; strings such as "login", "demo", or "started" select a modal.
   const [modalMode, setModalMode] = useState(null);
   // Keep a stable close callback for the Modal component.
@@ -153,6 +153,11 @@ export default function HomePage() {
   // Pass the state setter to components that need to open a modal, then render the selected modal.
   return (
     <>
+      {backendError && (
+        <div className="home-backend-error" role="alert">
+          {backendError}
+        </div>
+      )}
       <Header onOpenModal={setModalMode} />
       <main>
         <Hero onOpenModal={setModalMode} />
@@ -178,8 +183,13 @@ export default function HomePage() {
         </section>
       </main>
       <Footer />
-      <Modal mode={modalMode} onClose={closeModal} onOpenModal={setModalMode} />
+      <Modal
+        mode={modalMode}
+        onClose={closeModal}
+        onOpenModal={setModalMode}
+        onRegister={onRegister}
+        onLogin={onLogin}
+      />
     </>
   );
 }
-

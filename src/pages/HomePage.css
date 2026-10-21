@@ -52,6 +52,16 @@
   padding: 5rem clamp(2rem, 5.5vw, 5rem);
 }
 
+.home-backend-error {
+  position: relative;
+  z-index: 30;
+  padding: 0.875rem 1.5rem;
+  background: #fff1f0;
+  color: #9f1d17;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
 .section-intro {
   display: grid;
   gap: var(--space-4);
@@ -278,4 +288,3 @@
 .final-cta .button {
   min-width: 10.75rem;
 }
-

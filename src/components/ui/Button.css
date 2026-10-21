@@ -23,6 +23,11 @@
   box-shadow: var(--shadow-button);
 }
 
+.button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 /* Variant classes change appearance while keeping the same button structure. */
 .button--primary {
   background: var(--color-navy);
@@ -58,4 +63,3 @@
     font-size: 0.9375rem;
   }
 }
-

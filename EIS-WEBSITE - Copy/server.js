@@ -1,289 +1,294 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const path = require("path");
-const cors = require("cors");
+require("dotenv").config({ path: require("node:path").resolve(__dirname, "..", ".env") })
 
-const app = express();
-const PORT = 3000;
+const bcrypt = require("bcryptjs")
+const express = require("express")
+const path = require("node:path")
+const { randomInt } = require("node:crypto")
+const cors = require("cors")
+const {
+  attemptColumns,
+  attemptFromRow,
+  contentColumns,
+  contentFromRow,
+  examColumns,
+  examFromRow,
+  messageColumns,
+  messageFromRow,
+  parseId,
+  supabase,
+  userAuthColumns,
+  userColumns,
+  userFromRow,
+  verifySupabaseConnection,
+} = require("./database")
 
-// --- 1. CONFIGURATION ---
-app.use(cors());
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-app.use(express.static(path.join(__dirname, "public")));
-app.use(express.static(__dirname));
+const app = express()
+const PORT = Number.parseInt(process.env.EIS_PORT || "3000", 10)
+const passwordRounds = 12
 
-// --- 2. DATABASE CONNECTION ---
-mongoose
-  .connect("mongodb://localhost:27017/EliteAcademy")
-  .then(() => console.log("✅ Elite Vault Connected Successfully"))
-  .catch((err) => console.error("❌ Database connection failed:", err));
+app.disable("x-powered-by")
+app.use(cors())
+app.use(express.json({ limit: "50mb" }))
+app.use(express.urlencoded({ extended: true, limit: "50mb" }))
+app.use(express.static(path.join(__dirname, "public")))
+app.use(express.static(__dirname))
 
-// --- 3. SCHEMAS ---
-const userSchema = new mongoose.Schema({
-  fullName: { type: String, required: true },
-  role: { type: String, required: true },
-  designation: { type: String },
-  assignedClasses: { type: String },
-  subjects: { type: String },
-  accessPin: { type: String, unique: true, required: true },
-  passport: { type: String },
-  regDate: { type: Date, default: Date.now },
-  status: { type: String, default: "Pending" },
-  registeredBy: { type: String, default: "Staff Terminal" },
-  dob: { type: String },
-  guardianPhone: { type: String },
-  address: { type: String },
-  stateOfOrigin: { type: String },
-  phone: { type: String },
-  password: { type: String },
-});
-const User = mongoose.model("User", userSchema);
+function logDatabaseError(action, error) {
+  console.error(`${action}:`, error?.code || error?.message || "Unknown database error")
+}
 
-// --- REMOVE LEGACY ADMIN (Third Person) ---
-// This ensures the "ADMIN-8090" user is deleted from the database if it exists.
-User.deleteOne({ accessPin: "ADMIN-8090" })
-  .then(() => console.log("✅ Legacy Admin (ADMIN-8090) removed."))
-  .catch((err) => console.error("Cleanup Error:", err));
-
-const messageSchema = new mongoose.Schema({
-  target: { type: String, required: true },
-  sender: { type: String, default: "Admin Office" },
-  content: { type: String, required: true },
-  date: { type: Date, default: Date.now },
-  priority: { type: String, default: "normal" },
-});
-const Message = mongoose.model("Message", messageSchema);
-
-const contentSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  type: { type: String, enum: ["assignment", "material"], default: "material" },
-  targetClass: { type: String, required: true },
-  contentBody: { type: String },
-  fileUrl: { type: String },
-  author: { type: String },
-  createdAt: { type: Date, default: Date.now },
-});
-const Content = mongoose.model("Content", contentSchema);
-
-// New Schema: ExamQuestion
-const examQuestionSchema = new mongoose.Schema({
-  teacherId: { type: String, required: true }, // Access PIN of the teacher
-  targetClass: { type: String, required: true },
-  title: { type: String, required: true },
-  questions: [
-    {
-      questionText: { type: String, required: true },
-      options: [{ type: String, required: true }],
-      correctAnswerIndex: { type: Number, required: true }, // 0-indexed
-    },
-  ],
-  durationMinutes: { type: Number, required: true }, // e.g., 120 for 2 hours
-  attemptsAllowed: { type: Number, default: 1 },
-  createdAt: { type: Date, default: Date.now },
-  expiresAt: { type: Date }, // Calculated: createdAt + durationMinutes
-});
-const ExamQuestion = mongoose.model("ExamQuestion", examQuestionSchema);
-
-// New Schema: StudentExamAttempt
-const studentExamAttemptSchema = new mongoose.Schema({
-  studentId: { type: String, required: true }, // Access PIN of the student
-  examId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "ExamQuestion",
-    required: true,
-  },
-  classId: { type: String, required: true },
-  attemptNumber: { type: Number, default: 1 },
-  startTime: { type: Date },
-  endTime: { type: Date },
-  answers: [{ questionIndex: Number, selectedOptionIndex: Number }],
-  score: { type: Number },
-  status: {
-    type: String,
-    enum: ["started", "submitted", "expired", "revoked"],
-    default: "started",
-  },
-  isRevoked: { type: Boolean, default: false }, // For admin revocation
-  submissionType: { type: String, default: "manual" }, // 'manual' or 'timeout'
-});
-const StudentExamAttempt = mongoose.model(
-  "StudentExamAttempt",
-  studentExamAttemptSchema,
-);
-
-// --- 4. PAGE ROUTES ---
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index.html")));
-app.get("/login", (req, res) =>
-  res.sendFile(path.join(__dirname, "Login.html")),
-);
-app.get("/admin-auth", (req, res) =>
-  res.sendFile(path.join(__dirname, "admin-auth.html")),
-);
-app.get("/teacher-auth", (req, res) =>
-  res.sendFile(path.join(__dirname, "teacher-auth.html")),
-);
-app.get("/sub-admin-auth", (req, res) =>
-  res.sendFile(path.join(__dirname, "sub-admin-auth.html")),
-);
-app.get(["/academy-hub", "/academy-hub.html"], (req, res) => {
-  res.sendFile(
-    path.join(__dirname, "public", "Students portal", "academy-hub.html"),
-  );
-});
-app.get("/student-dashboard", (req, res) => {
-  res.sendFile(
-    path.join(__dirname, "public", "Students portal", "student-dashboard.html"),
-  );
-});
-app.get("/admin", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "Admin Panel", "admin.html"));
-});
-app.get("/identity-installation", (req, res) => {
-  res.sendFile(
-    path.join(__dirname, "public", "Admin Panel", "identity-installation.html"),
-  );
-});
-app.get("/teachers", (req, res) => {
-  res.sendFile(
-    path.join(__dirname, "public", "Teachers portal", "teacher.html"),
-  );
-});
-app.get("/teacher-exam-portal", (req, res) => {
-  res.sendFile(
-    path.join(
-      __dirname,
-      "public",
-      "Teachers portal",
-      "teacher-exam-portal.html",
-    ),
-  );
-});
-
-// --- 5. ADMIN API (Verification, Update, Delete) ---
-
-// Get all users for the Registry table
-app.get("/api/admin/users", async (req, res) => {
-  try {
-    const users = await User.find().sort({ regDate: -1 });
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ error: "Registry Load Failed" });
+function userValuesFromBody(body, accessPin, passwordHash) {
+  return {
+    full_name: body.fullName,
+    role: body.role,
+    designation: body.designation || null,
+    assigned_classes: body.assignedClasses || "",
+    subjects: body.subjects || "",
+    access_pin: accessPin,
+    passport: body.passport || null,
+    status: body.role === "admin" ? "Verified" : "Pending",
+    registered_by: body.registeredBy || "Staff Terminal",
+    dob: body.dob || null,
+    guardian_phone: body.guardianPhone || null,
+    address: body.address || null,
+    state_of_origin: body.stateOfOrigin || null,
+    phone: body.phone || null,
+    country: body.country || null,
+    region: body.region || null,
+    home_address: body.homeAddress || null,
+    password_hash: passwordHash,
   }
-});
+}
 
-// Update Teacher Portal
-app.put("/api/admin/update-teacher/:id", async (req, res) => {
+async function findUserByPin(pin, role) {
+  let query = supabase.from("eis_users").select(userAuthColumns).eq("access_pin", pin)
+  if (role) query = query.eq("role", role)
+  const { data, error } = await query.maybeSingle()
+  if (error) throw error
+  return data
+}
+
+async function passwordMatches(user, password) {
+  if (typeof password !== "string" || !password) return false
+  const storedPassword = user.password_hash || ""
+  if (/^\$2[aby]\$/.test(storedPassword)) {
+    return bcrypt.compare(password, storedPassword)
+  }
+  if (storedPassword !== password) return false
+
+  const passwordHash = await bcrypt.hash(password, passwordRounds)
+  const { error } = await supabase
+    .from("eis_users")
+    .update({ password_hash: passwordHash })
+    .eq("id", user.id)
+  if (error) throw error
+  return true
+}
+
+function pinPrefix(role) {
+  if (role === "admin") return "ADM"
+  if (role === "school-admin") return "SCH"
+  if (role === "sub-admin") return "SUB"
+  if (role === "teacher") return "TCH"
+  return "STU"
+}
+
+async function generateUserPin(role) {
+  const prefix = pinPrefix(role)
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const pin = `${prefix}-${randomInt(100000, 1000000)}`
+    const { data, error } = await supabase
+      .from("eis_users")
+      .select("id")
+      .eq("access_pin", pin)
+      .maybeSingle()
+    if (error) throw error
+    if (!data) return pin
+  }
+  throw new Error("Could not generate an unused access PIN.")
+}
+
+app.get("/api/health", async (_req, res) => {
   try {
-    const { id } = req.params;
-    const { assignedClasses, subjects } = req.body;
-    const updatedUser = await User.findByIdAndUpdate(
-      id,
-      { assignedClasses, subjects },
-      { new: true },
-    );
-    if (!updatedUser)
-      return res
-        .status(404)
-        .json({ success: false, message: "Teacher not found" });
-    res.json({
+    const { error } = await supabase.from("eis_users").select("id").limit(1)
+    if (error) throw error
+    return res.json({ status: "ok", database: "supabase" })
+  } catch (error) {
+    logDatabaseError("EIS health check failed", error)
+    return res.status(503).json({ status: "unavailable", database: "supabase" })
+  }
+})
+
+app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "index.html")))
+app.get("/login", (_req, res) => res.sendFile(path.join(__dirname, "Login.html")))
+app.get("/admin-auth", (_req, res) => res.sendFile(path.join(__dirname, "admin-auth.html")))
+app.get("/teacher-auth", (_req, res) => res.sendFile(path.join(__dirname, "teacher-auth.html")))
+app.get("/sub-admin-auth", (_req, res) => res.sendFile(path.join(__dirname, "sub-admin-auth.html")))
+app.get(["/academy-hub", "/academy-hub.html"], (_req, res) =>
+  res.sendFile(path.join(__dirname, "public", "Students portal", "academy-hub.html")),
+)
+app.get("/student-dashboard", (_req, res) =>
+  res.sendFile(path.join(__dirname, "public", "Students portal", "student-dashboard.html")),
+)
+app.get("/admin", (_req, res) =>
+  res.sendFile(path.join(__dirname, "public", "Admin Panel", "admin.html")),
+)
+app.get("/identity-installation", (_req, res) =>
+  res.sendFile(path.join(__dirname, "public", "Admin Panel", "identity-installation.html")),
+)
+app.get("/teachers", (_req, res) =>
+  res.sendFile(path.join(__dirname, "public", "Teachers portal", "teacher.html")),
+)
+app.get("/teacher-exam-portal", (_req, res) =>
+  res.sendFile(path.join(__dirname, "public", "Teachers portal", "teacher-exam-portal.html")),
+)
+
+app.get("/api/admin/users", async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("eis_users")
+      .select(userColumns)
+      .order("reg_date", { ascending: false })
+    if (error) throw error
+    return res.json(data.map((row) => userFromRow(row)))
+  } catch (error) {
+    logDatabaseError("Registry load failed", error)
+    return res.status(500).json({ error: "Registry Load Failed" })
+  }
+})
+
+app.put("/api/admin/update-teacher/:id", async (req, res) => {
+  const id = parseId(req.params.id)
+  if (!id) return res.status(400).json({ success: false, message: "Teacher ID is invalid." })
+  try {
+    const { data, error } = await supabase
+      .from("eis_users")
+      .update({
+        assigned_classes: req.body.assignedClasses ?? "",
+        subjects: req.body.subjects ?? "",
+      })
+      .eq("id", id)
+      .eq("role", "teacher")
+      .select(userColumns)
+      .maybeSingle()
+    if (error) throw error
+    if (!data) return res.status(404).json({ success: false, message: "Teacher not found" })
+    return res.json({
       success: true,
       message: "Updated successfully",
-      data: updatedUser,
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Vault Error" });
+      data: userFromRow(data),
+    })
+  } catch (error) {
+    logDatabaseError("Teacher update failed", error)
+    return res.status(500).json({ success: false, message: "Vault Error" })
   }
-});
+})
 
-// Verify User (Updates status to 'Verified')
 app.post("/api/admin/verify/:id", async (req, res) => {
+  const id = parseId(req.params.id)
+  if (!id) return res.status(400).json({ error: "User ID is invalid." })
   try {
-    await User.findByIdAndUpdate(req.params.id, { status: "Verified" });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: "Verification failed" });
+    const { error } = await supabase.from("eis_users").update({ status: "Verified" }).eq("id", id)
+    if (error) throw error
+    return res.json({ success: true })
+  } catch (error) {
+    logDatabaseError("User verification failed", error)
+    return res.status(500).json({ error: "Verification failed" })
   }
-});
+})
 
-// --- ADD THIS TO SERVER.JS ---
 app.post("/api/content/create", async (req, res) => {
-  try {
-    const { title, type, targetClass, contentBody, fileUrl, author } = req.body;
-    const newContent = new Content({
-      title,
-      type,
-      targetClass,
-      contentBody,
-      fileUrl, // Saves the base64 media
-      author, // Saves the teacher's name
-      createdAt: new Date(),
-    });
-    await newContent.save();
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Vault upload failed" });
+  const body = req.body || {}
+  if (!body.title || !body.targetClass) {
+    return res.status(400).json({ error: "Content title and target class are required." })
   }
-});
-// DELETE ROUTE
+  try {
+    const { error } = await supabase.from("eis_content").insert({
+      title: body.title,
+      type: body.type || "material",
+      target_class: body.targetClass,
+      content_body: body.contentBody ?? body.body ?? null,
+      body: body.body ?? null,
+      file_url: body.fileUrl || null,
+      author: body.author || null,
+      subject: body.subject || null,
+      teacher_name: body.teacherName || null,
+      deadline: body.deadline || null,
+    })
+    if (error) throw error
+    return res.json({ success: true })
+  } catch (error) {
+    logDatabaseError("Content creation failed", error)
+    return res.status(500).json({ error: "Vault upload failed" })
+  }
+})
+
 app.delete("/api/content/:id", async (req, res) => {
+  const id = parseId(req.params.id)
+  if (!id) return res.status(400).json({ error: "Content ID is invalid." })
   try {
-    await Content.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "Post eliminated from feed." });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to delete post." });
+    const { error } = await supabase.from("eis_content").delete().eq("id", id)
+    if (error) throw error
+    return res.json({ success: true, message: "Post eliminated from feed." })
+  } catch (error) {
+    logDatabaseError("Content deletion failed", error)
+    return res.status(500).json({ error: "Failed to delete post." })
   }
-});
+})
 
-// Delete Identity
 app.delete("/api/admin/delete/:id", async (req, res) => {
+  const id = parseId(req.params.id)
+  if (!id) return res.status(400).json({ error: "User ID is invalid." })
   try {
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: "Deletion failed" });
+    const { error } = await supabase.from("eis_users").delete().eq("id", id)
+    if (error) throw error
+    return res.json({ success: true })
+  } catch (error) {
+    logDatabaseError("User deletion failed", error)
+    return res.status(500).json({ error: "Deletion failed" })
   }
-});
+})
 
-// Broadcast
 app.post("/api/admin/broadcast", async (req, res) => {
+  const body = req.body || {}
+  const target = body.target || body.type || "all"
+  const content = body.content || body.message
+  if (!content) return res.status(400).json({ error: "Broadcast content is required." })
   try {
-    const newMessage = new Message(req.body);
-    await newMessage.save();
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: "Broadcast failed" });
+    const { error } = await supabase.from("eis_messages").insert({
+      target,
+      content,
+      sender: body.sender || "Admin Office",
+      priority: body.priority || "normal",
+      message_type: body.type || null,
+    })
+    if (error) throw error
+    return res.json({ success: true })
+  } catch (error) {
+    logDatabaseError("Broadcast creation failed", error)
+    return res.status(500).json({ error: "Broadcast failed" })
   }
-});
-
-// --- 6. AUTH & PORTAL API ---
+})
 
 app.post("/api/login", async (req, res) => {
   try {
-    const { pin } = req.body;
-    const user = await User.findOne({ accessPin: pin });
+    const pin = typeof req.body?.pin === "string" ? req.body.pin.trim() : ""
+    if (!pin) return res.status(400).json({ success: false, message: "Enter your Access PIN." })
+    const row = await findUserByPin(pin)
+    const user = userFromRow(row)
+    if (!user) return res.status(401).json({ success: false, message: "Invalid Access PIN" })
 
-    if (!user)
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid Access PIN" });
-
-    const isAdmin = user.role === "admin" || user.role === "sub-admin";
+    const isAdmin = user.role === "admin" || user.role === "sub-admin"
     if (user.status !== "Verified" && !isAdmin) {
-      return res
-        .status(403)
-        .json({ success: false, message: "Account Pending Verification." });
+      return res.status(403).json({ success: false, message: "Account Pending Verification." })
     }
 
-    let destination = "/student-dashboard";
-    if (user.role === "admin")
-      destination = "/admin-auth"; // Master Admin
-    else if (user.role === "sub-admin" || user.role === "school-admin")
-      destination = "/sub-admin-auth"; // Sub Admin
-    else if (user.role === "teacher") destination = "/teacher-auth";
+    let destination = "/student-dashboard"
+    if (user.role === "admin") destination = "/admin-auth"
+    else if (user.role === "sub-admin" || user.role === "school-admin") destination = "/sub-admin-auth"
+    else if (user.role === "teacher") destination = "/teacher-auth"
 
-    res.json({
+    return res.json({
       success: true,
       redirectUrl: destination,
       userName: user.fullName,
@@ -291,467 +296,450 @@ app.post("/api/login", async (req, res) => {
       designation: user.designation,
       passport: user.passport,
       role: user.role,
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Login Failed" });
+    })
+  } catch (error) {
+    logDatabaseError("PIN login failed", error)
+    return res.status(500).json({ success: false, message: "Login Failed" })
   }
-});
+})
 
-// Teacher Password Verification
+app.post("/api/verify-student", async (req, res) => {
+  const pin = typeof req.body?.pin === "string" ? req.body.pin.trim() : ""
+  if (!pin) return res.status(400).json({ success: false })
+  try {
+    const user = await findUserByPin(pin, "student")
+    return res.json({ success: Boolean(user && user.status === "Verified") })
+  } catch (error) {
+    logDatabaseError("Student PIN verification failed", error)
+    return res.status(500).json({ success: false, message: "Verification failed." })
+  }
+})
+
+app.get("/api/verify-pin/:pin", async (req, res) => {
+  try {
+    const user = userFromRow(await findUserByPin(req.params.pin))
+    if (!user) return res.json({ found: false })
+    return res.json({
+      found: true,
+      user: {
+        fullName: user.fullName,
+        role: user.role,
+        accessPin: user.accessPin,
+        status: user.status,
+      },
+    })
+  } catch (error) {
+    logDatabaseError("PIN verification failed", error)
+    return res.status(500).json({ found: false, error: "Verification failed." })
+  }
+})
+
 app.post("/api/teacher/login", async (req, res) => {
   try {
-    const { pin, password } = req.body;
-    const user = await User.findOne({ accessPin: pin, role: "teacher" });
-
-    if (!user)
-      return res.status(401).json({ success: false, message: "Invalid User" });
-
-    if (user.password !== password) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Incorrect Password" });
+    const pin = typeof req.body?.pin === "string" ? req.body.pin.trim() : ""
+    const password = typeof req.body?.password === "string" ? req.body.password : ""
+    const user = await findUserByPin(pin, "teacher")
+    if (!user) return res.status(401).json({ success: false, message: "Invalid User" })
+    if (!(await passwordMatches(user, password))) {
+      return res.status(401).json({ success: false, message: "Incorrect Password" })
     }
-
-    res.json({ success: true, redirectUrl: "/teachers" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Server Error" });
+    return res.json({ success: true, redirectUrl: "/teachers" })
+  } catch (error) {
+    logDatabaseError("Teacher login failed", error)
+    return res.status(500).json({ success: false, message: "Server Error" })
   }
-});
+})
 
-// Sub-Admin Password Verification
 app.post("/api/sub-admin/login", async (req, res) => {
   try {
-    const { pin, password } = req.body;
-    const user = await User.findOne({
-      accessPin: pin,
-      role: { $in: ["sub-admin", "school-admin"] },
-    });
-
-    if (!user)
-      return res.status(401).json({ success: false, message: "Invalid User" });
-
-    if (user.password !== password) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Incorrect Password" });
+    const pin = typeof req.body?.pin === "string" ? req.body.pin.trim() : ""
+    const password = typeof req.body?.password === "string" ? req.body.password : ""
+    const { data, error } = await supabase
+      .from("eis_users")
+      .select(userAuthColumns)
+      .eq("access_pin", pin)
+      .in("role", ["sub-admin", "school-admin"])
+      .maybeSingle()
+    if (error) throw error
+    if (!data) return res.status(401).json({ success: false, message: "Invalid User" })
+    if (!(await passwordMatches(data, password))) {
+      return res.status(401).json({ success: false, message: "Incorrect Password" })
     }
-
-    res.json({ success: true, redirectUrl: "/identity-installation" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Server Error" });
+    return res.json({ success: true, redirectUrl: "/identity-installation" })
+  } catch (error) {
+    logDatabaseError("Sub-admin login failed", error)
+    return res.status(500).json({ success: false, message: "Server Error" })
   }
-});
+})
 
-// Double check your Enrollment Route matches these keys
 app.post("/api/admin/enroll", async (req, res) => {
-  try {
-    const {
-      fullName,
-      role,
-      designation,
-      passport,
-      assignedClasses,
-      subjects,
-      registeredBy,
-      dob,
-      guardianPhone,
-      address,
-      stateOfOrigin,
-      phone,
-      password,
-    } = req.body;
-
-    // Generate Unique PIN based on Role
-    const prefix =
-      role === "admin"
-        ? "ADM"
-        : role === "school-admin"
-          ? "SCH"
-          : role === "sub-admin"
-            ? "SUB"
-            : role === "teacher"
-              ? "TCH"
-              : "STU";
-    const pin = `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
-
-    const newUser = new User({
-      fullName,
-      role,
-      designation, // This matches the dropdown 'regClass'
-      passport,
-      accessPin: pin,
-      assignedClasses: assignedClasses || "",
-      subjects: subjects || "",
-      registeredBy: registeredBy || "Staff Terminal",
-      status: role === "admin" ? "Verified" : "Pending",
-      dob,
-      guardianPhone,
-      address,
-      stateOfOrigin,
-      phone,
-      password,
-    });
-
-    await newUser.save();
-    res.json({ success: true, pin: pin });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Enrollment Failed" });
+  const body = req.body || {}
+  if (typeof body.fullName !== "string" || !body.fullName.trim() || typeof body.role !== "string" || !body.role.trim()) {
+    return res.status(400).json({ success: false, error: "Enter a user name and select a role." })
   }
-});
-
-// --- NEW EXAM SYSTEM API ---
-
-// API for Teacher to create an exam
-app.post("/api/exams/create", async (req, res) => {
   try {
-    const {
-      teacherId,
-      targetClass,
-      title,
-      questions,
-      durationMinutes,
-      validityMinutes, // New parameter for expiration
-      attemptsAllowed,
-    } = req.body;
+    const pin = await generateUserPin(body.role)
+    const passwordHash = body.password
+      ? await bcrypt.hash(String(body.password), passwordRounds)
+      : null
+    const { error } = await supabase.from("eis_users").insert(userValuesFromBody(body, pin, passwordHash))
+    if (error) throw error
+    return res.status(201).json({ success: true, pin })
+  } catch (error) {
+    logDatabaseError("Enrollment failed", error)
+    return res.status(500).json({ success: false, error: "Enrollment Failed" })
+  }
+})
 
-    // Calculate expiresAt based on createdAt and validityMinutes (Availability)
-    // Strictly decoupled from durationMinutes. Defaults to 24 hours if not provided.
-    const createdAt = new Date();
-    const validity = (validityMinutes && !isNaN(validityMinutes)) ? validityMinutes : 1440;
-    const expiresAt = new Date(
-      createdAt.getTime() + validity * 60 * 1000,
-    );
-
-    const newExam = new ExamQuestion({
-      teacherId,
-      targetClass,
-      title,
-      questions,
-      durationMinutes,
-      attemptsAllowed,
-      createdAt,
-      expiresAt,
-    });
-    await newExam.save();
-    res.json({
+app.post("/api/exams/create", async (req, res) => {
+  const body = req.body || {}
+  if (!body.teacherId || !body.targetClass || !body.title || !Array.isArray(body.questions) || !body.questions.length) {
+    return res.status(400).json({ success: false, message: "Provide the teacher, class, exam title, and questions." })
+  }
+  const durationMinutes = Number(body.durationMinutes)
+  const attemptsAllowed = Number(body.attemptsAllowed || 1)
+  const validityMinutes = Number(body.validityMinutes || 1440)
+  if (!Number.isInteger(durationMinutes) || durationMinutes <= 0 || !Number.isInteger(attemptsAllowed) || attemptsAllowed <= 0 || !Number.isFinite(validityMinutes) || validityMinutes <= 0) {
+    return res.status(400).json({ success: false, message: "Exam timing and attempt limits must be positive values." })
+  }
+  const createdAt = new Date()
+  try {
+    const { data, error } = await supabase
+      .from("eis_exams")
+      .insert({
+        teacher_id: body.teacherId,
+        target_class: body.targetClass,
+        title: body.title,
+        questions: body.questions,
+        duration_minutes: durationMinutes,
+        attempts_allowed: attemptsAllowed,
+        created_at: createdAt.toISOString(),
+        expires_at: new Date(createdAt.getTime() + validityMinutes * 60 * 1000).toISOString(),
+      })
+      .select(examColumns)
+      .single()
+    if (error) throw error
+    return res.json({
       success: true,
       message: "Exam created successfully!",
-      examId: newExam._id,
-    });
-  } catch (err) {
-    console.error("Exam creation failed:", err);
-    res.status(500).json({ success: false, message: "Failed to create exam." });
+      examId: String(data.id),
+    })
+  } catch (error) {
+    logDatabaseError("Exam creation failed", error)
+    return res.status(500).json({ success: false, message: "Failed to create exam." })
   }
-});
+})
 
-// API for Student to fetch available exams for their class
 app.get("/api/exams/student/:classId", async (req, res) => {
+  const studentId = typeof req.query.studentId === "string" ? req.query.studentId : ""
+  if (!studentId) return res.status(400).json({ success: false, message: "Student ID is required." })
   try {
-    const { classId } = req.params;
-    const studentId = req.query.studentId; // Assuming studentId is passed as query param
-
-    const exams = await ExamQuestion.find({ targetClass: classId }).sort({
-      createdAt: -1,
-    });
-
-    const examsWithStatus = await Promise.all(
-      exams.map(async (exam) => {
-        const attempts = await StudentExamAttempt.find({
-          studentId,
-          examId: exam._id,
-        });
-        const attemptsMade = attempts.filter(
-          (a) => a.status !== "revoked",
-        ).length;
-        const hasAttempted = attemptsMade > 0;
-        const attemptsRemaining = exam.attemptsAllowed - attemptsMade;
-
-        let status = "available";
-        if (exam.expiresAt < new Date()) {
-          status = "expired";
-        } else if (attemptsRemaining <= 0) {
-          status = "no_attempts_left";
-        }
-
-        return {
-          _id: exam._id,
-          title: exam.title,
-          durationMinutes: exam.durationMinutes,
-          attemptsAllowed: exam.attemptsAllowed,
-          attemptsMade,
-          attemptsRemaining,
-          expiresAt: exam.expiresAt,
-          status,
-        };
-      }),
-    );
-
-    res.json({ success: true, exams: examsWithStatus });
-  } catch (err) {
-    console.error("Failed to fetch student exams:", err);
-    res.status(500).json({ success: false, message: "Failed to fetch exams." });
-  }
-});
-
-// API for Student to start an exam (records attempt)
-app.get("/api/exams/student/:examId/start", async (req, res) => {
-  try {
-    const { examId } = req.params;
-    const { studentId, classId } = req.query; // studentId and classId passed as query params
-
-    const exam = await ExamQuestion.findById(examId);
-    if (!exam)
-      return res
-        .status(404)
-        .json({ success: false, message: "Exam not found." });
-
-    if (exam.expiresAt < new Date()) {
-      return res
-        .status(403)
-        .json({ success: false, message: "Exam has expired." });
+    const { data: examRows, error: examError } = await supabase
+      .from("eis_exams")
+      .select(examColumns)
+      .eq("target_class", req.params.classId)
+      .order("created_at", { ascending: false })
+    if (examError) throw examError
+    if (!examRows.length) return res.json({ success: true, exams: [] })
+    const { data: attemptRows, error: attemptError } = await supabase
+      .from("eis_exam_attempts")
+      .select("exam_id,status,is_revoked")
+      .eq("student_id", studentId)
+      .in("exam_id", examRows.map((exam) => exam.id))
+    if (attemptError) throw attemptError
+    const attemptsByExam = new Map()
+    for (const attempt of attemptRows) {
+      const examId = String(attempt.exam_id)
+      if (!attemptsByExam.has(examId)) attemptsByExam.set(examId, [])
+      attemptsByExam.get(examId).push(attempt)
     }
-
-    const existingAttempts = await StudentExamAttempt.find({
-      studentId,
-      examId,
-      isRevoked: false,
-    });
-    if (existingAttempts.length >= exam.attemptsAllowed) {
-      return res
-        .status(403)
-        .json({ success: false, message: "No attempts left for this exam." });
-    }
-
-    const newAttempt = new StudentExamAttempt({
-      studentId,
-      examId,
-      classId,
-      attemptNumber: existingAttempts.length + 1,
-      startTime: new Date(),
-      status: "started",
-    });
-    await newAttempt.save();
-
-    res.json({ success: true, exam, attemptId: newAttempt._id });
-  } catch (err) {
-    console.error("Failed to start exam:", err);
-    res.status(500).json({ success: false, message: "Failed to start exam." });
-  }
-});
-
-// API for Student to submit exam answers
-app.post("/api/exams/student/:examId/submit", async (req, res) => {
-  try {
-    const { examId } = req.params;
-    const { attemptId, answers, submissionType } = req.body; // answers: [{ questionIndex, selectedOptionIndex }]
-
-    const attempt = await StudentExamAttempt.findById(attemptId);
-    if (!attempt)
-      return res
-        .status(404)
-        .json({ success: false, message: "Attempt not found." });
-    if (attempt.status !== "started")
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Exam already submitted or expired.",
-        });
-
-    const exam = await ExamQuestion.findById(examId);
-    if (!exam)
-      return res
-        .status(404)
-        .json({ success: false, message: "Exam not found." });
-
-    let score = 0;
-    answers.forEach((studentAnswer) => {
-      const question = exam.questions[studentAnswer.questionIndex];
-      if (
-        question &&
-        question.correctAnswerIndex === studentAnswer.selectedOptionIndex
-      ) {
-        score++;
+    const exams = examRows.map((row) => {
+      const exam = examFromRow(row)
+      const attempts = attemptsByExam.get(exam._id) || []
+      const attemptsMade = attempts.filter((attempt) => !attempt.is_revoked && attempt.status !== "revoked").length
+      const attemptsRemaining = exam.attemptsAllowed - attemptsMade
+      let status = "available"
+      if (new Date(exam.expiresAt) < new Date()) status = "expired"
+      else if (attemptsRemaining <= 0) status = "no_attempts_left"
+      return {
+        _id: exam._id,
+        title: exam.title,
+        durationMinutes: exam.durationMinutes,
+        attemptsAllowed: exam.attemptsAllowed,
+        attemptsMade,
+        attemptsRemaining,
+        expiresAt: exam.expiresAt,
+        status,
       }
-    });
+    })
+    return res.json({ success: true, exams })
+  } catch (error) {
+    logDatabaseError("Student exam list failed", error)
+    return res.status(500).json({ success: false, message: "Failed to fetch exams." })
+  }
+})
 
-    attempt.answers = answers;
-    attempt.score = score;
-    attempt.endTime = new Date();
-    attempt.status = "submitted";
-    attempt.submissionType = submissionType || "manual";
-    await attempt.save();
+app.get("/api/exams/student/:examId/start", async (req, res) => {
+  const examId = parseId(req.params.examId)
+  const studentId = typeof req.query.studentId === "string" ? req.query.studentId : ""
+  const classId = typeof req.query.classId === "string" ? req.query.classId : ""
+  if (!examId || !studentId || !classId) {
+    return res.status(400).json({ success: false, message: "Exam, student, and class IDs are required." })
+  }
+  try {
+    const { data: examRow, error: examError } = await supabase
+      .from("eis_exams")
+      .select(examColumns)
+      .eq("id", examId)
+      .maybeSingle()
+    if (examError) throw examError
+    if (!examRow) return res.status(404).json({ success: false, message: "Exam not found." })
+    const exam = examFromRow(examRow)
+    if (new Date(exam.expiresAt) < new Date()) {
+      return res.status(403).json({ success: false, message: "Exam has expired." })
+    }
+    const { data: attemptRows, error: attemptsError } = await supabase
+      .from("eis_exam_attempts")
+      .select(attemptColumns)
+      .eq("student_id", studentId)
+      .eq("exam_id", examId)
+      .eq("is_revoked", false)
+    if (attemptsError) throw attemptsError
+    if (attemptRows.length >= exam.attemptsAllowed) {
+      return res.status(403).json({ success: false, message: "No attempts left for this exam." })
+    }
+    const { data: attemptRow, error: createError } = await supabase
+      .from("eis_exam_attempts")
+      .insert({
+        student_id: studentId,
+        exam_id: examId,
+        class_id: classId,
+        attempt_number: attemptRows.length + 1,
+        start_time: new Date().toISOString(),
+        status: "started",
+      })
+      .select(attemptColumns)
+      .single()
+    if (createError) throw createError
+    return res.json({
+      success: true,
+      exam: { ...exam, _id: exam._id },
+      attemptId: String(attemptRow.id),
+    })
+  } catch (error) {
+    logDatabaseError("Exam start failed", error)
+    return res.status(500).json({ success: false, message: "Failed to start exam." })
+  }
+})
 
-    res.json({
+app.post("/api/exams/student/:examId/submit", async (req, res) => {
+  const examId = parseId(req.params.examId)
+  const attemptId = parseId(req.body?.attemptId)
+  const answers = req.body?.answers
+  if (!examId || !attemptId || !Array.isArray(answers)) {
+    return res.status(400).json({ success: false, message: "Exam, attempt, and answer details are required." })
+  }
+  try {
+    const [{ data: attemptRow, error: attemptError }, { data: examRow, error: examError }] = await Promise.all([
+      supabase.from("eis_exam_attempts").select(attemptColumns).eq("id", attemptId).eq("exam_id", examId).maybeSingle(),
+      supabase.from("eis_exams").select(examColumns).eq("id", examId).maybeSingle(),
+    ])
+    if (attemptError) throw attemptError
+    if (examError) throw examError
+    if (!attemptRow) return res.status(404).json({ success: false, message: "Attempt not found." })
+    if (attemptRow.status !== "started") {
+      return res.status(403).json({ success: false, message: "Exam already submitted or expired." })
+    }
+    if (!examRow) return res.status(404).json({ success: false, message: "Exam not found." })
+    const exam = examFromRow(examRow)
+    const score = answers.reduce((total, studentAnswer) => {
+      const question = exam.questions[studentAnswer.questionIndex]
+      return question && question.correctAnswerIndex === studentAnswer.selectedOptionIndex ? total + 1 : total
+    }, 0)
+    const { data: savedAttempt, error: updateError } = await supabase
+      .from("eis_exam_attempts")
+      .update({
+        answers,
+        score,
+        end_time: new Date().toISOString(),
+        status: "submitted",
+        submission_type: req.body.submissionType || "manual",
+      })
+      .eq("id", attemptId)
+      .eq("status", "started")
+      .select(attemptColumns)
+      .maybeSingle()
+    if (updateError) throw updateError
+    if (!savedAttempt) return res.status(403).json({ success: false, message: "Exam already submitted or expired." })
+    return res.json({
       success: true,
       message: "Exam submitted successfully!",
       score,
       totalQuestions: exam.questions.length,
-      exam, // Send the full exam object back for review
-      studentAnswers: attempt.answers, // Send the saved answers
-    });
-  } catch (err) {
-    console.error("Failed to submit exam:", err);
-    res.status(500).json({ success: false, message: "Failed to submit exam." });
+      exam,
+      studentAnswers: attemptFromRow(savedAttempt).answers,
+    })
+  } catch (error) {
+    logDatabaseError("Exam submission failed", error)
+    return res.status(500).json({ success: false, message: "Failed to submit exam." })
   }
-});
+})
 
-// API for Admin to revoke a student's exam attempt
 app.post("/api/exams/admin/revoke-attempt/:attemptId", async (req, res) => {
+  const attemptId = parseId(req.params.attemptId)
+  if (!attemptId) return res.status(400).json({ success: false, message: "Attempt ID is invalid." })
   try {
-    const { attemptId } = req.params;
-    const attempt = await StudentExamAttempt.findById(attemptId);
-
-    if (!attempt)
-      return res
-        .status(404)
-        .json({ success: false, message: "Attempt not found." });
-
-    attempt.isRevoked = true;
-    attempt.status = "revoked";
-    await attempt.save();
-
-    res.json({ success: true, message: "Attempt revoked successfully." });
-  } catch (err) {
-    console.error("Failed to revoke attempt:", err);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to revoke attempt." });
+    const { data, error } = await supabase
+      .from("eis_exam_attempts")
+      .update({ is_revoked: true, status: "revoked" })
+      .eq("id", attemptId)
+      .select("id")
+      .maybeSingle()
+    if (error) throw error
+    if (!data) return res.status(404).json({ success: false, message: "Attempt not found." })
+    return res.json({ success: true, message: "Attempt revoked successfully." })
+  } catch (error) {
+    logDatabaseError("Exam attempt revocation failed", error)
+    return res.status(500).json({ success: false, message: "Failed to revoke attempt." })
   }
-});
+})
 
-// API for Teacher to fetch their created exams
 app.get("/api/exams/teacher/:teacherId", async (req, res) => {
   try {
-    const { teacherId } = req.params;
-    const exams = await ExamQuestion.find({ teacherId: teacherId }).sort({
-      createdAt: -1,
-    });
-
-    // Map over exams and add submission count
-    const examsWithCounts = await Promise.all(
-      exams.map(async (exam) => {
-        const submissionCount = await StudentExamAttempt.countDocuments({ examId: exam._id });
-        return { ...exam.toObject(), submissionCount };
+    const { data: examRows, error: examsError } = await supabase
+      .from("eis_exams")
+      .select(examColumns)
+      .eq("teacher_id", req.params.teacherId)
+      .order("created_at", { ascending: false })
+    if (examsError) throw examsError
+    if (!examRows.length) return res.json({ success: true, exams: [] })
+    const { data: attempts, error: attemptsError } = await supabase
+      .from("eis_exam_attempts")
+      .select("exam_id")
+      .in("exam_id", examRows.map((exam) => exam.id))
+    if (attemptsError) throw attemptsError
+    const counts = new Map()
+    for (const attempt of attempts) {
+      const key = String(attempt.exam_id)
+      counts.set(key, (counts.get(key) || 0) + 1)
+    }
+    return res.json({
+      success: true,
+      exams: examRows.map((row) => {
+        const exam = examFromRow(row)
+        return { ...exam, submissionCount: counts.get(exam._id) || 0 }
       }),
-    );
-    res.json({ success: true, exams: examsWithCounts });
-  } catch (err) {
-    console.error("Failed to fetch teacher exams:", err);
-    res.status(500).json({ success: false, message: "Failed to fetch your created exams." });
+    })
+  } catch (error) {
+    logDatabaseError("Teacher exam list failed", error)
+    return res.status(500).json({ success: false, message: "Failed to fetch your created exams." })
   }
-});
+})
 
-// API to get exam results for Teacher
 app.get("/api/exams/:examId/results", async (req, res) => {
+  const examId = parseId(req.params.examId)
+  if (!examId) return res.status(400).json({ success: false, message: "Exam ID is invalid." })
   try {
-    const { examId } = req.params;
-    // Find the exam to get total questions count
-    const exam = await ExamQuestion.findById(examId);
-    if (!exam) return res.status(404).json({ success: false, message: "Exam not found" });
-
-    // Find all attempts for this exam
-    const attempts = await StudentExamAttempt.find({ examId }).sort({ score: -1 });
-
-    // Get student details
-    const studentPins = attempts.map(a => a.studentId);
-    const students = await User.find({ accessPin: { $in: studentPins } });
-    const studentMap = {};
-    students.forEach(s => studentMap[s.accessPin] = s);
-
-    const results = attempts.map(attempt => {
-      const student = studentMap[attempt.studentId];
-      let statusDisplay = attempt.status;
-      if (attempt.submissionType === 'timeout') {
-        statusDisplay = 'Incomplete';
-      }
-
-      return {
-        studentName: student ? student.fullName : "Unknown",
-        studentId: attempt.studentId,
-        score: attempt.score,
-        total: exam.questions.length,
-        status: statusDisplay
-      };
-    });
-
-    res.json({ success: true, results, examTitle: exam.title, targetClass: exam.targetClass });
-  } catch (err) {
-    console.error("Results fetch error:", err);
-    res.status(500).json({ success: false, message: "Failed to fetch results" });
+    const { data: examRow, error: examError } = await supabase
+      .from("eis_exams")
+      .select(examColumns)
+      .eq("id", examId)
+      .maybeSingle()
+    if (examError) throw examError
+    if (!examRow) return res.status(404).json({ success: false, message: "Exam not found" })
+    const { data: attempts, error: attemptsError } = await supabase
+      .from("eis_exam_attempts")
+      .select(attemptColumns)
+      .eq("exam_id", examId)
+      .order("score", { ascending: false })
+    if (attemptsError) throw attemptsError
+    const studentPins = [...new Set(attempts.map((attempt) => attempt.student_id))]
+    let studentRows = []
+    if (studentPins.length) {
+      const { data, error } = await supabase
+        .from("eis_users")
+        .select(userColumns)
+        .in("access_pin", studentPins)
+      if (error) throw error
+      studentRows = data
+    }
+    const students = new Map(studentRows.map((row) => [row.access_pin, userFromRow(row)]))
+    const exam = examFromRow(examRow)
+    const results = attempts.map((attempt) => ({
+      studentName: students.get(attempt.student_id)?.fullName || "Unknown",
+      studentId: attempt.student_id,
+      score: attempt.score,
+      total: exam.questions.length,
+      status: attempt.submission_type === "timeout" ? "Incomplete" : attempt.status,
+    }))
+    return res.json({ success: true, results, examTitle: exam.title, targetClass: exam.targetClass })
+  } catch (error) {
+    logDatabaseError("Exam results load failed", error)
+    return res.status(500).json({ success: false, message: "Failed to fetch results" })
   }
-});
+})
 
-// Roster for Classroom
 app.get("/api/classroom/roster/:className", async (req, res) => {
   try {
-    const className = req.params.className;
-    const users = await User.find({
-      $or: [
-        { designation: className },
-        { assignedClasses: { $regex: className, $options: "i" } },
-      ],
-    });
-    res.json({
-      teachers: users.filter((u) => u.role === "teacher"),
-      students: users.filter((u) => u.role === "student"),
-    });
-  } catch (err) {
-    res.status(500).json({ error: "Sync Failed" });
+    const { data, error } = await supabase.from("eis_users").select(userColumns)
+    if (error) throw error
+    const className = req.params.className.trim().toLocaleLowerCase()
+    const users = data
+      .map((row) => userFromRow(row))
+      .filter((user) => user.designation === req.params.className ||
+        user.assignedClasses?.toLocaleLowerCase().includes(className))
+    return res.json({
+      teachers: users.filter((user) => user.role === "teacher"),
+      students: users.filter((user) => user.role === "student"),
+    })
+  } catch (error) {
+    logDatabaseError("Class roster load failed", error)
+    return res.status(500).json({ error: "Sync Failed" })
   }
-});
-// --- ADD THIS TO SERVER.JS TO FIX "UNABLE TO CONNECT" ---
+})
+
 app.get("/api/classroom/content/:className", async (req, res) => {
   try {
-    const className = req.params.className;
-    // This looks for assignments/materials created for this class
-    const materials = await Content.find({ targetClass: className }).sort({
-      createdAt: -1,
-    });
-    res.json(materials || []);
-  } catch (err) {
-    console.error("Transmission Feed Error:", err);
-    res.status(500).json({ error: "Feed Sync Failed" });
+    const { data, error } = await supabase
+      .from("eis_content")
+      .select(contentColumns)
+      .eq("target_class", req.params.className)
+      .order("created_at", { ascending: false })
+    if (error) throw error
+    return res.json(data.map(contentFromRow))
+  } catch (error) {
+    logDatabaseError("Classroom feed load failed", error)
+    return res.status(500).json({ error: "Feed Sync Failed" })
   }
-});
+})
 
-// Also add a route for student messages if it doesn't exist
-app.get("/api/messages/student", async (req, res) => {
-  try {
-    const messages = await Message.find({
-      target: { $in: ["all", "student"] },
-    }).sort({ date: -1 });
-    res.json(messages);
-  } catch (err) {
-    res.status(500).json({ error: "Broadcast Fetch Failed" });
-  }
-});
+for (const audience of ["student", "teacher"]) {
+  app.get(`/api/messages/${audience}`, async (_req, res) => {
+    try {
+      const { data, error } = await supabase
+        .from("eis_messages")
+        .select(messageColumns)
+        .in("target", ["all", audience])
+        .order("date", { ascending: false })
+    if (error) throw error
+    return res.json(data.map(messageFromRow))
+    } catch (error) {
+      logDatabaseError(`${audience} message load failed`, error)
+      return res.status(500).json({ error: "Broadcast Fetch Failed" })
+    }
+  })
+}
 
-app.get("/api/messages/teacher", async (req, res) => {
-  try {
-    const messages = await Message.find({
-      target: { $in: ["all", "teacher"] },
-    }).sort({ date: -1 });
-    res.json(messages);
-  } catch (err) {
-    res.status(500).json({ error: "Broadcast Fetch Failed" });
-  }
-});
-// Teacher/Student Profiles
 app.get("/api/student/profile/:pin", async (req, res) => {
   try {
-    const student = await User.findOne({
-      accessPin: req.params.pin,
-      role: "student",
-    });
-    if (!student) return res.status(404).json({ error: "Student not found" });
-
-    // Explicitly map designation to studentClass for your HTML
-    res.json({
+    const row = await findUserByPin(req.params.pin, "student")
+    if (!row) return res.status(404).json({ error: "Student not found" })
+    const student = userFromRow(row)
+    return res.json({
       fullName: student.fullName,
       accessPin: student.accessPin,
-      studentClass: student.designation, // This fixes the "---"
+      studentClass: student.designation,
+      designation: student.designation,
       passport: student.passport,
       status: student.status,
       role: student.role,
@@ -759,35 +747,64 @@ app.get("/api/student/profile/:pin", async (req, res) => {
       guardianPhone: student.guardianPhone,
       address: student.address,
       stateOfOrigin: student.stateOfOrigin,
-    });
-  } catch (err) {
-    res.status(500).json({ error: "Fetch Failed" });
+    })
+  } catch (error) {
+    logDatabaseError("Student profile load failed", error)
+    return res.status(500).json({ error: "Fetch Failed" })
   }
-});
+})
 
 app.get("/api/teacher/profile/:pin", async (req, res) => {
   try {
-    const teacher = await User.findOne({
-      accessPin: req.params.pin,
-      role: "teacher",
-    });
-    if (teacher) teacher.password = undefined; // Hide password for self-view
-    res.json(teacher);
-  } catch (err) {
-    res.status(500).json({ error: "Fetch Failed" });
+    const row = await findUserByPin(req.params.pin, "teacher")
+    if (!row) return res.status(404).json({ error: "Teacher not found" })
+    const user = userFromRow(row)
+    return res.json({
+      _id: user._id,
+      fullName: user.fullName,
+      role: user.role,
+      designation: user.designation,
+      assignedClasses: user.assignedClasses,
+      subjects: user.subjects,
+      accessPin: user.accessPin,
+      passport: user.passport,
+      status: user.status,
+    })
+  } catch (error) {
+    logDatabaseError("Teacher profile load failed", error)
+    return res.status(500).json({ error: "Fetch Failed" })
   }
-});
+})
 
-// --- 7. START SERVER ---
-app.listen(PORT, () => {
-  console.log(`
-    =======================================================
-    🚀 ELIUD ACADEMY OS IS LIVE
-    =======================================================
-    LOGIN PAGE:    http://localhost:${PORT}/login
-    MASTER ADMIN:  http://localhost:${PORT}/admin
-    STAFF PORTAL:  http://localhost:${PORT}/identity-installation
-    Public Page: http://localhost:${PORT}/index.html
-    =======================================================
-    `);
-});
+const notFound = (_req, res) => res.status(404).json({ error: "API endpoint not found." })
+app.use("/api", notFound)
+
+app.use((error, _req, res, _next) => {
+  logDatabaseError("EIS request failed", error)
+  if (res.headersSent) return res.end()
+  if (error.type === "entity.parse.failed") {
+    return res.status(400).json({ error: "Request body must contain valid JSON." })
+  }
+  if (error.type === "entity.too.large") {
+    return res.status(413).json({ error: "Request body is too large." })
+  }
+  return res.status(500).json({ error: "The request could not be completed. Please try again." })
+})
+
+if (require.main === module) {
+  if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
+    throw new Error("PORT must be a valid TCP port.")
+  }
+  verifySupabaseConnection()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`EIS server listening on port ${PORT} with Supabase.`)
+      })
+    })
+    .catch((error) => {
+      logDatabaseError("EIS server startup failed", error)
+      process.exitCode = 1
+    })
+}
+
+module.exports = app

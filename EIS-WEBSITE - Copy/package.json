@@ -1,11 +1,12 @@
-  {
+{
   "name": "eis-website",
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "test": "node --test",
+    "start": "node server.js",
+    "dev": "node --watch server.js"
   },
   "repository": {
     "type": "git",
@@ -19,11 +20,14 @@
     "url": "https://github.com/Famzytreatz/EIS-WEBSITE/issues"
   },
   "homepage": "https://github.com/Famzytreatz/EIS-WEBSITE#readme",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "mongo": "^0.1.0",
-    "mongoose": "^9.1.5",
-    "node.js": "^0.0.1-security"
+    "dotenv": "^18.0.8",
+    "express": "^5.2.1"
   }
 }

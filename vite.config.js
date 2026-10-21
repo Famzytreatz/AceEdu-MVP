@@ -15,10 +15,15 @@ export default defineConfig({
     host: process.env.FIGMA_DEV_SERVER_HOST || "0.0.0.0",
     port: Number.parseInt(process.env.PORT || "8443", 10),
     strictPort: true,
+    proxy: {
+      "/api": {
+        target: process.env.API_PROXY_TARGET || "http://127.0.0.1:3001",
+        changeOrigin: false,
+      },
+    },
   },
   preview: {
     host: process.env.FIGMA_DEV_SERVER_HOST || "0.0.0.0",
     port: Number.parseInt(process.env.PORT || "8443", 10),
   },
 })
-

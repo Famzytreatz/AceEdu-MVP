@@ -2,6 +2,15 @@
   "version": 2,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/server.js" },
-    { "source": "/(.*)", "destination": "/public/$1" }
+    { "source": "/login", "destination": "/Login.html" },
+    { "source": "/admin-auth", "destination": "/admin-auth.html" },
+    { "source": "/teacher-auth", "destination": "/teacher-auth.html" },
+    { "source": "/sub-admin-auth", "destination": "/sub-admin-auth.html" },
+    { "source": "/academy-hub", "destination": "/public/Students%20portal/academy-hub.html" },
+    { "source": "/student-dashboard", "destination": "/public/Students%20portal/student-dashboard.html" },
+    { "source": "/admin", "destination": "/public/Admin%20Panel/admin.html" },
+    { "source": "/identity-installation", "destination": "/public/Admin%20Panel/identity-installation.html" },
+    { "source": "/teachers", "destination": "/public/Teachers%20portal/teacher.html" },
+    { "source": "/teacher-exam-portal", "destination": "/public/Teachers%20portal/teacher-exam-portal.html" }
   ]
 }

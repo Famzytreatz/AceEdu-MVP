@@ -1,6 +1,6 @@
 
 import { useEffect, useId, useState } from "react"
-import { CheckCircle2, Eye, EyeOff, X } from "lucide-react"
+import { AlertCircle, CheckCircle2, Eye, EyeOff, X } from "lucide-react"
 import Button from "./Button"
 import "./Modal.css"
 
@@ -123,7 +123,7 @@ function PasswordField({ label, name, value, onChange, visible, onToggle, requir
   )
 }
 
-export default function Modal({ mode, onClose, onOpenModal }) {
+export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin }) {
   const titleId = useId()
   const [step, setStep] = useState(1)
   const [school, setSchool] = useState(initialSchool)
@@ -132,6 +132,8 @@ export default function Modal({ mode, onClose, onOpenModal }) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [notice, setNotice] = useState("")
+  const [noticeIsError, setNoticeIsError] = useState(false)
+  const [isRegistering, setIsRegistering] = useState(false)
   const [errors, setErrors] = useState({})
 
   useEffect(() => {
@@ -156,6 +158,8 @@ export default function Modal({ mode, onClose, onOpenModal }) {
     setShowPassword(false)
     setShowConfirmPassword(false)
     setNotice("")
+    setNoticeIsError(false)
+    setIsRegistering(false)
     setErrors({})
   }, [mode])
 
@@ -172,6 +176,7 @@ export default function Modal({ mode, onClose, onOpenModal }) {
     }))
     setErrors((current) => ({ ...current, [name]: "" }))
     setNotice("")
+    setNoticeIsError(false)
   }
 
   const updateDemo = (event) => {
@@ -179,6 +184,7 @@ export default function Modal({ mode, onClose, onOpenModal }) {
     setDemo((current) => ({ ...current, [name]: type === "checkbox" ? checked : value }))
     setErrors((current) => ({ ...current, [name]: "" }))
     setNotice("")
+    setNoticeIsError(false)
   }
 
   const updateLogin = (event) => {
@@ -186,6 +192,7 @@ export default function Modal({ mode, onClose, onOpenModal }) {
     setLogin((current) => ({ ...current, [name]: type === "checkbox" ? checked : value }))
     setErrors((current) => ({ ...current, [name]: "" }))
     setNotice("")
+    setNoticeIsError(false)
   }
 
   function validateSchoolStep() {
@@ -221,10 +228,21 @@ export default function Modal({ mode, onClose, onOpenModal }) {
     setStep((current) => Math.min(current + 1, 4))
   }
 
-  function handleSchoolSubmit(event) {
+  async function handleSchoolSubmit(event) {
     event.preventDefault()
+    if (isRegistering) return
     if (!validateSchoolStep()) return
-    setNotice("Your school registration form is complete, but it has not been submitted. AceEdu's registration backend is not connected yet, so no account or school has been created.")
+    setIsRegistering(true)
+    try {
+      if (!onRegister) throw new Error("School registration is not available right now.")
+      await onRegister(school)
+      onClose()
+    } catch (error) {
+      setNotice(error.message || "School registration could not be completed.")
+      setNoticeIsError(true)
+    } finally {
+      setIsRegistering(false)
+    }
   }
 
   function handleDemoSubmit(event) {
@@ -238,9 +256,10 @@ export default function Modal({ mode, onClose, onOpenModal }) {
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
     setNotice("Your demo request form is complete, but it has not been sent. The AceEdu demo-request backend is not connected yet, so our team has not received your details.")
+    setNoticeIsError(false)
   }
 
-  function handleLoginSubmit(event) {
+  async function handleLoginSubmit(event) {
     event.preventDefault()
     const nextErrors = {}
     if (!login.email.trim()) nextErrors.email = "Enter your email address."
@@ -248,7 +267,14 @@ export default function Modal({ mode, onClose, onOpenModal }) {
     if (!login.password) nextErrors.password = "Enter your password."
     setErrors(nextErrors)
     if (!Object.keys(nextErrors).length) {
-      setNotice("Login is not connected to an authentication service yet. No sign-in was attempted.")
+      try {
+        if (!onLogin) throw new Error("Login is not available right now.")
+        await onLogin(login)
+        onClose()
+      } catch (error) {
+        setNotice(error.message || "Login could not be completed.")
+        setNoticeIsError(true)
+      }
     }
   }
 
@@ -364,10 +390,12 @@ export default function Modal({ mode, onClose, onOpenModal }) {
                   <p><strong>Email:</strong> {school.adminEmail}</p>
                   <p><strong>Role:</strong> {school.adminRole}</p>
                 </div>
-                <p className="modal__hint">Review your details before continuing. This prototype does not create an account until a backend is connected.</p>
+                <p className="modal__hint">Review your details before continuing. Your school account is created securely when you register.</p>
                 <div className="modal__actions">
                   <Button variant="secondary" type="button" onClick={() => { setNotice(""); setStep(3) }}>Back</Button>
-                  <Button type="submit" className="modal__submit">Register School</Button>
+                  <Button type="submit" className="modal__submit" disabled={isRegistering} aria-busy={isRegistering}>
+                    {isRegistering ? "Registering..." : "Register School"}
+                  </Button>
                 </div>
               </form>
             )}
@@ -422,14 +450,15 @@ export default function Modal({ mode, onClose, onOpenModal }) {
         )}
 
         {notice && (
-          <div className="modal__notice" role="status" aria-live="polite">
-            <CheckCircle2 size={20} aria-hidden="true" />
+          <div className={`modal__notice ${noticeIsError ? "modal__notice--error" : ""}`} role={noticeIsError ? "alert" : "status"} aria-live={noticeIsError ? "assertive" : "polite"}>
+            {noticeIsError
+              ? <AlertCircle size={20} aria-hidden="true" />
+              : <CheckCircle2 size={20} aria-hidden="true" />}
             <p>{notice}</p>
-            <button type="button" className="modal__text-button" onClick={() => setNotice("")}>Dismiss</button>
+            <button type="button" className="modal__text-button" onClick={() => { setNotice(""); setNoticeIsError(false) }}>Dismiss</button>
           </div>
         )}
       </section>
     </div>
   )
 }
-

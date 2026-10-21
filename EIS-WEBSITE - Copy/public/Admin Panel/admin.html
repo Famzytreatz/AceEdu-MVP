@@ -756,7 +756,7 @@
             } else {
                 extraDetails = `
                     <div class="detail-row"><span class="detail-label">Personal Phone</span><span class="detail-value">${user.phone || 'N/A'}</span></div>
-                    <div class="detail-row"><span class="detail-label">System Password</span><span class="detail-value" style="filter: blur(5px); cursor:pointer; user-select: none;" onclick="revealPassword(this, '${user._id}')">••••••</span></div>
+                    <div class="detail-row"><span class="detail-label">Password</span><span class="detail-value">Stored securely; passwords cannot be viewed.</span></div>
                 `;
             }
 
@@ -774,19 +774,6 @@
             modal.style.display = "block";
         }
         function closeModal() { document.getElementById('userModal').style.display = "none"; }
-
-        function revealPassword(element, userId) {
-            if (element.innerText !== '••••••') return;
-
-            const key = prompt("ENTER VAULT ACCESS KEY TO DECRYPT:");
-            if (key === "Admin123") {
-                const user = allUsers.find(u => u._id === userId);
-                element.style.filter = 'none';
-                element.innerText = user ? (user.password || 'No Password Set') : 'Error';
-            } else {
-                alert("ACCESS DENIED: INVALID KEY");
-            }
-        }
 
         // VIEW MY OWN PROFILE
         function viewMyProfile() {
