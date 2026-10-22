@@ -1,8 +1,9 @@
 
-import { useEffect, useState } from "react"
-import AdminDashboard from "./pages/AdminDashboard"
+import { lazy, Suspense, useEffect, useState } from "react"
 import HomePage from "./pages/HomePage"
 import { getCurrentSchool, loginSchool, logoutSchool, registerSchool } from "./data/api"
+
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"))
 
 export default function App() {
   const [school, setSchool] = useState(null)
@@ -78,7 +79,20 @@ export default function App() {
     )
   }
 
-  if (school) return <AdminDashboard school={school} onLogout={handleLogout} />
+  if (school) {
+    return (
+      <Suspense
+        fallback={
+          <main className="app-loading" aria-live="polite">
+            <span className="app-loading__spinner" aria-hidden="true" />
+            <p>Loading your school workspace…</p>
+          </main>
+        }
+      >
+        <AdminDashboard school={school} onLogout={handleLogout} />
+      </Suspense>
+    )
+  }
   return (
     <HomePage
       onRegister={handleRegister}

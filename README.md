@@ -8,8 +8,10 @@ set `SUPABASE_URL` to your project URL, and set
 `SUPABASE_SERVICE_ROLE_KEY` to the server-side service-role key from your
 Supabase project settings. Never expose this key in the browser or commit it.
 Apply `supabase/migrations/20261021000000_initial_schema.sql` in the Supabase
-SQL Editor, then run `npm install` and `npm run dev`. The client runs on port
-8443 by default and proxies `/api` requests to the API on port 3001.
+SQL Editor and `supabase/migrations/20261021130000_enrollment_profiles.sql`
+for the dashboard's extended enrollment profiles, then run `npm install` and
+`npm run dev`. The client runs on port 8443 by default and proxies `/api`
+requests to the API on port 3001.
 
 On PowerShell, you can copy the example environment with
 `Copy-Item .env.example .env` and generate a local secret with
@@ -37,6 +39,9 @@ the service-role key on the server; row-level security is enabled on the
 tables to block direct anonymous/authenticated access. `/api/admin/users` returns
 pages of up to 50 entries, and the registry CSV is streamed instead of
 buffered as one large response.
+Enrollment profile passwords are stored only as bcrypt hashes; passport images
+are resized in the browser before being saved with the school-scoped registry
+record.
 
 The SQL migration creates the Supabase schema; it does not copy records from
 an existing MongoDB database. Export and import any existing school or
