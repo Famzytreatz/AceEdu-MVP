@@ -21,6 +21,8 @@ import adminRouter from "./routes/admin.js"
 
 import authRouter from "./routes/auth.js"
 
+import platformRouter from "./routes/platform.js"
+
 export function createApp() {
   const app = express()
 
@@ -92,13 +94,25 @@ export function createApp() {
     message: { error: "Too many sign-in attempts. Try again later." },
   })
 
+  const operatorLoginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: { error: "Too many platform sign-in attempts. Try again later." },
+  })
+
   app.get("/api/health", (_req, res) => res.json({ status: "ok" }))
 
   app.use("/api/auth/register", registrationLimiter)
 
   app.use("/api/auth/login", loginLimiter)
 
+  app.use("/api/platform/login", operatorLoginLimiter)
+
   app.use("/api/auth", authRouter)
+
+  app.use("/api/platform", platformRouter)
 
   app.use("/api/admin", requireSchool, adminRouter)
 

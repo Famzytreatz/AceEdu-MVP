@@ -1,25 +1,34 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import {
+  ArrowUpRight,
   Activity,
   ArrowDownToLine,
+  BookOpen,
+  CalendarDays,
+  ChartNoAxesCombined,
   Check,
   ChevronDown,
+  CircleDollarSign,
+  ClipboardList,
   Eye,
   GraduationCap,
   IdCard,
   LayoutDashboard,
   LoaderCircle,
+  LockKeyhole,
   LogOut,
   Moon,
   Sun,
   Plus,
   Printer,
   Search,
+  Settings,
   ShieldCheck,
   Trash2,
   Users,
   UserRound,
+  UserPlus,
   X,
 } from "lucide-react"
 
@@ -29,18 +38,33 @@ import {
   downloadRegistry,
   getDashboard,
   getEnrollments,
+  getSchoolEntitlement,
+  requestSchoolVerification,
   verifyEnrollment,
 } from "../data/api"
+import LoadingSpinner from "../components/ui/LoadingSpinner"
 
 import "./AdminDashboard.css"
 
 const navigation = [
   { id: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
-
-  { id: "enrollment", label: "Enrollment", Icon: Plus },
-
-  { id: "registry", label: "Master Registry", Icon: Users },
+  { id: "students", label: "Students", Icon: GraduationCap },
+  { id: "staff", label: "Staff", Icon: Users },
+  { id: "registry", label: "Registry", Icon: IdCard },
+  { id: "enrollment", label: "Add record", Icon: Plus },
 ]
+
+const premiumNavigation = [
+  { label: "Classes", Icon: BookOpen },
+  { label: "Academic records", Icon: ClipboardList },
+  { label: "Attendance", Icon: CalendarDays },
+  { label: "Exams & results", Icon: ChartNoAxesCombined },
+  { label: "Financial management", Icon: CircleDollarSign },
+  { label: "Reports & analytics", Icon: ChartNoAxesCombined },
+  { label: "Parent portal", Icon: UserRound },
+]
+
+const plannedNavigation = [{ label: "Settings", Icon: Settings }]
 
 const studentClasses = ["SSS 1", "SSS 2", "SSS 3", "JSS 1", "JSS 2", "JSS 3"]
 
@@ -78,6 +102,16 @@ function formatDate(value) {
   return Number.isNaN(date.valueOf())
     ? "—"
     : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date)
+}
+
+function formatActivityDate(value) {
+  const date = new Date(value)
+  return Number.isNaN(date.valueOf())
+    ? ""
+    : new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        day: "numeric",
+      }).format(date)
 }
 
 async function optimizePassport(file) {
@@ -163,19 +197,53 @@ export default function AdminDashboard({ school, onLogout }) {
 
   const [appliedQuery, setAppliedQuery] = useState("")
 
+  const [registryStatus, setRegistryStatus] = useState("")
+
+  const [globalQuery, setGlobalQuery] = useState("")
+
   const [registryLoading, setRegistryLoading] = useState(false)
 
   const [exportingRegistry, setExportingRegistry] = useState(false)
 
   const [dashboardLoading, setDashboardLoading] = useState(true)
 
+  const [entitlement, setEntitlement] = useState(null)
+
+  const [entitlementLoading, setEntitlementLoading] = useState(true)
+
+  const [entitlementError, setEntitlementError] = useState("")
+
+  const [registrationId, setRegistrationId] = useState("")
+
+  const [verificationPending, setVerificationPending] = useState(false)
+
+  const [verificationMessage, setVerificationMessage] = useState("")
+
   const [busyId, setBusyId] = useState("")
 
   const [error, setError] = useState("")
 
+  const [registryError, setRegistryError] = useState("")
+
+  const [dashboardError, setDashboardError] = useState("")
+
   const [success, setSuccess] = useState("")
 
   const [logoutPending, setLogoutPending] = useState(false)
+
+  const [enrollmentPending, setEnrollmentPending] = useState(false)
+
+  const [passportPending, setPassportPending] = useState(false)
+
+  const enrollmentLock = useRef(false)
+
+  const passportLock = useRef(false)
+
+  const rowActionLock = useRef(false)
+
+  const verificationLock = useRef(false)
+
+  const registryRequestId = useRef(0)
 
   const [form, setForm] = useState(emptyForm)
 
@@ -245,24 +313,48 @@ export default function AdminDashboard({ school, onLogout }) {
 
       setDashboard(result)
 
-      setError("")
+      setDashboardError("")
     } catch (loadError) {
-      setError(loadError.message)
+      setDashboardError(loadError.message)
     } finally {
       setDashboardLoading(false)
     }
   }, [])
 
+  const loadEntitlement = useCallback(async () => {
+    setEntitlementLoading(true)
+    try {
+      const result = await getSchoolEntitlement()
+      setEntitlement(result.entitlement)
+      setEntitlementError("")
+    } catch (loadError) {
+      setEntitlementError(loadError.message)
+    } finally {
+      setEntitlementLoading(false)
+    }
+  }, [])
+
   const loadRegistry = useCallback(
     async ({ append = false, search = appliedQuery, cursor = null } = {}) => {
+      const requestId = ++registryRequestId.current
       setRegistryLoading(true)
+      setRegistryError("")
+      if (!append) {
+        setRecords([])
+        setNextCursor(null)
+      }
 
       try {
         const result = await getEnrollments({
           query: search,
 
           cursor: append ? cursor : null,
+
+          role: activeView === "students" ? "student" : activeView === "staff" ? "staff" : "",
+          status: registryStatus,
         })
+
+        if (requestId !== registryRequestId.current) return
 
         setRecords((current) => {
           if (!append) return result.items
@@ -278,14 +370,19 @@ export default function AdminDashboard({ school, onLogout }) {
 
         setNextCursor(result.nextCursor)
 
+        setRegistryError("")
         setError("")
       } catch (loadError) {
-        setError(loadError.message)
+        if (requestId === registryRequestId.current) {
+          setRegistryError(loadError.message)
+        }
       } finally {
-        setRegistryLoading(false)
+        if (requestId === registryRequestId.current) {
+          setRegistryLoading(false)
+        }
       }
     },
-    [appliedQuery],
+    [activeView, appliedQuery, registryStatus],
   )
 
   useEffect(() => {
@@ -293,11 +390,44 @@ export default function AdminDashboard({ school, onLogout }) {
   }, [loadDashboard])
 
   useEffect(() => {
-    if (activeView === "registry") void loadRegistry({ search: appliedQuery })
-  }, [activeView, appliedQuery, loadRegistry])
+    void loadEntitlement()
+  }, [loadEntitlement])
+
+  async function handleVerificationRequest(event) {
+    event.preventDefault()
+    if (verificationLock.current) return
+    verificationLock.current = true
+    setVerificationPending(true)
+    setEntitlementError("")
+    setVerificationMessage("")
+    try {
+      const result = await requestSchoolVerification(registrationId)
+      setVerificationMessage(
+        result.request.status === "review_required"
+          ? "Your request needs an additional identity review. A Premium trial has not been activated."
+          : "Your verification request was submitted. A Premium trial will begin only after an operator approves it.",
+      )
+      setRegistrationId("")
+      await loadEntitlement()
+    } catch (requestError) {
+      setEntitlementError(requestError.message)
+    } finally {
+      verificationLock.current = false
+      setVerificationPending(false)
+    }
+  }
+
+  useEffect(() => {
+    if (["registry", "students", "staff"].includes(activeView)) {
+      void loadRegistry({ search: appliedQuery })
+    }
+  }, [activeView, appliedQuery, registryStatus, loadRegistry])
 
   async function handleEnrollmentSubmit(event) {
     event.preventDefault()
+    if (enrollmentLock.current) return
+    enrollmentLock.current = true
+    setEnrollmentPending(true)
 
     setError("")
 
@@ -318,17 +448,22 @@ export default function AdminDashboard({ school, onLogout }) {
 
       await loadDashboard()
 
-      if (activeView === "registry")
+      if (["registry", "students", "staff"].includes(activeView))
         await loadRegistry({ search: appliedQuery })
     } catch (submitError) {
       setError(submitError.message)
+    } finally {
+      enrollmentLock.current = false
+      setEnrollmentPending(false)
     }
   }
 
   async function handlePassportChange(event) {
     const file = event.target.files?.[0]
 
-    if (!file) return
+    if (!file || passportLock.current) return
+    passportLock.current = true
+    setPassportPending(true)
 
     setError("")
 
@@ -340,6 +475,9 @@ export default function AdminDashboard({ school, onLogout }) {
       setError(photoError.message)
 
       event.target.value = ""
+    } finally {
+      passportLock.current = false
+      setPassportPending(false)
     }
   }
 
@@ -367,7 +505,17 @@ export default function AdminDashboard({ school, onLogout }) {
     }))
   }
 
+  function startEnrollment(role) {
+    setForm({ ...emptyForm, role })
+    setCreatedEnrollment(null)
+    setActiveView("enrollment")
+    setError("")
+    setSuccess("")
+  }
+
   async function handleVerify(record) {
+    if (rowActionLock.current) return
+    rowActionLock.current = true
     setBusyId(record._id)
 
     setError("")
@@ -390,6 +538,7 @@ export default function AdminDashboard({ school, onLogout }) {
       setError(actionError.message)
     } finally {
       setBusyId("")
+      rowActionLock.current = false
     }
   }
 
@@ -399,6 +548,8 @@ export default function AdminDashboard({ school, onLogout }) {
     )
       return
 
+    if (rowActionLock.current) return
+    rowActionLock.current = true
     setBusyId(record._id)
 
     setError("")
@@ -419,6 +570,7 @@ export default function AdminDashboard({ school, onLogout }) {
       setError(actionError.message)
     } finally {
       setBusyId("")
+      rowActionLock.current = false
     }
   }
 
@@ -448,7 +600,7 @@ export default function AdminDashboard({ school, onLogout }) {
       await onLogout()
     } catch (logoutError) {
       setError(logoutError.message)
-
+    } finally {
       setLogoutPending(false)
     }
   }
@@ -464,11 +616,11 @@ export default function AdminDashboard({ school, onLogout }) {
           </span>
           <span>
             <strong>AceEdu</strong>
-            <small>SCHOOL ADMIN</small>
+            <small>SCHOOL OPERATING SYSTEM</small>
           </span>
         </a>
 
-        <div className="admin-sidebar__label">Workspace</div>
+        <div className="admin-sidebar__label">MVP workspace</div>
         <nav className="admin-nav" aria-label="Admin navigation">
           {navigation.map(({ id, label, Icon }) => (
             <button
@@ -477,8 +629,16 @@ export default function AdminDashboard({ school, onLogout }) {
               }`}
               key={id}
               type="button"
+              title={label}
+              aria-label={label === "Students" ? "Student management" : label === "Staff" ? "Staff management" : label}
               onClick={() => {
                 setActiveView(id)
+                if (id === "students" || id === "staff") {
+                  setQuery("")
+                  setAppliedQuery("")
+                  setGlobalQuery("")
+                  setRegistryStatus("")
+                }
                 setError("")
                 setSuccess("")
               }}
@@ -491,7 +651,76 @@ export default function AdminDashboard({ school, onLogout }) {
           ))}
         </nav>
 
+        <div className="admin-sidebar__label admin-sidebar__label--premium">
+          Premium roadmap
+        </div>
+        <nav className="admin-nav admin-nav--premium" aria-label="Planned Premium features">
+          {premiumNavigation.map(({ label, Icon }) => (
+            <button
+              className="admin-nav__item admin-nav__item--planned"
+              key={label}
+              type="button"
+              disabled
+              aria-disabled="true"
+              title={`${label} is planned for Premium and is not available yet.`}
+            >
+              <Icon size={17} aria-hidden="true" />
+              <span>{label}</span>
+              <LockKeyhole className="admin-nav__lock" size={13} aria-hidden="true" />
+            </button>
+          ))}
+        </nav>
+        <div className="admin-sidebar__label admin-sidebar__label--planned">
+          Planned
+        </div>
+        <nav className="admin-nav admin-nav--premium" aria-label="Other planned features">
+          {plannedNavigation.map(({ label, Icon }) => (
+            <button
+              className="admin-nav__item admin-nav__item--planned"
+              key={label}
+              type="button"
+              disabled
+              aria-disabled="true"
+              title={`${label} is not available yet.`}
+            >
+              <Icon size={17} aria-hidden="true" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+
         <div className="admin-sidebar__spacer" />
+        <section className="admin-school-identity" aria-label="Current school">
+          <span className="admin-school-identity__mark">
+            <GraduationCap size={18} aria-hidden="true" />
+          </span>
+          <span>
+            <small>YOUR SCHOOL</small>
+            <strong>{school.schoolName}</strong>
+            <span>{school.schoolType}</span>
+          </span>
+        </section>
+        <section className="admin-sidebar-premium">
+          <span className="admin-sidebar-premium__icon" aria-hidden="true">
+            <ArrowUpRight size={16} />
+          </span>
+          <strong>Unlock more for your school</strong>
+          <p>Explore the Premium roadmap and upcoming school workflows.</p>
+          <button
+            type="button"
+            onClick={() =>
+              document
+                .getElementById("premium-preview")
+                ?.scrollIntoView({
+                  behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+                    ? "auto"
+                    : "smooth",
+                })
+            }
+          >
+            Explore Premium <ArrowUpRight size={14} aria-hidden="true" />
+          </button>
+        </section>
         <div className="admin-profile">
           <div className="admin-profile__avatar" aria-hidden="true">
             {school.adminName
@@ -532,10 +761,27 @@ export default function AdminDashboard({ school, onLogout }) {
 
       <main className="admin-main" id="top">
         <header className="admin-topbar">
-          <div className="admin-topbar__context">
-            <span>School workspace</span>
-            <ChevronDown size={14} aria-hidden="true" />
-          </div>
+          <form
+            className="admin-global-search"
+            role="search"
+            onSubmit={(event) => {
+              event.preventDefault()
+              setQuery(globalQuery)
+              setAppliedQuery(globalQuery.trim())
+              setRegistryStatus("")
+              setActiveView("registry")
+              setError("")
+            }}
+          >
+            <Search size={17} aria-hidden="true" />
+            <input
+              value={globalQuery}
+              onChange={(event) => setGlobalQuery(event.target.value)}
+              aria-label="Search school registry"
+              placeholder="Search people in your school…"
+            />
+            <kbd>Enter</kbd>
+          </form>
           <button
             className="admin-theme-toggle"
             type="button"
@@ -554,8 +800,13 @@ export default function AdminDashboard({ school, onLogout }) {
             className="admin-topbar__profile"
             type="button"
             onClick={() => setProfileOpen(true)}
+            aria-label={`View profile for ${school.adminName}`}
           >
-            <UserRound size={16} aria-hidden="true" /> Profile
+            <span className="admin-topbar__avatar" aria-hidden="true">
+              {school.adminName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
+            </span>
+            <span>{school.adminName.split(/\s+/)[0]}</span>
+            <ChevronDown size={14} aria-hidden="true" />
           </button>
           <button
             className="admin-topbar__logout"
@@ -563,22 +814,31 @@ export default function AdminDashboard({ school, onLogout }) {
             onClick={handleLogout}
             disabled={logoutPending}
           >
-            <LogOut size={17} aria-hidden="true" /> Sign out
+            {logoutPending ? (
+              <LoaderCircle size={17} className="admin-spin" aria-hidden="true" />
+            ) : (
+              <LogOut size={17} aria-hidden="true" />
+            )}
+            {logoutPending ? "Signing out…" : "Sign out"}
           </button>
         </header>
 
         <div className="admin-content">
           <div className="admin-page-heading">
             <div>
-              <p className="admin-eyebrow">{school.schoolName}</p>
-              <h1>{activeView === "dashboard" ? "Welcome back" : title}</h1>
+              <p className="admin-eyebrow">{activeView === "dashboard" ? "SCHOOL OVERVIEW" : school.schoolName}</p>
+              <h1>{activeView === "dashboard" ? `Welcome back, ${school.adminName.split(/\s+/)[0]}` : title}</h1>
               <p className="admin-page-heading__description">
                 {activeView === "dashboard" &&
-                  "Here is an overview of your school workspace."}
+                  `Your ${school.schoolName} workspace, at a glance.`}
                 {activeView === "enrollment" &&
                   "Create and manage student and staff registry entries."}
-                {activeView === "registry" &&
-                  "Search, verify, and manage records belonging to your school."}
+                {(activeView === "registry" || activeView === "students" || activeView === "staff") &&
+                  (activeView === "students"
+                    ? "Manage student identities and enrollment records for your school."
+                    : activeView === "staff"
+                      ? "Manage teaching and administrative staff in your school."
+                      : "Search, verify, and manage records belonging to your school.")}
               </p>
             </div>
             {activeView !== "enrollment" && (
@@ -586,12 +846,13 @@ export default function AdminDashboard({ school, onLogout }) {
                 className="admin-primary-button"
                 type="button"
                 onClick={() => {
-                  setActiveView("enrollment")
-                  setSuccess("")
-                  setError("")
+                  if (activeView === "students") startEnrollment("student")
+                  else if (activeView === "staff") startEnrollment("teacher")
+                  else startEnrollment("student")
                 }}
               >
-                <Plus size={18} aria-hidden="true" /> Add enrollment
+                <Plus size={18} aria-hidden="true" />
+                {activeView === "staff" ? "Add staff" : "Add student"}
               </button>
             )}
           </div>
@@ -624,91 +885,321 @@ export default function AdminDashboard({ school, onLogout }) {
           )}
 
           {activeView === "dashboard" && (
-            <section aria-label="School dashboard">
+            <section className="admin-dashboard" aria-label="School dashboard" aria-busy={dashboardLoading}>
+              {dashboardError && (
+                <div className="admin-dashboard-error" role="alert">
+                  <span>Dashboard data could not be loaded: {dashboardError}</span>
+                  <button
+                    className="admin-outline-button"
+                    type="button"
+                    onClick={() => void loadDashboard()}
+                    disabled={dashboardLoading}
+                  >
+                    {dashboardLoading ? <LoadingSpinner /> : "Try again"}
+                  </button>
+                </div>
+              )}
+
+              <section className="admin-welcome">
+                <div className="admin-welcome__copy">
+                  <span className="admin-welcome__eyebrow">
+                    <span className="admin-online-dot" /> LIVE SCHOOL WORKSPACE
+                  </span>
+                  <h2>{school.schoolName}</h2>
+                  <p>
+                    A clear view of your people and the school records managed in AceEdu.
+                  </p>
+                  <div className="admin-welcome__meta">
+                    <span><GraduationCap size={15} /> {school.schoolType}</span>
+                    <span><UserRound size={15} /> {school.adminName}</span>
+                    <span><CalendarDays size={15} /> Academic session not configured</span>
+                  </div>
+                </div>
+                <div className="admin-welcome__visual" aria-hidden="true">
+                  <svg viewBox="0 0 260 210" fill="none">
+                    <defs>
+                      <linearGradient id="ace-orbit" x1="58" y1="35" x2="208" y2="174" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#8CB9FF" />
+                        <stop offset="1" stopColor="#9A8CFF" />
+                      </linearGradient>
+                      <linearGradient id="ace-book" x1="83" y1="78" x2="179" y2="153" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#F8FBFF" />
+                        <stop offset="1" stopColor="#C9D9FF" />
+                      </linearGradient>
+                    </defs>
+                    <ellipse cx="130" cy="108" rx="92" ry="38" transform="rotate(-27 130 108)" stroke="url(#ace-orbit)" strokeOpacity=".48" />
+                    <ellipse cx="130" cy="108" rx="69" ry="70" transform="rotate(34 130 108)" stroke="url(#ace-orbit)" strokeOpacity=".3" />
+                    <circle cx="210" cy="62" r="5" fill="#96B7FF" />
+                    <circle cx="54" cy="142" r="4" fill="#A699FF" />
+                    <path d="M130 77 178 96 130 116 82 96l48-19Z" fill="url(#ace-orbit)" fillOpacity=".92" />
+                    <path d="m98 103 32 14 32-14v37c-18-9-46-9-64 0v-37Z" fill="url(#ace-book)" />
+                    <path d="M130 117v23" stroke="#829DE0" strokeWidth="2" />
+                    <path d="m90 128-8-25 13-5" stroke="#B7C9FF" strokeWidth="2" strokeLinecap="round" />
+                    <circle cx="130" cy="108" r="61" fill="#AEC8FF" fillOpacity=".08" />
+                  </svg>
+                  <span>LEARNING, IN SYNC</span>
+                </div>
+              </section>
+
               <div className="admin-stats-grid">
                 <StatCard
                   Icon={GraduationCap}
                   label="Total students"
                   value={dashboard?.metrics.students}
                   loading={dashboardLoading}
+                  error={dashboardError}
                   tone="blue"
+                  context="Enrolled records"
+                />
+                <StatCard
+                  Icon={BookOpen}
+                  label="Active classes"
+                  value={dashboard?.metrics.activeClasses}
+                  loading={dashboardLoading}
+                  error={dashboardError}
+                  tone="violet"
+                  context="Distinct student class groups"
                 />
                 <StatCard
                   Icon={Users}
-                  label="Total staff"
-                  value={dashboard?.metrics.staff}
+                  label="Teaching staff"
+                  value={dashboard?.metrics.teachingStaff}
                   loading={dashboardLoading}
+                  error={dashboardError}
                   tone="gold"
+                  context="Enrolled records"
                 />
                 <StatCard
                   Icon={ShieldCheck}
-                  label="Total access keys"
-                  value={dashboard?.metrics.total}
+                  label="Administrative staff"
+                  value={dashboard?.metrics.administrativeStaff}
                   loading={dashboardLoading}
-                  tone="violet"
+                  error={dashboardError}
+                  tone="blue"
+                  context="Enrolled records"
                 />
               </div>
-              <div className="admin-overview-grid">
-                <section className="admin-panel admin-school-card">
+              <div className="admin-analytics-grid">
+                <section className="admin-panel admin-chart-panel" aria-busy={dashboardLoading}>
                   <div className="admin-panel__heading">
                     <div>
-                      <span className="admin-panel__icon">
-                        <GraduationCap size={19} />
-                      </span>
-                      <h2>School profile</h2>
+                      <span className="admin-panel__icon"><Activity size={18} /></span>
+                      <div>
+                        <h2>Student enrollment</h2>
+                        <p>New student records by month · last 6 months</p>
+                      </div>
+                    </div>
+                    <span className="admin-chart-period">6 MONTHS</span>
+                  </div>
+                  {dashboardLoading ? (
+                    <div className="admin-chart-skeleton" role="status">Loading enrollment history…</div>
+                  ) : dashboardError ? (
+                    <DashboardSectionError error={dashboardError} onRetry={() => void loadDashboard()} />
+                  ) : dashboard?.studentTrend?.some((item) => item.total > 0) ? (
+                    <StudentTrendChart points={dashboard.studentTrend} />
+                  ) : (
+                    <DashboardEmpty
+                      title="No enrollment history yet"
+                      detail="New student registrations will appear here as records are added."
+                    />
+                  )}
+                </section>
+                <section className="admin-panel admin-chart-panel" aria-busy={dashboardLoading}>
+                  <div className="admin-panel__heading">
+                    <div>
+                      <span className="admin-panel__icon"><BookOpen size={18} /></span>
+                      <div>
+                        <h2>Students by class</h2>
+                        <p>Current student records grouped by class</p>
+                      </div>
                     </div>
                   </div>
-                  <dl className="admin-school-details">
-                    <Detail label="School name" value={school.schoolName} />
-                    <Detail label="School type" value={school.schoolType} />
-                    <Detail
-                      label="Location"
-                      value={[school.city, school.state, school.country]
-                        .filter(Boolean)
-                        .join(", ")}
+                  {dashboardLoading ? (
+                    <div className="admin-chart-skeleton" role="status">Loading class distribution…</div>
+                  ) : dashboardError ? (
+                    <DashboardSectionError error={dashboardError} onRetry={() => void loadDashboard()} />
+                  ) : dashboard?.classDistribution?.length ? (
+                    <ClassDistribution items={dashboard.classDistribution} />
+                  ) : (
+                    <DashboardEmpty
+                      title="No class groups yet"
+                      detail="Add students with a class designation to see the distribution."
                     />
-                    <Detail label="Address" value={school.address} />
-                    <Detail
-                      label="School contact"
-                      value={`${school.schoolEmail} · ${school.schoolPhone}`}
-                    />
-                  </dl>
-                </section>
-                <section className="admin-panel admin-account-card">
-                  <span className="admin-account-card__icon">
-                    <Activity size={20} />
-                  </span>
-                  <p className="admin-eyebrow">ACCOUNT ADMINISTRATOR</p>
-                  <h2>{school.adminName}</h2>
-                  <p>{school.adminRole}</p>
-                  <div className="admin-account-card__contact">
-                    <span>{school.adminEmail}</span>
-                    <span>{school.adminPhone}</span>
-                  </div>
-                  <span className="admin-account-card__status">
-                    <span className="admin-online-dot" /> Account active
-                  </span>
+                  )}
                 </section>
               </div>
-              <section className="admin-panel admin-quick-actions">
-                <div>
-                  <span className="admin-panel__icon">
-                    <Activity size={19} />
-                  </span>
-                  <div>
-                    <h2>Manage your school</h2>
-                    <p>
-                      Enroll people, review records, and export your registry.
-                    </p>
+
+              <div className="admin-dashboard-lower">
+                <section className="admin-panel admin-activity-panel" aria-busy={dashboardLoading}>
+                  <div className="admin-panel__heading">
+                    <div>
+                      <span className="admin-panel__icon"><Activity size={18} /></span>
+                      <div>
+                        <h2>School activity</h2>
+                        <p>Recent registrations and verifications</p>
+                      </div>
+                    </div>
+                    <button
+                      className="admin-text-link"
+                      type="button"
+                      onClick={() => setActiveView("registry")}
+                    >
+                      Open registry <ArrowUpRight size={15} />
+                    </button>
                   </div>
+                  {dashboardLoading ? (
+                    <div className="admin-activity-skeleton" role="status">Loading recent school activity…</div>
+                  ) : dashboardError ? (
+                    <DashboardSectionError error={dashboardError} onRetry={() => void loadDashboard()} />
+                  ) : dashboard?.recentActivity?.length ? (
+                    <ul className="admin-activity-list">
+                      {dashboard.recentActivity.map((item, index) => (
+                        <li key={`${item.fullName}-${item.occurredAt}-${index}`}>
+                          <span className={`admin-activity-icon is-${item.type}`}>
+                            {item.type === "verified" ? <Check size={16} /> : <UserPlus size={16} />}
+                          </span>
+                          <span className="admin-activity-copy">
+                            <strong>{item.fullName}</strong>
+                            <span>
+                              {item.type === "verified" ? "Verified" : "Registered"} ·{" "}
+                              {item.role === "student" ? item.designation || "Student" : item.role.replace("-", " ")}
+                            </span>
+                          </span>
+                          <time dateTime={item.occurredAt}>{formatActivityDate(item.occurredAt)}</time>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <DashboardEmpty
+                      title="Your school activity will appear here"
+                      detail="Registrations and verifications will show up as your team uses the registry."
+                    />
+                  )}
+                </section>
+                <section className="admin-panel admin-quick-actions">
+                  <div className="admin-panel__heading">
+                    <div>
+                      <span className="admin-panel__icon"><Plus size={18} /></span>
+                      <div>
+                        <h2>Quick actions</h2>
+                        <p>Start a task in your MVP workspace.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => startEnrollment("student")}>
+                    <span><GraduationCap size={17} /></span>
+                    <span>Add student<small>Create a student record</small></span>
+                    <ArrowUpRight size={16} />
+                  </button>
+                  <button type="button" onClick={() => startEnrollment("teacher")}>
+                    <span><UserPlus size={17} /></span>
+                    <span>Add staff<small>Create a staff account</small></span>
+                    <ArrowUpRight size={16} />
+                  </button>
+                  <button type="button" onClick={() => setActiveView("registry")}>
+                    <span><IdCard size={17} /></span>
+                    <span>Open registry<small>Search school records</small></span>
+                    <ArrowUpRight size={16} />
+                  </button>
+                </section>
+              </div>
+
+              <section className="admin-premium-preview" id="premium-preview">
+                <div className="admin-premium-preview__copy">
+                  <span className="admin-premium-preview__eyebrow">
+                    <span className="admin-premium-preview__spark">✦</span> ACEEDU PREMIUM
+                  </span>
+                  <h2>More of the school day, connected.</h2>
+                  <p>
+                    Premium is designed for the full student portal, advanced academic workflows, financial management, and deeper reporting.
+                  </p>
+                  <span className="admin-premium-preview__notice">
+                    Entitlement and verification are available now. Premium feature workflows are not yet enabled in this app.
+                  </span>
                 </div>
-                <button
-                  type="button"
-                  className="admin-outline-button"
-                  onClick={() => setActiveView("registry")}
-                >
-                  Open master registry
-                </button>
+                <ul>
+                  <li><BookOpen size={17} /> Full student portal</li>
+                  <li><ClipboardList size={17} /> Advanced academic workflows</li>
+                  <li><CircleDollarSign size={17} /> School financial management</li>
+                  <li><ChartNoAxesCombined size={17} /> Advanced reports and analytics</li>
+                </ul>
+                <div className="admin-premium-status" aria-busy={entitlementLoading || verificationPending}>
+                  <div>
+                    <span className="admin-premium-status__label">SCHOOL ACCESS</span>
+                    <strong>
+                      {entitlementLoading
+                        ? "Checking entitlement…"
+                        : entitlement?.trialActive
+                          ? `Premium trial · ends ${formatDate(entitlement.trialEndsAt)}`
+                          : entitlement?.plan === "premium"
+                            ? "Premium plan active"
+                            : entitlement?.trialPreviouslyGranted
+                              ? "Trial ended · MVP access active"
+                              : entitlement?.verificationStatus === "pending"
+                                ? "School verification pending"
+                                : entitlement?.verificationStatus === "review_required"
+                                  ? "Additional identity review required"
+                                  : entitlement?.verificationStatus === "verified"
+                                    ? "School verified · MVP access active"
+                                    : entitlement?.verificationStatus === "rejected"
+                                      ? "Verification needs another review"
+                                      : "MVP plan · default access"}
+                    </strong>
+                  </div>
+                  {!entitlementLoading &&
+                    !entitlementError &&
+                    !entitlement?.trialPreviouslyGranted &&
+                    !["pending", "review_required", "verified"].includes(
+                      entitlement?.verificationStatus,
+                    ) && (
+                      <form className="admin-verification-form" onSubmit={handleVerificationRequest}>
+                        <label htmlFor="school-registration-id">
+                          Official school registration ID
+                        </label>
+                        <div>
+                          <input
+                            id="school-registration-id"
+                            autoComplete="off"
+                            maxLength={80}
+                            minLength={2}
+                            required
+                            value={registrationId}
+                            onChange={(event) => setRegistrationId(event.target.value)}
+                            placeholder="Enter the ID issued to your school"
+                            disabled={verificationPending}
+                          />
+                          <button
+                            className="admin-primary-button"
+                            type="submit"
+                            disabled={verificationPending || registrationId.trim().length < 2}
+                          >
+                            {verificationPending ? "Submitting…" : "Request verification"}
+                          </button>
+                        </div>
+                        <small>
+                          An operator reviews each school. Approval starts one 90-day Premium trial; submitting a request does not activate it.
+                        </small>
+                      </form>
+                    )}
+                  {entitlementError && (
+                    <div className="admin-premium-status__message is-error" role="alert">
+                      <span>{entitlementError}</span>
+                      <button type="button" onClick={() => void loadEntitlement()}>
+                        Retry
+                      </button>
+                    </div>
+                  )}
+                  {verificationMessage && (
+                    <p className="admin-premium-status__message" role="status" aria-live="polite">
+                      {verificationMessage}
+                    </p>
+                  )}
+                  {!entitlementLoading && entitlement?.trialEndsAt && !entitlement?.trialActive && (
+                    <p className="admin-premium-status__message">
+                      The trial period has ended. Your school data remains available on the MVP plan.
+                    </p>
+                  )}
+                </div>
               </section>
             </section>
           )}
@@ -734,8 +1225,13 @@ export default function AdminDashboard({ school, onLogout }) {
                 <form
                   className="admin-enrollment-form"
                   onSubmit={handleEnrollmentSubmit}
+                aria-busy={enrollmentPending}
                 >
-                  <div className="admin-enrollment-fields">
+                <fieldset
+                  className="admin-enrollment-fieldset"
+                  disabled={enrollmentPending}
+                >
+                <div className="admin-enrollment-fields">
                     <label>
                       Account role
                       <select
@@ -983,15 +1479,39 @@ export default function AdminDashboard({ school, onLogout }) {
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
                         onChange={handlePassportChange}
+                        disabled={passportPending || enrollmentPending}
+                        aria-busy={passportPending}
                       />
-                      <small>JPEG, PNG, or WebP · maximum 5 MB</small>
+                      <small role={passportPending ? "status" : undefined}>
+                        {passportPending ? (
+                          <>
+                            <LoadingSpinner /> Optimizing image…
+                          </>
+                        ) : (
+                          "JPEG, PNG, or WebP · maximum 5 MB"
+                        )}
+                      </small>
                     </label>
                     <div className="admin-enrollment-submit">
-                      <button className="admin-primary-button" type="submit">
-                        <Plus size={18} /> Create identity
+                      <button
+                        className="admin-primary-button"
+                        type="submit"
+                        disabled={enrollmentPending}
+                      >
+                        {enrollmentPending ? (
+                          <LoadingSpinner />
+                        ) : (
+                          <Plus size={18} />
+                        )}
+                        {enrollmentPending
+                          ? form.role === "student"
+                            ? "Registering student…"
+                            : "Creating account…"
+                          : "Create identity"}
                       </button>
                     </div>
                   </div>
+                  </fieldset>
                 </form>
               </section>
               <aside className="admin-enrollment-aside">
@@ -1037,10 +1557,10 @@ export default function AdminDashboard({ school, onLogout }) {
             </div>
           )}
 
-          {activeView === "registry" && (
+          {["registry", "students", "staff"].includes(activeView) && (
             <section
               className="admin-panel admin-registry-panel"
-              aria-label="Master registry"
+              aria-label={title}
             >
               <div className="admin-registry-toolbar">
                 <div className="admin-panel__heading">
@@ -1048,11 +1568,11 @@ export default function AdminDashboard({ school, onLogout }) {
                     <span className="admin-panel__icon">
                       <Users size={19} />
                     </span>
-                    <h2>Master registry</h2>
+                    <h2>{title}</h2>
                   </div>
                   <span className="admin-count-badge">
-                    {records.length}
-                    {nextCursor ? "+" : ""} records
+                    {records.length} shown
+                    {nextCursor ? " · more available" : ""}
                   </span>
                 </div>
                 <button
@@ -1060,6 +1580,7 @@ export default function AdminDashboard({ school, onLogout }) {
                   type="button"
                   onClick={handleExport}
                   disabled={exportingRegistry}
+                  aria-busy={exportingRegistry}
                 >
                   {exportingRegistry ? (
                     <LoaderCircle size={17} className="admin-spin" />
@@ -1071,6 +1592,7 @@ export default function AdminDashboard({ school, onLogout }) {
               </div>
               <form
                 className="admin-search"
+                aria-busy={registryLoading}
                 onSubmit={(event) => {
                   event.preventDefault()
                   setAppliedQuery(query.trim())
@@ -1102,9 +1624,54 @@ export default function AdminDashboard({ school, onLogout }) {
                   {registryLoading ? "Searching…" : "Search"}
                 </button>
               </form>
+              <div className="admin-registry-filters">
+                <label htmlFor="registry-status-filter">Account status</label>
+                <select
+                  id="registry-status-filter"
+                  value={registryStatus}
+                  disabled={registryLoading}
+                  onChange={(event) => {
+                    setRegistryStatus(event.target.value)
+                    setNextCursor(null)
+                  }}
+                >
+                  <option value="">All statuses</option>
+                  <option value="Active">Active</option>
+                  <option value="Pending">Pending</option>
+                </select>
+                <span>
+                  {activeView === "students"
+                    ? "Showing student records for this school"
+                    : activeView === "staff"
+                      ? "Showing staff records for this school"
+                      : "Showing all school records"}
+                </span>
+              </div>
+              {registryError && (
+                <div className="admin-registry-error" role="alert">
+                  <span>
+                    {records.length
+                      ? `Could not refresh the registry. Previously loaded records are still shown. ${registryError}`
+                      : `Could not load the registry. ${registryError}`}
+                  </span>
+                  <button
+                    className="admin-outline-button"
+                    type="button"
+                    disabled={registryLoading}
+                    onClick={() => void loadRegistry({ search: appliedQuery })}
+                  >
+                    {registryLoading ? <LoadingSpinner /> : "Try again"}
+                  </button>
+                </div>
+              )}
               {registryLoading && records.length > 0 && (
                 <p className="admin-registry-loading" role="status">
                   <LoaderCircle size={15} className="admin-spin" /> Updating registry…
+                </p>
+              )}
+              {registryLoading && records.length === 0 && (
+                <p className="admin-visually-hidden" role="status">
+                  Loading school records…
                 </p>
               )}
               <div className="admin-table-wrap">
@@ -1122,19 +1689,39 @@ export default function AdminDashboard({ school, onLogout }) {
                       </th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody aria-busy={registryLoading}>
                     {registryLoading && records.length === 0 && (
-                      <tr>
-                        <td colSpan="7" className="admin-empty">
-                          <LoaderCircle size={21} className="admin-spin" />{" "}
-                          Loading school records…
-                        </td>
-                      </tr>
+                      <RegistrySkeletonRows />
                     )}
-                    {!registryLoading && records.length === 0 && (
+                    {!registryLoading && !registryError && records.length === 0 && (
                       <tr>
                         <td colSpan="7" className="admin-empty">
-                          No records found for this school.
+                          <span className="admin-empty__icon"><Users size={20} /></span>
+                          <strong>
+                            {appliedQuery || registryStatus
+                              ? "No matching records"
+                              : activeView === "students"
+                                ? "No students registered yet"
+                                : activeView === "staff"
+                                  ? "No staff records yet"
+                                  : "No records in this registry"}
+                          </strong>
+                          <span>
+                            {appliedQuery || registryStatus
+                              ? "Try adjusting the search or status filter."
+                              : activeView === "students"
+                                ? "Register a student to start building your school roster."
+                                : "New school records will appear here when they are added."}
+                          </span>
+                          {!appliedQuery && !registryStatus && activeView !== "staff" && (
+                            <button
+                              className="admin-outline-button"
+                              type="button"
+                              onClick={() => startEnrollment("student")}
+                            >
+                              <Plus size={16} /> Add student
+                            </button>
+                          )}
                         </td>
                       </tr>
                     )}
@@ -1173,10 +1760,11 @@ export default function AdminDashboard({ school, onLogout }) {
                         <td>
                           <span
                             className={`admin-status ${
-                              record.status === "Active" ? "is-active" : ""
+                              record.status === "Active" ? "is-active" : "is-pending"
                             }`}
+                            aria-label={`Status: ${record.status}`}
                           >
-                            <span />
+                            <span aria-hidden="true" />
                             {record.status}
                           </span>
                         </td>
@@ -1195,18 +1783,27 @@ export default function AdminDashboard({ school, onLogout }) {
                               <button
                                 type="button"
                                 onClick={() => handleVerify(record)}
-                                disabled={busyId === record._id}
+                                disabled={Boolean(busyId)}
+                                aria-busy={busyId === record._id}
                                 aria-label={`Verify ${record.fullName}`}
                                 title="Verify entry"
                               >
-                                <Check size={16} />
+                                {busyId === record._id ? (
+                                  <LoaderCircle
+                                    size={16}
+                                    className="admin-spin"
+                                  />
+                                ) : (
+                                  <Check size={16} />
+                                )}
                               </button>
                             )}
                             <button
                               className="is-danger"
                               type="button"
                               onClick={() => handleDelete(record)}
-                              disabled={busyId === record._id}
+                              disabled={Boolean(busyId)}
+                              aria-busy={busyId === record._id}
                               aria-label={`Delete ${record.fullName}`}
                               title="Delete entry"
                             >
@@ -1225,6 +1822,37 @@ export default function AdminDashboard({ school, onLogout }) {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="admin-registry-cards" aria-busy={registryLoading}>
+                {registryLoading && records.length === 0 && (
+                  <RegistryCardSkeleton />
+                )}
+                {!registryLoading && !registryError && records.length === 0 && (
+                  <div className="admin-mobile-empty">
+                    <Users size={22} aria-hidden="true" />
+                    <strong>
+                      {appliedQuery || registryStatus
+                        ? "No matching records"
+                        : activeView === "students"
+                          ? "No students registered yet"
+                          : activeView === "staff"
+                            ? "No staff records yet"
+                            : "No records in this registry"}
+                    </strong>
+                    <span>Adjust your filters or add a record to this school.</span>
+                  </div>
+                )}
+                {records.map((record) => (
+                  <RegistryRecordCard
+                    key={`mobile-${record._id}`}
+                    record={record}
+                    busy={busyId === record._id}
+                    disabled={Boolean(busyId)}
+                    onView={() => setSelectedRecord(record)}
+                    onVerify={() => handleVerify(record)}
+                    onDelete={() => handleDelete(record)}
+                  />
+                ))}
               </div>
               {nextCursor && (
                 <div className="admin-load-more">
@@ -1406,7 +2034,7 @@ function AlertCircleIcon() {
   )
 }
 
-function StatCard({ Icon, label, value, loading, tone }) {
+function StatCard({ Icon, label, value, loading, error, tone, context }) {
   return (
     <article className="admin-panel admin-stat-card">
       <span className={`admin-stat-card__icon is-${tone}`}>
@@ -1416,17 +2044,204 @@ function StatCard({ Icon, label, value, loading, tone }) {
         <p>{label}</p>
         <strong>
           {loading ? (
-            <LoaderCircle
-              size={23}
-              className="admin-spin"
-              aria-label="Loading"
-            />
+            <span className="admin-stat-skeleton" aria-hidden="true" />
+          ) : error ? (
+            "—"
           ) : (
             (value ?? 0)
           )}
         </strong>
       </div>
-      <span className="admin-stat-card__tag">ALL TIME</span>
+      <span className="admin-stat-card__tag">{context}</span>
+    </article>
+  )
+}
+
+function DashboardSectionError({ error, onRetry }) {
+  return (
+    <div className="admin-dashboard-section-error" role="alert">
+      <span>Could not load this data.</span>
+      <button type="button" onClick={onRetry} title={error}>Retry</button>
+    </div>
+  )
+}
+
+function StudentTrendChart({ points }) {
+  const width = 560
+  const height = 188
+  const padding = { top: 16, right: 16, bottom: 30, left: 16 }
+  const chartWidth = width - padding.left - padding.right
+  const chartHeight = height - padding.top - padding.bottom
+  const maximum = Math.max(1, ...points.map((point) => point.total))
+  const coordinates = points.map((point, index) => ({
+    ...point,
+    x: padding.left + (points.length === 1 ? chartWidth / 2 : (index / (points.length - 1)) * chartWidth),
+    y: padding.top + chartHeight - (point.total / maximum) * chartHeight,
+  }))
+  const line = coordinates.map((point, index) =>
+    `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`,
+  ).join(" ")
+  const area = `${line} L ${coordinates.at(-1).x} ${padding.top + chartHeight} L ${coordinates[0].x} ${padding.top + chartHeight} Z`
+
+  return (
+    <div className="admin-trend-chart">
+      <div className="admin-trend-chart__summary">
+        <span>New student records</span>
+        <strong>{points.reduce((sum, point) => sum + point.total, 0).toLocaleString()}</strong>
+        <small>Across the periods shown</small>
+      </div>
+      <svg
+        className="admin-trend-chart__svg"
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label={`Student registrations for the last six months: ${points.map((point) => `${point.month} ${point.total}`).join(", ")}`}
+      >
+        <defs>
+          <linearGradient id="admin-trend-fill" x1="280" y1="15" x2="280" y2="158" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#4384FF" stopOpacity=".22" />
+            <stop offset="1" stopColor="#4384FF" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="admin-trend-line" x1="16" y1="20" x2="544" y2="155" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#397DFF" />
+            <stop offset="1" stopColor="#7765E8" />
+          </linearGradient>
+        </defs>
+        {[0, 1, 2].map((lineIndex) => {
+          const y = padding.top + (chartHeight / 2) * lineIndex
+          return <line key={lineIndex} x1={padding.left} x2={width - padding.right} y1={y} y2={y} className="admin-trend-chart__gridline" />
+        })}
+        <path d={area} fill="url(#admin-trend-fill)" />
+        <path d={line} fill="none" stroke="url(#admin-trend-line)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        {coordinates.map((point) => (
+          <g key={point.month}>
+            <circle cx={point.x} cy={point.y} r="5" className="admin-trend-chart__point" />
+            <text x={point.x} y={height - 8} textAnchor="middle" className="admin-trend-chart__label">{point.month}</text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  )
+}
+
+function ClassDistribution({ items }) {
+  const maximum = Math.max(1, ...items.map((item) => item.total))
+  return (
+    <ul className="admin-class-distribution">
+      {items.map((item) => (
+        <li key={item.className}>
+          <span className="admin-class-distribution__label">{item.className}</span>
+          <span className="admin-class-distribution__track" aria-hidden="true">
+            <span style={{ width: `${(item.total / maximum) * 100}%` }} />
+          </span>
+          <strong>{item.total.toLocaleString()}</strong>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function DashboardEmpty({ title, detail }) {
+  return (
+    <div className="admin-dashboard-empty">
+      <span aria-hidden="true"><Activity size={18} /></span>
+      <strong>{title}</strong>
+      <p>{detail}</p>
+    </div>
+  )
+}
+
+function RegistrySkeletonRows() {
+  return Array.from({ length: 4 }, (_, row) => (
+    <tr className="admin-table-skeleton" key={`loading-${row}`} aria-hidden="true">
+      {Array.from({ length: 7 }, (_, column) => (
+        <td key={`loading-${row}-${column}`}>
+          <span className="admin-table-skeleton__bar" />
+        </td>
+      ))}
+    </tr>
+  ))
+}
+
+function RegistryCardSkeleton() {
+  return (
+    <div className="admin-registry-card-skeleton" role="status">
+      <span className="admin-registry-card-skeleton__avatar" aria-hidden="true" />
+      <span className="admin-registry-card-skeleton__line" aria-hidden="true" />
+      <span className="admin-registry-card-skeleton__line is-short" aria-hidden="true" />
+      <span className="admin-visually-hidden">Loading student records…</span>
+    </div>
+  )
+}
+
+function RegistryRecordCard({
+  record,
+  busy,
+  disabled,
+  onView,
+  onVerify,
+  onDelete,
+}) {
+  const active = record.status === "Active"
+
+  return (
+    <article className="admin-registry-card">
+      <div className="admin-registry-card__header">
+        {record.passport ? (
+          <img
+            className="admin-table-avatar admin-table-avatar--photo"
+            src={record.passport}
+            alt=""
+          />
+        ) : (
+          <span className="admin-table-avatar" aria-hidden="true">
+            {record.fullName
+              .split(/\s+/)
+              .map((part) => part[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase()}
+          </span>
+        )}
+        <span className="admin-registry-card__identity">
+          <strong>{record.fullName}</strong>
+          <span>{record.role.replace("-", " ")}</span>
+        </span>
+        <span className={`admin-status ${active ? "is-active" : "is-pending"}`}>
+          <span aria-hidden="true" />
+          {record.status}
+        </span>
+      </div>
+      <dl className="admin-registry-card__details">
+        <div><dt>Class / designation</dt><dd>{record.designation || "—"}</dd></div>
+        <div><dt>Access PIN</dt><dd><code className="admin-pin">{record.accessPin}</code></dd></div>
+        <div><dt>Added</dt><dd>{formatDate(record.createdAt)}</dd></div>
+      </dl>
+      <div className="admin-registry-card__actions" aria-label={`Actions for ${record.fullName}`}>
+        <button type="button" onClick={onView} aria-label={`View ${record.fullName}`}>
+          <Eye size={16} /> View
+        </button>
+        {!active && (
+          <button
+            type="button"
+            onClick={onVerify}
+            disabled={disabled}
+            aria-busy={busy}
+            aria-label={`Verify ${record.fullName}`}
+          >
+            {busy ? <LoadingSpinner /> : <Check size={16} />} Verify
+          </button>
+        )}
+        <button
+          className="is-danger"
+          type="button"
+          onClick={onDelete}
+          disabled={disabled}
+          aria-busy={busy}
+          aria-label={`Delete ${record.fullName}`}
+        >
+          {busy ? <LoadingSpinner /> : <Trash2 size={16} />} Remove
+        </button>
+      </div>
     </article>
   )
 }

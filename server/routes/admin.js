@@ -5,10 +5,10 @@ import { randomInt } from "node:crypto"
 import express from "express"
 
 import {
-  countEnrollments,
   createEnrollment,
   deleteEnrollment,
   enrollmentPinExists,
+  getDashboardAnalytics,
   iterateEnrollments,
   listEnrollments,
   verifyEnrollment,
@@ -17,12 +17,15 @@ import {
 import { isValidDatabaseId } from "../ids.js"
 
 import { asyncRoute } from "../security.js"
+import entitlementRouter from "./entitlements.js"
 
 import { validateEnrollment } from "../validation.js"
 
 const router = express.Router()
 
 const pageSize = 50
+
+router.use("/entitlements", entitlementRouter)
 
 function csvCell(value) {
   let text = String(value ?? "")
@@ -50,15 +53,9 @@ router.get(
   asyncRoute(async (req, res) => {
     const schoolId = req.session.schoolId
 
-    const [students, staff, total] = await Promise.all([
-      countEnrollments(schoolId, ["student"]),
+    const analytics = await getDashboardAnalytics(schoolId)
 
-      countEnrollments(schoolId, ["teacher", "sub-admin", "school-admin"]),
-
-      countEnrollments(schoolId),
-    ])
-
-    return res.json({ school: req.school, metrics: { students, staff, total } })
+    return res.json({ school: req.school, ...analytics })
   }),
 )
 
@@ -72,12 +69,30 @@ router.get(
       typeof req.query.q === "string" ? req.query.q.trim().slice(0, 80) : ""
 
     const cursor = typeof req.query.cursor === "string" ? req.query.cursor : ""
+    const role =
+      typeof req.query.role === "string" ? req.query.role.trim() : ""
+    const status =
+      typeof req.query.status === "string" ? req.query.status.trim() : ""
+
+    if (role && !["student", "staff"].includes(role)) {
+      return res.status(400).json({ error: "The registry role filter is invalid." })
+    }
+
+    if (status && !["Active", "Pending"].includes(status)) {
+      return res.status(400).json({ error: "The registry status filter is invalid." })
+    }
 
     if (cursor && !isValidDatabaseId(cursor)) {
       return res.status(400).json({ error: "The registry cursor is invalid." })
     }
 
-    const records = await listEnrollments({ schoolId, queryText, cursor })
+    const records = await listEnrollments({
+      schoolId,
+      queryText,
+      cursor,
+      role,
+      status,
+    })
 
     const hasMore = records.length > pageSize
 

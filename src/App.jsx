@@ -2,21 +2,35 @@
 import { lazy, Suspense, useEffect, useState } from "react"
 import HomePage from "./pages/HomePage"
 import { getCurrentSchool, loginSchool, logoutSchool, registerSchool } from "./data/api"
+import PageLoader from "./components/ui/PageLoader"
+import PlatformConsole from "./pages/PlatformConsole"
 
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"))
 
+function readSavedTheme() {
+  try {
+    return window.localStorage.getItem("aceedu-admin-theme") === "dark" ? "dark" : "light"
+  } catch {
+    return "light"
+  }
+}
+
 export default function App() {
+  const platformRoute = window.location.pathname.replace(/\/+$/, "") === "/platform"
   const [school, setSchool] = useState(null)
-  const [checkingSession, setCheckingSession] = useState(true)
+  const [checkingSession, setCheckingSession] = useState(!platformRoute)
   const [backendError, setBackendError] = useState("")
+  const [theme] = useState(readSavedTheme)
 
   useEffect(() => {
+    if (platformRoute) return undefined
     let active = true
     let retryTimer
     let retryAttempt = 0
     const retryDelays = [500, 1000, 2000, 4000, 8000]
 
     async function checkSession() {
+      let retryScheduled = false
       try {
         const currentSchool = await getCurrentSchool()
         if (active) {
@@ -28,6 +42,7 @@ export default function App() {
           const message = error.message || ""
           const unavailable = /failed to fetch|fetch failed|HTTP 5\d\d/i.test(message)
           if (unavailable && retryAttempt < retryDelays.length) {
+            retryScheduled = true
             setBackendError("Account services are starting. Reconnecting automatically…")
             retryTimer = window.setTimeout(() => {
               retryAttempt += 1
@@ -42,7 +57,7 @@ export default function App() {
           }
         }
       } finally {
-        if (active) setCheckingSession(false)
+        if (active && !retryScheduled) setCheckingSession(false)
       }
     }
 
@@ -51,7 +66,7 @@ export default function App() {
       active = false
       window.clearTimeout(retryTimer)
     }
-  }, [])
+  }, [platformRoute])
 
   async function handleRegister(values) {
     const createdSchool = await registerSchool(values)
@@ -70,34 +85,30 @@ export default function App() {
     setSchool(null)
   }
 
-  if (checkingSession) {
-    return (
-      <main className="app-loading" aria-live="polite">
-        <span className="app-loading__spinner" aria-hidden="true" />
-        <p>Checking your AceEdu account…</p>
-      </main>
-    )
-  }
-
-  if (school) {
-    return (
+  const application = platformRoute ? (
+    <PlatformConsole />
+  ) : checkingSession ? null : school ? (
       <Suspense
-        fallback={
-          <main className="app-loading" aria-live="polite">
-            <span className="app-loading__spinner" aria-hidden="true" />
-            <p>Loading your school workspace…</p>
-          </main>
-        }
+        fallback={<PageLoader message="Loading your school workspace…" theme={theme} />}
       >
         <AdminDashboard school={school} onLogout={handleLogout} />
       </Suspense>
-    )
-  }
-  return (
+  ) : (
     <HomePage
       onRegister={handleRegister}
       onLogin={handleLogin}
       backendError={backendError}
     />
+  )
+
+  return (
+    <>
+      {application}
+      <PageLoader
+        message={backendError || "Checking your AceEdu account…"}
+        theme={theme}
+        visible={checkingSession}
+      />
+    </>
   )
 }

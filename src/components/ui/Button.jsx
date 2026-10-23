@@ -1,5 +1,6 @@
 
 import "./Button.css"
+import LoadingSpinner from "./LoadingSpinner"
 
 // Reusable button: props control its content, visual variant, HTML type, extra class, and native button attributes.
 export default function Button({
@@ -7,6 +8,10 @@ export default function Button({
   variant = "primary",
   className = "",
   type = "button",
+  loading = false,
+  loadingLabel,
+  disabled = false,
+  "aria-busy": ariaBusy,
   ...props
 }) {
   // Forward remaining props (such as onClick) to the actual HTML button.
@@ -14,10 +19,12 @@ export default function Button({
     <button
       className={`button button--${variant} ${className}`.trim()}
       type={type}
+      disabled={loading || disabled}
+      aria-busy={loading || ariaBusy || undefined}
       {...props}
     >
-      {children}
+      {loading && <LoadingSpinner className="button__spinner" />}
+      <span>{loading && loadingLabel ? loadingLabel : children}</span>
     </button>
   )
 }
-

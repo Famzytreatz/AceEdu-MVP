@@ -65,25 +65,17 @@ export async function enrollmentPinExists(schoolId, accessPin) {
   return data !== null
 }
 
-export async function countEnrollments(schoolId, roles) {
-  let query = supabase
-
-    .from("enrollments")
-
-    .select("id", { count: "exact", head: true })
-
-    .eq("school_id", schoolId)
-
-  if (roles) query = query.in("role", roles)
-
-  const { count, error } = await query
+export async function getDashboardAnalytics(schoolId) {
+  const { data, error } = await supabase.rpc("get_school_dashboard_analytics", {
+    target_school_id: schoolId,
+  })
 
   if (error) throw error
 
-  return count
+  return data
 }
 
-async function findPage({ schoolId, prefix, column, cursor, limit }) {
+async function findPage({ schoolId, prefix, column, cursor, limit, roles, status }) {
   let query = supabase
 
     .from("enrollments")
@@ -98,6 +90,10 @@ async function findPage({ schoolId, prefix, column, cursor, limit }) {
 
   if (cursor) query = query.lt("id", cursor)
 
+  if (roles) query = query.in("role", roles)
+
+  if (status) query = query.eq("status", status)
+
   if (prefix !== null)
     query = query.ilike(column, `${escapeLikePrefix(prefix)}%`)
 
@@ -108,7 +104,14 @@ async function findPage({ schoolId, prefix, column, cursor, limit }) {
   return data.map(enrollmentFromRow)
 }
 
-export async function listEnrollments({ schoolId, queryText, cursor }) {
+export async function listEnrollments({ schoolId, queryText, cursor, role, status }) {
+  const roles =
+    role === "student"
+      ? ["student"]
+      : role === "staff"
+        ? ["teacher", "sub-admin", "school-admin"]
+        : null
+
   if (!queryText) {
     return findPage({
       schoolId,
@@ -116,6 +119,8 @@ export async function listEnrollments({ schoolId, queryText, cursor }) {
       column: "name_search",
       cursor,
       limit: pageSize + 1,
+      roles,
+      status,
     })
   }
 
@@ -126,6 +131,8 @@ export async function listEnrollments({ schoolId, queryText, cursor }) {
       column: "name_search",
       cursor,
       limit: pageSize + 1,
+      roles,
+      status,
     }),
 
     findPage({
@@ -134,6 +141,8 @@ export async function listEnrollments({ schoolId, queryText, cursor }) {
       column: "access_pin",
       cursor,
       limit: pageSize + 1,
+      roles,
+      status,
     }),
 
     findPage({
@@ -142,11 +151,15 @@ export async function listEnrollments({ schoolId, queryText, cursor }) {
       column: "role",
       cursor,
       limit: pageSize + 1,
+      roles,
+      status,
     }),
   ])
 
   const unique = new Map(
-    [...byName, ...byPin, ...byRole].map((record) => [record._id, record]),
+    [...byName, ...byPin, ...byRole]
+      .filter((record) => !roles || roles.includes(record.role))
+      .map((record) => [record._id, record]),
   )
 
   return [...unique.values()]
