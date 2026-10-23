@@ -1402,6 +1402,43 @@
   .admin-premium-preview > ul { grid-template-columns: 1fr; }
 }
 
+@media (min-width: 761px) {
+  .admin-app {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .admin-sidebar {
+    top: 0;
+    align-self: start;
+    height: 100dvh;
+  }
+
+  .admin-main {
+    height: 100dvh;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-app {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .admin-main {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+}
+
 .admin-registry-panel {
   padding: clamp(1rem, 2.2vw, 1.5rem);
 }
