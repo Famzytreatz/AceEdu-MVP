@@ -1,4 +1,6 @@
 import express from "express"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 
 import session from "express-session"
 
@@ -7,6 +9,7 @@ import rateLimit from "express-rate-limit"
 import helmet from "helmet"
 
 import { config } from "./config.js"
+import { logError } from "./error-logging.js"
 
 import { supabase } from "./supabase.js"
 
@@ -103,12 +106,22 @@ export function createApp() {
     res.status(404).json({ error: "API endpoint not found." }),
   )
 
-  app.use((error, _req, res, _next) => {
-    console.error(
-      "AceEdu API request failed:",
-      error.name || "UnknownError",
-      error.code || "",
+  if (config.isProduction) {
+    const clientDistPath = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../dist",
     )
+    app.use(express.static(clientDistPath))
+    app.get(/.*/, (req, res, next) => {
+      if (!req.accepts("html")) return next()
+      res.sendFile(path.join(clientDistPath, "index.html"), (error) => {
+        if (error) next(error)
+      })
+    })
+  }
+
+  app.use((error, req, res, _next) => {
+    logError("AceEdu API request failed:", error, req)
 
     if (res.headersSent) return res.end()
 

@@ -11,6 +11,8 @@ import {
   LayoutDashboard,
   LoaderCircle,
   LogOut,
+  Moon,
+  Sun,
   Plus,
   Printer,
   Search,
@@ -135,6 +137,21 @@ async function optimizePassport(file) {
 
 export default function AdminDashboard({ school, onLogout }) {
   const [activeView, setActiveView] = useState("dashboard")
+  const [theme, setTheme] = useState(() => {
+    try {
+      return window.localStorage.getItem("aceedu-admin-theme") === "dark" ? "dark" : "light"
+    } catch {
+      return "light"
+    }
+  })
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("aceedu-admin-theme", theme)
+    } catch {
+      // Theme still works for this session if storage is unavailable.
+    }
+  }, [theme])
 
   const [dashboard, setDashboard] = useState(null)
 
@@ -147,6 +164,8 @@ export default function AdminDashboard({ school, onLogout }) {
   const [appliedQuery, setAppliedQuery] = useState("")
 
   const [registryLoading, setRegistryLoading] = useState(false)
+
+  const [exportingRegistry, setExportingRegistry] = useState(false)
 
   const [dashboardLoading, setDashboardLoading] = useState(true)
 
@@ -245,9 +264,17 @@ export default function AdminDashboard({ school, onLogout }) {
           cursor: append ? cursor : null,
         })
 
-        setRecords((current) =>
-          append ? [...current, ...result.items] : result.items,
-        )
+        setRecords((current) => {
+          if (!append) return result.items
+
+          // Cursor pages can overlap when a record matches more than one search
+          // field. Deduplicate by database ID before appending the next page.
+          const seen = new Set(current.map((record) => record._id))
+          return [
+            ...current,
+            ...result.items.filter((record) => !seen.has(record._id)),
+          ]
+        })
 
         setNextCursor(result.nextCursor)
 
@@ -348,11 +375,13 @@ export default function AdminDashboard({ school, onLogout }) {
     setSuccess("")
 
     try {
-      await verifyEnrollment(record._id)
+      const result = await verifyEnrollment(record._id)
 
       setRecords((current) =>
         current.map((entry) =>
-          entry._id === record._id ? { ...entry, status: "Active" } : entry,
+          entry._id === record._id
+            ? { ...entry, ...(result.enrollment || {}), status: "Active" }
+            : entry,
         ),
       )
 
@@ -394,12 +423,19 @@ export default function AdminDashboard({ school, onLogout }) {
   }
 
   async function handleExport() {
+    if (exportingRegistry) return
+
+    setExportingRegistry(true)
     setError("")
+    setSuccess("")
 
     try {
       await downloadRegistry()
+      setSuccess("Your school registry export is ready.")
     } catch (exportError) {
       setError(exportError.message)
+    } finally {
+      setExportingRegistry(false)
     }
   }
 
@@ -420,7 +456,7 @@ export default function AdminDashboard({ school, onLogout }) {
   const title = navigation.find((item) => item.id === activeView)?.label
 
   return (
-    <div className="admin-app">
+    <div className="admin-app" data-theme={theme}>
       <aside className="admin-sidebar">
         <a className="admin-brand" href="#top" aria-label="AceEdu admin home">
           <span className="admin-brand__mark">
@@ -500,6 +536,16 @@ export default function AdminDashboard({ school, onLogout }) {
             <span>School workspace</span>
             <ChevronDown size={14} aria-hidden="true" />
           </div>
+          <button
+            className="admin-theme-toggle"
+            type="button"
+            onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+          >
+            {theme === "dark" ? <Sun size={17} aria-hidden="true" /> : <Moon size={17} aria-hidden="true" />}
+            <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+          </button>
           <div className="admin-topbar__account">
             <span className="admin-online-dot" />
             <span>{school.schoolName}</span>
@@ -1013,8 +1059,14 @@ export default function AdminDashboard({ school, onLogout }) {
                   className="admin-outline-button"
                   type="button"
                   onClick={handleExport}
+                  disabled={exportingRegistry}
                 >
-                  <ArrowDownToLine size={17} /> Export CSV
+                  {exportingRegistry ? (
+                    <LoaderCircle size={17} className="admin-spin" />
+                  ) : (
+                    <ArrowDownToLine size={17} />
+                  )}
+                  {exportingRegistry ? "Preparing export…" : "Export CSV"}
                 </button>
               </div>
               <form
@@ -1032,10 +1084,29 @@ export default function AdminDashboard({ school, onLogout }) {
                   placeholder="Search by name, role, or access PIN"
                   aria-label="Search registry by name, role, or access PIN"
                 />
-                <button className="admin-search__button" type="submit">
-                  Search
+                {query && (
+                  <button
+                    className="admin-search__button"
+                    type="button"
+                    onClick={() => {
+                      setQuery("")
+                      setAppliedQuery("")
+                      setNextCursor(null)
+                    }}
+                    aria-label="Clear registry search"
+                  >
+                    Clear
+                  </button>
+                )}
+                <button className="admin-search__button" type="submit" disabled={registryLoading}>
+                  {registryLoading ? "Searching…" : "Search"}
                 </button>
               </form>
+              {registryLoading && records.length > 0 && (
+                <p className="admin-registry-loading" role="status">
+                  <LoaderCircle size={15} className="admin-spin" /> Updating registry…
+                </p>
+              )}
               <div className="admin-table-wrap">
                 <table className="admin-table">
                   <thead>

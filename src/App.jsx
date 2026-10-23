@@ -26,7 +26,7 @@ export default function App() {
       } catch (error) {
         if (active) {
           const message = error.message || ""
-          const unavailable = /failed to fetch|fetch failed|HTTP 502|HTTP 503|HTTP 504/i.test(message)
+          const unavailable = /failed to fetch|fetch failed|HTTP 5\d\d/i.test(message)
           if (unavailable && retryAttempt < retryDelays.length) {
             setBackendError("Account services are starting. Reconnecting automatically…")
             retryTimer = window.setTimeout(() => {

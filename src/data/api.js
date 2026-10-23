@@ -25,11 +25,20 @@ async function postJson(path, body) {
   return readJson(response)
 }
 
-export async function getCurrentSchool() {
-  const response = await fetch("/api/auth/me", { credentials: "same-origin" })
-  if (response.status === 401) return null
-  const result = await readJson(response)
-  return result.school
+let currentSchoolRequest
+
+export function getCurrentSchool() {
+  if (!currentSchoolRequest) {
+    currentSchoolRequest = (async () => {
+      const response = await fetch("/api/auth/me", { credentials: "same-origin" })
+      if (response.status === 401) return null
+      const result = await readJson(response)
+      return result.school
+    })().finally(() => {
+      currentSchoolRequest = undefined
+    })
+  }
+  return currentSchoolRequest
 }
 
 export async function registerSchool(values) {

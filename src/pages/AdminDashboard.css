@@ -327,3 +327,160 @@
   .app-loading__spinner { animation-duration: 1.8s; }
   .admin-primary-button { transition: none; }
 }
+
+.admin-registry-loading { display: flex; align-items: center; gap: 0.45rem; margin: -0.25rem 0 0.8rem; color: var(--admin-muted, #7f91a7); font-size: 0.75rem; }
+.admin-search__button:disabled { opacity: 0.6; cursor: wait; }
+
+
+/* AceEdu dashboard theme system */
+.admin-app {
+  --admin-bg: #f4f7ff;
+  --admin-ink: #10264b;
+  --admin-muted: #7183a5;
+  --admin-line: #dce6f7;
+  --admin-blue: #1264f5;
+  color-scheme: light;
+  background:
+    radial-gradient(ellipse at 80% 0%, rgba(54, 132, 255, .09), transparent 34%),
+    var(--admin-bg);
+  transition: background-color .22s ease, color .22s ease;
+}
+.admin-app[data-theme="dark"] {
+  --admin-bg: #030b1b;
+  --admin-ink: #e7f0ff;
+  --admin-muted: #93a9cb;
+  --admin-line: #173563;
+  --admin-blue: #2584ff;
+  color-scheme: dark;
+  background:
+    radial-gradient(ellipse at 75% 0%, rgba(0, 106, 255, .16), transparent 34%),
+    #030b1b;
+}
+.admin-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  min-height: 2.35rem;
+  padding: .45rem .7rem;
+  border: 1px solid var(--admin-line);
+  border-radius: .75rem;
+  background: var(--admin-bg);
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: .76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+.admin-theme-toggle:hover { border-color: #398aff; transform: translateY(-1px); }
+.admin-app[data-theme="dark"] .admin-sidebar,
+.admin-app[data-theme="dark"] .admin-topbar,
+.admin-app[data-theme="dark"] .admin-panel,
+.admin-app[data-theme="dark"] .admin-modal {
+  background: linear-gradient(145deg, rgba(7, 24, 54, .98), rgba(4, 15, 36, .98));
+  border-color: #173765;
+  color: #e7f0ff;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .15);
+}
+.admin-app[data-theme="dark"] .admin-sidebar { border-right-color: #16345e; }
+.admin-app[data-theme="dark"] .admin-brand,
+.admin-app[data-theme="dark"] .admin-nav__item,
+.admin-app[data-theme="dark"] .admin-profile__identity strong,
+.admin-app[data-theme="dark"] .admin-topbar__context,
+.admin-app[data-theme="dark"] .admin-topbar__account,
+.admin-app[data-theme="dark"] .admin-topbar__profile,
+.admin-app[data-theme="dark"] .admin-topbar__logout,
+.admin-app[data-theme="dark"] .admin-page-heading h1,
+.admin-app[data-theme="dark"] .admin-panel h2,
+.admin-app[data-theme="dark"] .admin-panel h3,
+.admin-app[data-theme="dark"] .admin-stat-card strong,
+.admin-app[data-theme="dark"] .admin-school-details dd,
+.admin-app[data-theme="dark"] .admin-profile-details dd,
+.admin-app[data-theme="dark"] .admin-record-details dd,
+.admin-app[data-theme="dark"] .admin-table,
+.admin-app[data-theme="dark"] .admin-table td,
+.admin-app[data-theme="dark"] .admin-table th,
+.admin-app[data-theme="dark"] .admin-modal,
+.admin-app[data-theme="dark"] label {
+  color: #e7f0ff;
+}
+.admin-app[data-theme="dark"] .admin-nav__item { color: #a6badb; }
+.admin-app[data-theme="dark"] .admin-nav__item:hover { background: #0c2a56; color: #fff; }
+.admin-app[data-theme="dark"] .admin-nav__item.is-active {
+  background: linear-gradient(100deg, #0754c9, #1264f5);
+  color: #fff;
+  box-shadow: 0 7px 20px rgba(18, 100, 245, .22);
+}
+.admin-app[data-theme="dark"] .admin-brand__mark,
+.admin-app[data-theme="dark"] .admin-profile__avatar,
+.admin-app[data-theme="dark"] .admin-table-avatar,
+.admin-app[data-theme="dark"] .admin-panel__icon {
+  background: #0b2b5c;
+  color: #65b4ff;
+}
+.admin-app[data-theme="dark"] .admin-profile,
+.admin-app[data-theme="dark"] .admin-school-details > div,
+.admin-app[data-theme="dark"] .admin-profile-details > div,
+.admin-app[data-theme="dark"] .admin-table th,
+.admin-app[data-theme="dark"] .admin-table td,
+.admin-app[data-theme="dark"] .admin-record-details,
+.admin-app[data-theme="dark"] .admin-modal__header {
+  border-color: #18365f;
+}
+.admin-app[data-theme="dark"] .admin-eyebrow,
+.admin-app[data-theme="dark"] .admin-page-heading__description,
+.admin-app[data-theme="dark"] .admin-panel p,
+.admin-app[data-theme="dark"] .admin-panel__heading p,
+.admin-app[data-theme="dark"] .admin-profile__identity span,
+.admin-app[data-theme="dark"] .admin-sidebar__label,
+.admin-app[data-theme="dark"] .admin-school-details dt,
+.admin-app[data-theme="dark"] .admin-profile-details dt,
+.admin-app[data-theme="dark"] .admin-record-details dt {
+  color: #8fa8ce;
+}
+.admin-app[data-theme="dark"] input,
+.admin-app[data-theme="dark"] select,
+.admin-app[data-theme="dark"] textarea {
+  background: #06152e;
+  color: #e7f0ff;
+  border-color: #244777;
+}
+.admin-app[data-theme="dark"] input::placeholder,
+.admin-app[data-theme="dark"] textarea::placeholder { color: #6f89b0; }
+.admin-app[data-theme="dark"] .admin-outline-button,
+.admin-app[data-theme="dark"] .admin-modal__close,
+.admin-app[data-theme="dark"] .admin-profile__view,
+.admin-app[data-theme="dark"] .admin-profile__logout {
+  background: #0a2043;
+  color: #c7dcff;
+  border-color: #234575;
+}
+.admin-app[data-theme="dark"] .admin-table tr:hover { background: rgba(37, 132, 255, .08); }
+.admin-app[data-theme="dark"] .admin-stat-card {
+  background: linear-gradient(135deg, #071b3b, #06142b);
+  border-color: #1b3a69;
+}
+.admin-app[data-theme="dark"] .admin-stat-card__tag { color: #9bb5dc; }
+.admin-app[data-theme="dark"] .admin-id-card {
+  background: #fff;
+  color: #10264b;
+}
+.admin-app[data-theme="dark"] .admin-theme-toggle {
+  background: #0a2043;
+  color: #dbeaff;
+  border-color: #254878;
+}
+.admin-app[data-theme="dark"] .admin-alert--error { background: #3b1422; color: #ffdbe4; border-color: #85334c; }
+.admin-app[data-theme="dark"] .admin-alert--success { background: #07362d; color: #c7ffed; border-color: #0d795f; }
+.admin-app button:focus-visible,
+.admin-app input:focus-visible,
+.admin-app select:focus-visible,
+.admin-app textarea:focus-visible {
+  outline: 2px solid #3a91ff;
+  outline-offset: 2px;
+}
+@media (max-width: 760px) {
+  .admin-theme-toggle span { display: none; }
+  .admin-theme-toggle { width: 2.45rem; padding: .4rem; }
+}

@@ -19,12 +19,34 @@ On PowerShell, you can copy the example environment with
 Development shows the client even if the API cannot start yet; account
 registration and sign-in require a configured Supabase project and schema.
 
-For a production deployment, set `NODE_ENV=production`, `APP_ORIGIN` to the
-exact public HTTPS origin of the client, and `TRUST_PROXY=true` only when the
-application is behind a trusted reverse proxy. Run `npm start` to start the
-API. Configure Supabase backups, access controls, TLS, and monitoring at the
-database/deployment provider; these are important for preserving school data
-and are not provided by the local development setup.
+## Deploy one shared app on Render
+
+The Express server serves the built Vite client and `/api` from the same origin
+in production. To deploy both in one Render Web Service:
+
+1. Push this project to GitHub and create a Render Web Service connected to the
+   repository and branch you want to test.
+2. Set the build command to `npm ci && npm run build` and the start command to
+   `npm start`.
+3. Add these environment variables in Render (do not commit real values):
+   - `NODE_ENV` = `production`
+   - `APP_ORIGIN` = the exact HTTPS URL Render assigns to the service
+   - `SESSION_SECRET` = a newly generated random value of at least 32 bytes
+   - `SUPABASE_URL` = your Supabase project URL
+   - `SUPABASE_SERVICE_ROLE_KEY` = the Supabase server-side service-role key
+   - `TRUST_PROXY` = `true`
+4. Save the variables and deploy. Render supplies `PORT` automatically; do not
+   set it yourself. If you need the Render URL before setting `APP_ORIGIN`, let
+   the first deploy finish or fail, copy the service URL from its page, set the
+   variable, then trigger **Manual Deploy ? Deploy latest commit**.
+5. Check `https://your-service.onrender.com/api/health`, then share the service
+   URL with collaborators so they can test the full app.
+
+Before deploying, apply the required Supabase migrations described above. Use
+test data while collaborators are testing. Never put the service-role key in
+GitHub, frontend code, or a shared chat; if a real key was committed, rotate it
+in Supabase. Configure Supabase backups, access controls, and monitoring for
+production data.
 
 ## School accounts and data isolation
 
