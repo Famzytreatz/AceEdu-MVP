@@ -6,13 +6,15 @@ import Header from "../components/layout/Header";
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
 import { features, roles, steps } from "../data/siteContent";
+import useScrollReveal from "../hooks/useScrollReveal";
 import "./HomePage.css";
 
 // Small reusable section heading: props supply the title, description, and optional centered layout.
+// Add reveal class so section intros animate on scroll.
 function SectionIntro({ title, description, centered = false }) {
   return (
     <div
-      className={`section-intro ${centered ? "section-intro--centered" : ""}`}
+      className={`section-intro reveal ${centered ? "section-intro--centered" : ""}`}
     >
       <h2>{title}</h2>
       <p>{description}</p>
@@ -22,6 +24,7 @@ function SectionIntro({ title, description, centered = false }) {
 
 // The hero combines the main headline, calls to action, and dashboard preview.
 // onOpenModal is a callback from HomePage, so these buttons can request a specific modal.
+// Hero content remains immediately visible (no reveal animation) per requirements.
 function Hero({ onOpenModal }) {
   return (
     <section className="hero" aria-labelledby="hero-title">
@@ -47,6 +50,7 @@ function Hero({ onOpenModal }) {
 }
 
 // Render feature cards from the shared features data rather than hard-coding each card.
+// Add reveal classes: section intro reveals, cards reveal with stagger via parent.
 function Features() {
   return (
     <section className="content-section features" id="features">
@@ -54,10 +58,10 @@ function Features() {
         title="Core Features"
         description="Five core areas to help administrators and teachers manage school tasks."
       />
-      <div className="features__grid">
+      <div className="features__grid reveal-stagger">
         {features.map(
           ({ title, description, desktopAsset, mobileAsset, Icon }) => (
-            <article className="feature-card" key={title}>
+            <article className="feature-card reveal" key={title}>
               <picture className="feature-card__asset">
                 <source media="(max-width: 768px)" srcSet={mobileAsset} />
                 <img src={desktopAsset} alt="" aria-hidden="true" />
@@ -79,6 +83,7 @@ function Features() {
 }
 
 // Show the role-specific benefits stored in the roles data array.
+// Add reveal for section intro and staggered reveals for role cards.
 function RoleSupport() {
   return (
     <section className="content-section role-support">
@@ -86,9 +91,9 @@ function RoleSupport() {
         title="Built for administrators and teachers"
         description="AceEdu supports the people who keep Nigerian schools running every day."
       />
-      <div className="role-support__grid">
+      <div className="role-support__grid reveal-stagger">
         {roles.map((role) => (
-          <article className="role-card" key={role.title}>
+          <article className="role-card reveal" key={role.title}>
             <div>
               <h3>{role.title}</h3>
               <p>
@@ -120,6 +125,7 @@ function RoleSupport() {
 }
 
 // Render the numbered setup steps; index + 1 displays user-facing numbering starting at 1.
+// Add reveal for intro and staggered reveals for the three step cards.
 function HowItWorks() {
   return (
     <section className="workflow" id="how-it-works">
@@ -128,9 +134,9 @@ function HowItWorks() {
         title="How It Works"
         description="Simple steps to set up your school and start managing daily tasks."
       />
-      <ol className="workflow__steps">
+      <ol className="workflow__steps reveal-stagger">
         {steps.map((step, index) => (
-          <li key={step.title}>
+          <li key={step.title} className="reveal">
             <span className="workflow__number">{index + 1}</span>
             <div>
               <h3>{step.title}</h3>
@@ -145,6 +151,9 @@ function HowItWorks() {
 
 // HomePage assembles all landing-page sections and owns the modal state used by its children.
 export default function HomePage({ onRegister, onLogin, backendError }) {
+  // Initialize scroll-triggered reveals once on mount (and respect reduced motion).
+  useScrollReveal(".reveal");
+
   // null means no modal is open; strings such as "login", "demo", or "started" select a modal.
   const [modalMode, setModalMode] = useState(null);
   // Keep a stable close callback for the Modal component.
@@ -167,19 +176,23 @@ export default function HomePage({ onRegister, onLogin, backendError }) {
             title="Your School, at a glance"
             description="A clean overview for administrators to review student records, attendance, teachers, classes, and results."
           />
-          <DashboardPreview detailed />
+          <div className="reveal">
+            <DashboardPreview detailed />
+          </div>
         </section>
         <Features />
         <RoleSupport />
         <HowItWorks />
         <section className="final-cta">
-          <div>
+          <div className="reveal">
             <h2>Ready to transform your school?</h2>
             <p>Bring your school records, classes and daily tasks together.</p>
           </div>
-          <Button variant="cyan" onClick={() => setModalMode("started")}>
-            Get Started
-          </Button>
+          <div className="reveal">
+            <Button variant="cyan" onClick={() => setModalMode("started")}>
+              Get Started
+            </Button>
+          </div>
         </section>
       </main>
       <Footer />

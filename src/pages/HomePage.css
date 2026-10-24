@@ -52,6 +52,13 @@
   padding: 5rem clamp(2rem, 5.5vw, 5rem);
 }
 
+/* Ensure dashboard preview wrapper can be revealed smoothly */
+.school-overview > .reveal {
+  width: 100%;
+  display: grid;
+  justify-items: center;
+}
+
 .home-backend-error {
   position: relative;
   z-index: 30;
@@ -101,6 +108,7 @@
   gap: var(--space-8);
 }
 
+/* AceEdu cyan-blue card hover: subtle glow, thin cyan border, and gentle lift. */
 .feature-card {
   display: grid;
   align-content: start;
@@ -109,6 +117,36 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-8);
+  background: var(--color-white);
+  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease,
+    background-color 220ms ease;
+  will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .feature-card:hover {
+    border-color: rgba(0, 194, 242, 0.9);
+    box-shadow: 0 0.375rem 1.25rem rgba(0, 194, 242, 0.12);
+    transform: translateY(-3px);
+    background-color: color-mix(in srgb, var(--color-white) 98%, var(--color-cyan) 2%);
+  }
+}
+
+.feature-card:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card {
+    transition: none;
+    will-change: auto;
+  }
+
+  .feature-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
 }
 
 .feature-card__asset {
@@ -163,12 +201,43 @@
   gap: var(--space-8);
 }
 
+/* AceEdu cyan-blue card hover: consistent across role cards. */
 .role-card {
   display: grid;
   gap: var(--space-6);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-8);
+  background: var(--color-white);
+  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease,
+    background-color 220ms ease;
+  will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .role-card:hover {
+    border-color: rgba(0, 194, 242, 0.9);
+    box-shadow: 0 0.375rem 1.25rem rgba(0, 194, 242, 0.12);
+    transform: translateY(-3px);
+    background-color: color-mix(in srgb, var(--color-white) 98%, var(--color-cyan) 2%);
+  }
+}
+
+.role-card:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .role-card {
+    transition: none;
+    will-change: auto;
+  }
+
+  .role-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
 }
 
 .role-card > div {
@@ -221,15 +290,18 @@
   display: none;
 }
 
+/* Comfortable horizontal separation between workflow cards; parent gap keeps layout balanced. */
 .workflow__steps {
   display: grid;
   width: min(100%, 62.5rem);
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem; /* ~24px for clean, uncluttered spacing */
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* Workflow cards: cyan-blue hover adds thin border, subtle glow, and gentle lift. */
 .workflow__steps li {
   display: grid;
   align-content: start;
@@ -239,6 +311,59 @@
   border-radius: var(--radius-md);
   padding: var(--space-8);
   background: var(--color-white);
+  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease,
+    background-color 220ms ease;
+  will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .workflow__steps li:hover {
+    /* Thin cyan border highlight to reinforce brand identity without overpowering. */
+    border-color: rgba(0, 194, 242, 0.9);
+    /* Soft cyan glow; kept restrained to avoid a neon look. */
+    box-shadow: 0 0.375rem 1.25rem rgba(0, 194, 242, 0.12);
+    /* Subtle upward lift for a polished feel. */
+    transform: translateY(-3px);
+    background-color: color-mix(in srgb, var(--color-white) 98%, var(--color-cyan) 2%);
+  }
+}
+
+.workflow__steps li:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workflow__steps li {
+    transition: none;
+    will-change: auto;
+  }
+
+  .workflow__steps li:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* Tablet: reduce to two columns to prevent cramped cards while keeping spacing balanced. */
+@media (max-width: 1024px) {
+  .workflow__steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem; /* ~20px */
+  }
+}
+
+/* Mobile: stack vertically with comfortable vertical separation. */
+@media (max-width: 640px) {
+  .workflow__steps {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .workflow__steps li {
+    min-height: auto;
+    padding: var(--space-6);
+  }
 }
 
 .workflow__number {

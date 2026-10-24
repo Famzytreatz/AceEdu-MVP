@@ -20,7 +20,7 @@ export default function Footer() {
           <div>
             <h3>Company</h3>
             <a href="#top">About Us</a>
-            <a href="mailto:hello@aceedu.example">Contact</a>
+            <a href="#contact">Contact</a>
           </div>
         </div>
       </div>
