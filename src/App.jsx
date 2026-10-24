@@ -20,6 +20,7 @@ export default function App() {
   const [school, setSchool] = useState(null)
   const [checkingSession, setCheckingSession] = useState(!platformRoute)
   const [backendError, setBackendError] = useState("")
+  const [sessionRetry, setSessionRetry] = useState(0)
   const [theme] = useState(readSavedTheme)
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function App() {
     let active = true
     let retryTimer
     let retryAttempt = 0
-    const retryDelays = [500, 1000, 2000, 4000, 8000]
+    const retryDelays = [500, 1000, 2000, 4000, 8000, 15000]
 
     async function checkSession() {
       let retryScheduled = false
@@ -51,7 +52,7 @@ export default function App() {
           } else {
             setBackendError(
               unavailable
-                ? "Account services could not be reached. Check the Supabase configuration and make sure the AceEdu API is running."
+                ? "The AceEdu API is not responding yet. Confirm npm run dev is still running, then retry. Check the server terminal if the API does not start."
                 : message,
             )
           }
@@ -66,7 +67,13 @@ export default function App() {
       active = false
       window.clearTimeout(retryTimer)
     }
-  }, [platformRoute])
+  }, [platformRoute, sessionRetry])
+
+  function retrySessionCheck() {
+    setBackendError("")
+    setCheckingSession(true)
+    setSessionRetry((current) => current + 1)
+  }
 
   async function handleRegister(values) {
     const createdSchool = await registerSchool(values)
@@ -98,6 +105,7 @@ export default function App() {
       onRegister={handleRegister}
       onLogin={handleLogin}
       backendError={backendError}
+      onRetryBackend={retrySessionCheck}
     />
   )
 
