@@ -25,11 +25,25 @@ async function postJson(path, body) {
   return readJson(response)
 }
 
-export async function getCurrentSchool() {
-  const response = await fetch("/api/auth/me", { credentials: "same-origin" })
-  if (response.status === 401) return null
-  const result = await readJson(response)
-  return result.school
+const inFlightGetRequests = new Map()
+
+function getOnce(path, request) {
+  if (!inFlightGetRequests.has(path)) {
+    const pending = Promise.resolve()
+      .then(request)
+      .finally(() => inFlightGetRequests.delete(path))
+    inFlightGetRequests.set(path, pending)
+  }
+  return inFlightGetRequests.get(path)
+}
+
+export function getCurrentSchool() {
+  return getOnce("/api/auth/me", async () => {
+    const response = await fetch("/api/auth/me", { credentials: "same-origin" })
+    if (response.status === 401) return null
+    const result = await readJson(response)
+    return result.school
+  })
 }
 
 export async function registerSchool(values) {
@@ -85,18 +99,87 @@ export async function logoutSchool() {
   await readJson(response)
 }
 
-export async function getDashboard() {
-  const response = await fetch("/api/admin/dashboard", { credentials: "same-origin" })
+export function getDashboard() {
+  const path = "/api/admin/dashboard"
+  return getOnce(path, async () => {
+    const response = await fetch(path, { credentials: "same-origin" })
+    return readJson(response)
+  })
+}
+
+export function getSchoolEntitlement() {
+  const path = "/api/admin/entitlements"
+  return getOnce(path, async () => {
+    const response = await fetch(path, { credentials: "same-origin" })
+    return readJson(response)
+  })
+}
+
+export function requestSchoolVerification(registrationId) {
+  return postJson("/api/admin/entitlements/verification-requests", {
+    registrationId,
+  })
+}
+
+export async function getCurrentPlatformOperator() {
+  const response = await fetch("/api/platform/me", { credentials: "same-origin" })
+  if (response.status === 401) return null
+  const result = await readJson(response)
+  return result.operator
+}
+
+export async function loginPlatformOperator({ email, password }) {
+  const result = await postJson("/api/platform/login", { email, password })
+  return result.operator
+}
+
+export async function logoutPlatformOperator() {
+  const response = await fetch("/api/platform/logout", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  })
+  await readJson(response)
+}
+
+export async function getVerificationRequests() {
+  const response = await fetch("/api/platform/verification-requests", {
+    credentials: "same-origin",
+  })
   return readJson(response)
 }
 
-export async function getEnrollments({ query = "", cursor = null } = {}) {
+export function approveSchoolVerificationRequest(requestId) {
+  return postJson(
+    `/api/platform/verification-requests/${encodeURIComponent(requestId)}/approve`,
+    {},
+  )
+}
+
+export function rejectSchoolVerificationRequest(requestId, reason) {
+  return postJson(
+    `/api/platform/verification-requests/${encodeURIComponent(requestId)}/reject`,
+    { reason },
+  )
+}
+
+export function getEnrollments({
+  query = "",
+  cursor = null,
+  role = "",
+  status = "",
+} = {}) {
   const params = new URLSearchParams()
   if (query) params.set("q", query)
   if (cursor) params.set("cursor", cursor)
-  const suffix = params.size ? `?${params.toString()}` : ""
-  const response = await fetch(`/api/admin/users${suffix}`, { credentials: "same-origin" })
-  return readJson(response)
+  if (role) params.set("role", role)
+  if (status) params.set("status", status)
+  const path = `/api/admin/users${params.size ? `?${params.toString()}` : ""}`
+  return getOnce(path, async () => {
+    const response = await fetch(path, { credentials: "same-origin" })
+    return readJson(response)
+  })
 }
 
 export async function createEnrollment(values) {

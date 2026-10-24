@@ -14,7 +14,8 @@
     "start": "node server/index.js",
     "preview": "vite preview",
     "format": "oxfmt",
-    "test:server": "node --test"
+    "test:server": "node --test",
+    "create:platform-operator": "node server/scripts/create-platform-operator.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
@@ -25,6 +26,7 @@
     "express-session": "^1.18.1",
     "helmet": "^8.0.0",
     "lucide-react": "^0.468.0",
+    "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

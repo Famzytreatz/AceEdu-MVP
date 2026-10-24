@@ -73,6 +73,15 @@
   margin-top: var(--space-6);
 }
 
+.modal__fieldset {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-5);
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
 .modal__field {
   display: grid;
   min-width: 0;
@@ -255,6 +264,10 @@
   min-width: 8rem;
 }
 
+.modal__actions .modal__submit {
+  min-width: 15rem;
+}
+
 .modal__section-title {
   margin-bottom: -0.5rem;
   color: var(--color-navy);
@@ -400,4 +413,3 @@
     scroll-behavior: auto;
   }
 }
-

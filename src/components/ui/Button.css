@@ -2,9 +2,11 @@
 /* Shared base styles for every button variant. */
 .button {
   display: inline-flex;
+  position: relative;
   min-height: 3.5rem;
   align-items: center;
   justify-content: center;
+  gap: 0.55rem;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   padding: var(--space-4) var(--space-8);
@@ -26,6 +28,21 @@
 .button:disabled {
   cursor: wait;
   opacity: 0.7;
+}
+
+.button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.button__spinner {
+  font-size: 1em;
+}
+
+.button > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Variant classes change appearance while keeping the same button structure. */

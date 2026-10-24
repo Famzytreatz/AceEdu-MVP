@@ -1,5 +1,5 @@
 
-import { useEffect, useId, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { AlertCircle, CheckCircle2, Eye, EyeOff, X } from "lucide-react"
 import Button from "./Button"
 import "./Modal.css"
@@ -133,13 +133,14 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [notice, setNotice] = useState("")
   const [noticeIsError, setNoticeIsError] = useState(false)
-  const [isRegistering, setIsRegistering] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const submitLock = useRef(false)
   const [errors, setErrors] = useState({})
 
   useEffect(() => {
     if (!mode) return undefined
     const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose()
+      if (event.key === "Escape" && !submitLock.current) onClose()
     }
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
@@ -159,7 +160,8 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
     setShowConfirmPassword(false)
     setNotice("")
     setNoticeIsError(false)
-    setIsRegistering(false)
+    setIsSubmitting(false)
+    submitLock.current = false
     setErrors({})
   }, [mode])
 
@@ -230,9 +232,10 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
 
   async function handleSchoolSubmit(event) {
     event.preventDefault()
-    if (isRegistering) return
+    if (submitLock.current) return
     if (!validateSchoolStep()) return
-    setIsRegistering(true)
+    submitLock.current = true
+    setIsSubmitting(true)
     try {
       if (!onRegister) throw new Error("School registration is not available right now.")
       await onRegister(school)
@@ -241,7 +244,8 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
       setNotice(error.message || "School registration could not be completed.")
       setNoticeIsError(true)
     } finally {
-      setIsRegistering(false)
+      submitLock.current = false
+      setIsSubmitting(false)
     }
   }
 
@@ -261,12 +265,15 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
 
   async function handleLoginSubmit(event) {
     event.preventDefault()
+    if (submitLock.current) return
     const nextErrors = {}
     if (!login.email.trim()) nextErrors.email = "Enter your email address."
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(login.email)) nextErrors.email = "Enter a valid email address."
     if (!login.password) nextErrors.password = "Enter your password."
     setErrors(nextErrors)
     if (!Object.keys(nextErrors).length) {
+      submitLock.current = true
+      setIsSubmitting(true)
       try {
         if (!onLogin) throw new Error("Login is not available right now.")
         await onLogin(login)
@@ -274,19 +281,22 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
       } catch (error) {
         setNotice(error.message || "Login could not be completed.")
         setNoticeIsError(true)
+      } finally {
+        submitLock.current = false
+        setIsSubmitting(false)
       }
     }
   }
 
   const handleBackdropMouseDown = (event) => {
-    if (event.target === event.currentTarget) onClose()
+    if (event.target === event.currentTarget && !submitLock.current) onClose()
   }
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={handleBackdropMouseDown}>
       <section className={`modal ${mode === "started" ? "modal--wide" : ""}`}
         role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={`${titleId}-description`}>
-        <button className="modal__close" type="button" onClick={onClose} aria-label="Close dialog">
+        <button className="modal__close" type="button" onClick={() => { if (!submitLock.current) onClose() }} disabled={isSubmitting} aria-label="Close dialog">
           <X size={22} aria-hidden="true" />
         </button>
 
@@ -296,7 +306,8 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
         </div>
 
         {mode === "login" && (
-          <form className="modal__form" onSubmit={handleLoginSubmit} noValidate>
+          <form className="modal__form" onSubmit={handleLoginSubmit} noValidate aria-busy={isSubmitting}>
+            <fieldset className="modal__fieldset" disabled={isSubmitting}>
             <Field label="Email address" name="email" type="email" value={login.email} onChange={updateLogin}
               required placeholder="you@school.com" autoComplete="email" />
             {errors.email && <p className="modal__error">{errors.email}</p>}
@@ -310,8 +321,9 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
                 Forgot password?
               </button>
             </div>
-            <Button type="submit" className="modal__submit">Login</Button>
+            <Button type="submit" className="modal__submit" loading={isSubmitting} loadingLabel="Signing you in...">Login</Button>
             <p className="modal__switch">Registering a new school? <button type="button" className="modal__text-button" onClick={() => onOpenModal?.("started")}>Use Get Started on the page to register.</button></p>
+            </fieldset>
           </form>
         )}
 
@@ -377,7 +389,8 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
                 </div>
               </form>
             ) : (
-              <form className="modal__form" onSubmit={handleSchoolSubmit}>
+              <form className="modal__form" onSubmit={handleSchoolSubmit} aria-busy={isSubmitting}>
+                <fieldset className="modal__fieldset" disabled={isSubmitting}>
                 <div className="modal__review">
                   <h3>School information</h3>
                   <p><strong>School:</strong> {school.schoolName}</p>
@@ -393,10 +406,11 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
                 <p className="modal__hint">Review your details before continuing. Your school account is created securely when you register.</p>
                 <div className="modal__actions">
                   <Button variant="secondary" type="button" onClick={() => { setNotice(""); setStep(3) }}>Back</Button>
-                  <Button type="submit" className="modal__submit" disabled={isRegistering} aria-busy={isRegistering}>
-                    {isRegistering ? "Registering..." : "Register School"}
+                  <Button type="submit" className="modal__submit" loading={isSubmitting} loadingLabel="Registering school...">
+                    Register School
                   </Button>
                 </div>
+                </fieldset>
               </form>
             )}
           </>
