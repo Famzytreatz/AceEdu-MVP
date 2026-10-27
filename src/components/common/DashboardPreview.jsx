@@ -1,4 +1,4 @@
-import { useId } from "react"
+import { useEffect, useId, useRef } from "react"
 import {
   Activity,
   ArrowUpRight,
@@ -19,6 +19,33 @@ const chartPoints = "0,76 48,58 96,66 144,35 192,47 240,23 288,31"
 
 export default function DashboardPreview({ detailed = false }) {
   const chartFillId = `dashboard-chart-fill-${useId().replaceAll(":", "")}`
+  const insightsRef = useRef(null)
+
+  useEffect(() => {
+    const insights = insightsRef.current
+    if (!insights) return
+
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches
+
+    if (prefersReducedMotion || typeof IntersectionObserver === "undefined") {
+      insights.classList.add("is-visible")
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+        insights.classList.add("is-visible")
+        observer.unobserve(insights)
+      },
+      { threshold: 0.25 },
+    )
+
+    observer.observe(insights)
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <article
@@ -95,7 +122,7 @@ export default function DashboardPreview({ detailed = false }) {
             })}
           </div>
 
-          <div className="dashboard__insights">
+          <div className="dashboard__insights" ref={insightsRef}>
             <section className="dashboard__chart-card" aria-label="Weekly school activity chart">
               <div className="dashboard__section-heading">
                 <div>

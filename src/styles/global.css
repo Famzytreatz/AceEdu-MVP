@@ -32,8 +32,33 @@
   box-sizing: border-box;
 }
 
+/* Smooth internal navigation scrolling; account for anchor targets below any fixed headers. */
+/* Smooth internal navigation scrolling; account for anchor targets below header. */
 html {
   scroll-behavior: smooth;
+}
+
+/* Prevent anchor headings from being hidden under a fixed/sticky header. */
+:target {
+  scroll-margin-top: 6rem;
+}
+
+/* Prevent anchor headings from being hidden under a potentially fixed/sticky header. */
+:target {
+  scroll-margin-top: 6rem;
+}
+
+/*
+ * Scroll margin for in-page navigation links.
+ * If a header becomes sticky/fixed in future, increase this value to avoid
+ * headings being hidden behind it. We set a generous value now for safety.
+ */
+:root {
+  --scroll-margin-top: 6.5rem;
+}
+
+[id] {
+  scroll-margin-top: var(--scroll-margin-top);
 }
 
 body {
@@ -70,3 +95,129 @@ img {
   overflow: hidden;
 }
 
+/*
+ * Scroll-triggered reveal animations (IntersectionObserver driven).
+ * - Use transform and opacity for performance.
+ * - Initial state: hidden, slightly translated down/up as appropriate.
+ * - When .reveal.is-visible is added, animate to natural position.
+ * - Respects prefers-reduced-motion.
+ */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 600ms ease, transform 600ms ease;
+  will-change: opacity, transform;
+}
+
+/* For elements that already have transitions (cards), extend rather than override */
+.feature-card.reveal,
+.role-card.reveal,
+.workflow__steps li.reveal {
+  transition: opacity 600ms ease, transform 600ms ease,
+    border-color 220ms ease, box-shadow 220ms ease, background-color 220ms ease;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered reveals for card groups: apply via JS adding delays or CSS nth-child */
+.reveal-stagger > .reveal {
+  transition-delay: 0ms;
+}
+
+.reveal-stagger.is-visible > .reveal:nth-child(1) {
+  transition-delay: 80ms;
+}
+.reveal-stagger.is-visible > .reveal:nth-child(2) {
+  transition-delay: 160ms;
+}
+.reveal-stagger.is-visible > .reveal:nth-child(3) {
+  transition-delay: 240ms;
+}
+.reveal-stagger.is-visible > .reveal:nth-child(4) {
+  transition-delay: 320ms;
+}
+.reveal-stagger.is-visible > .reveal:nth-child(5) {
+  transition-delay: 400ms;
+}
+.reveal-stagger.is-visible > .reveal:nth-child(6) {
+  transition-delay: 480ms;
+}
+
+/* Ensure hero remains immediately visible (no reveal animation delay) */
+.hero .reveal,
+.hero.reveal {
+  opacity: 1;
+  transform: none;
+  transition: none;
+  will-change: auto;
+}
+
+/*
+ * Accessibility: respect reduced motion preferences.
+ * Disable nonessential transforms/animations when requested.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal,
+  .reveal-stagger > .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    will-change: auto !important;
+  }
+
+  .reveal-stagger.is-visible > .reveal {
+    transition-delay: 0ms !important;
+  }
+}
+
+
+
+/* Subtle scroll reveal animations */
+@media (prefers-reduced-motion: no-preference) {
+  .section-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 600ms ease, transform 600ms ease;
+    will-change: opacity, transform;
+  }
+  .section-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .card-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 550ms ease, transform 550ms ease;
+    will-change: opacity, transform;
+  }
+  .card-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .card-reveal[data-reveal-delay] {
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-reveal,
+  .card-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    will-change: auto !important;
+  }
+  .card-reveal[data-reveal-delay] {
+    transition-delay: 0ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}

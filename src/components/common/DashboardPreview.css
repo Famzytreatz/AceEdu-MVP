@@ -221,6 +221,7 @@
   gap: 0.55rem;
 }
 
+/* Subtle cyan hover for metric cards inside dashboard preview (stat cards). */
 .dashboard__metric {
   display: grid;
   min-width: 0;
@@ -231,6 +232,11 @@
   background: linear-gradient(145deg, #fff, #f8fbff);
   box-shadow: 0 0.25rem 0.6rem rgb(27 55 88 / 3%);
   animation: dashboard-rise 600ms both;
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease,
+    background-color 220ms ease;
 }
 
 .dashboard__metric:nth-child(2) {
@@ -241,21 +247,18 @@
   animation-delay: 160ms;
 }
 
-.dashboard__metric-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.25rem;
+@media (hover: hover) and (pointer: fine) {
+  .dashboard__metric:hover {
+    border-color: rgb(0 194 242 / 80%);
+    box-shadow: 0 0.25rem 1rem rgb(0 194 242 / 10%);
+    transform: translateY(-2px);
+    background-color: #f8fdff;
+  }
 }
 
-.dashboard__metric-icon {
-  display: grid;
-  width: 1.65rem;
-  height: 1.65rem;
-  place-items: center;
-  border-radius: 0.55rem;
-  background: #eaf5fb;
-  color: #2681aa;
+.dashboard__metric:focus-visible {
+  outline: 2px solid #00c2f2;
+  outline-offset: 2px;
 }
 
 .dashboard__metric:nth-child(2) .dashboard__metric-icon {
@@ -338,6 +341,12 @@
   box-shadow: 0 0 0 3px rgb(67 191 209 / 12%);
 }
 
+@property --dashboard-ring-progress {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
 .dashboard__chart {
   position: relative;
   margin: 0.55rem 0.1rem 0 1rem;
@@ -347,6 +356,7 @@
 .dashboard__chart::before {
   position: absolute;
   inset: 0 0 1rem;
+  opacity: 0;
   background: repeating-linear-gradient(
     to bottom,
     transparent 0,
@@ -355,6 +365,7 @@
     #edf2f7 33.333%
   );
   content: "";
+  transition: opacity 450ms ease;
 }
 
 .dashboard__chart-y-labels {
@@ -367,6 +378,11 @@
   justify-content: space-between;
   color: #9ba8b8;
   font-size: 0.45rem;
+  opacity: 0;
+  transform: translateX(4px);
+  transition:
+    opacity 450ms ease,
+    transform 450ms ease;
 }
 
 .dashboard__chart svg {
@@ -385,24 +401,61 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2.2;
-  animation: dashboard-draw-line 1.7s 250ms ease-out forwards;
+}
+
+.dashboard__chart-area {
+  opacity: 0;
+  transform: scaleY(0.08);
+  transform-box: fill-box;
+  transform-origin: bottom;
 }
 
 .dashboard__chart-point {
   fill: #fff;
   stroke: #37b9cc;
   stroke-width: 2;
-  animation: dashboard-point-in 450ms both;
+  opacity: 0;
+  transform: scale(0.45);
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
-.dashboard__chart-point:nth-of-type(2) { animation-delay: 250ms; }
-.dashboard__chart-point:nth-of-type(3) { animation-delay: 350ms; }
-.dashboard__chart-point:nth-of-type(4) { animation-delay: 450ms; }
-.dashboard__chart-point:nth-of-type(5) { animation-delay: 550ms; }
-.dashboard__chart-point:nth-of-type(6) { animation-delay: 650ms; }
-.dashboard__chart-point:nth-of-type(7) { animation-delay: 750ms; }
-.dashboard__chart-point:nth-of-type(8) { animation-delay: 850ms; }
+.dashboard__chart-x-labels {
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 450ms ease,
+    transform 450ms ease;
+}
 
+.dashboard__insights.is-visible .dashboard__chart::before {
+  opacity: 1;
+}
+
+.dashboard__insights.is-visible .dashboard__chart-y-labels,
+.dashboard__insights.is-visible .dashboard__chart-x-labels {
+  opacity: 1;
+  transform: translate(0);
+}
+
+.dashboard__insights.is-visible .dashboard__chart-area {
+  animation: dashboard-area-in 850ms 250ms cubic-bezier(0.2, 0.75, 0.25, 1) forwards;
+}
+
+.dashboard__insights.is-visible .dashboard__chart-line {
+  animation: dashboard-draw-line 1.7s 250ms ease-out forwards;
+}
+
+.dashboard__insights.is-visible .dashboard__chart-point {
+  animation: dashboard-point-in 420ms both;
+}
+
+.dashboard__insights.is-visible .dashboard__chart-point:nth-of-type(2) { animation-delay: 350ms; }
+.dashboard__insights.is-visible .dashboard__chart-point:nth-of-type(3) { animation-delay: 450ms; }
+.dashboard__insights.is-visible .dashboard__chart-point:nth-of-type(4) { animation-delay: 550ms; }
+.dashboard__insights.is-visible .dashboard__chart-point:nth-of-type(5) { animation-delay: 650ms; }
+.dashboard__insights.is-visible .dashboard__chart-point:nth-of-type(6) { animation-delay: 750ms; }
+.dashboard__insights.is-visible .dashboard__chart-point:nth-of-type(7) { animation-delay: 850ms; }
 .dashboard__chart-x-labels {
   position: absolute;
   right: 0;
@@ -419,14 +472,29 @@
 }
 
 .dashboard__attendance-ring {
+  --dashboard-ring-progress: 0deg;
   display: grid;
   width: 5.2rem;
   height: 5.2rem;
   place-items: center;
   margin: 0.55rem auto 0.45rem;
   border-radius: 50%;
-  background: conic-gradient(#42c5bb 0deg 276deg, #eaf1f6 276deg 360deg);
-  animation: dashboard-ring-in 900ms ease-out both;
+  background: conic-gradient(
+    #42c5bb 0deg var(--dashboard-ring-progress),
+    #eaf1f6 var(--dashboard-ring-progress) 360deg
+  );
+  transform: scale(0.9);
+  opacity: 0.7;
+  transition:
+    --dashboard-ring-progress 1.2s cubic-bezier(0.2, 0.75, 0.25, 1),
+    transform 650ms ease,
+    opacity 650ms ease;
+}
+
+.dashboard__insights.is-visible .dashboard__attendance-ring {
+  --dashboard-ring-progress: 345.6deg;
+  transform: scale(1);
+  opacity: 1;
 }
 
 .dashboard__attendance-ring > div {
@@ -459,6 +527,16 @@
   color: #3a9986;
   font-size: 0.52rem;
   white-space: nowrap;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 450ms 500ms ease,
+    transform 450ms 500ms ease;
+}
+
+.dashboard__insights.is-visible .dashboard__attendance-note {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .dashboard__activity {
@@ -610,13 +688,21 @@
 }
 
 @keyframes dashboard-point-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-@keyframes dashboard-ring-in {
-  from { transform: rotate(-35deg) scale(0.88); }
-  to { transform: rotate(0) scale(1); }
+@keyframes dashboard-area-in {
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
 }
 
 @keyframes dashboard-pulse {
@@ -881,6 +967,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .dashboard__metric {
+    transition: none;
+  }
+
+  .dashboard__metric:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
   .dashboard,
   .dashboard *,
   .dashboard *::before,
@@ -892,5 +987,27 @@
 
   .dashboard__chart-line {
     stroke-dashoffset: 0;
+  }
+
+  .dashboard__chart-area,
+  .dashboard__chart-point {
+    opacity: 1;
+    transform: none;
+  }
+
+  .dashboard__chart::before,
+  .dashboard__chart-y-labels,
+  .dashboard__chart-x-labels,
+  .dashboard__attendance-note {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .dashboard__attendance-ring {
+    --dashboard-ring-progress: 345.6deg;
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }
