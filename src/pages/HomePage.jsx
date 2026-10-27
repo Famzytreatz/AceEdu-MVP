@@ -1,5 +1,5 @@
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import DashboardPreview from "../components/common/DashboardPreview";
 import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
@@ -13,6 +13,7 @@ function SectionIntro({ title, description, centered = false }) {
   return (
     <div
       className={`section-intro ${centered ? "section-intro--centered" : ""}`}
+      data-reveal
     >
       <h2>{title}</h2>
       <p>{description}</p>
@@ -25,7 +26,7 @@ function SectionIntro({ title, description, centered = false }) {
 function Hero({ onOpenModal }) {
   return (
     <section className="hero" aria-labelledby="hero-title">
-      <div className="hero__content">
+      <div className="hero__content" data-reveal>
         <div>
           <h1 id="hero-title">Smarter School Management</h1>
           <p>
@@ -41,7 +42,9 @@ function Hero({ onOpenModal }) {
           </Button>
         </div>
       </div>
-      <DashboardPreview />
+      <div className="hero__preview" data-reveal data-reveal-delay="1">
+        <DashboardPreview />
+      </div>
     </section>
   );
 }
@@ -57,7 +60,7 @@ function Features() {
       <div className="features__grid">
         {features.map(
           ({ title, description, desktopAsset, mobileAsset, Icon }) => (
-            <article className="feature-card" key={title}>
+            <article className="feature-card" key={title} data-reveal>
               <picture className="feature-card__asset">
                 <source media="(max-width: 768px)" srcSet={mobileAsset} />
                 <img src={desktopAsset} alt="" aria-hidden="true" />
@@ -88,7 +91,7 @@ function RoleSupport() {
       />
       <div className="role-support__grid">
         {roles.map((role) => (
-          <article className="role-card" key={role.title}>
+          <article className="role-card" key={role.title} data-reveal>
             <div>
               <h3>{role.title}</h3>
               <p>
@@ -130,7 +133,7 @@ function HowItWorks() {
       />
       <ol className="workflow__steps">
         {steps.map((step, index) => (
-          <li key={step.title}>
+          <li key={step.title} data-reveal>
             <span className="workflow__number">{index + 1}</span>
             <div>
               <h3>{step.title}</h3>
@@ -155,9 +158,35 @@ export default function HomePage({
   // Keep a stable close callback for the Modal component.
   const closeModal = useCallback(() => setModalMode(null), []);
 
+  useEffect(() => {
+    const revealItems = document.querySelectorAll(".landing-page [data-reveal]");
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (prefersReducedMotion || !("IntersectionObserver" in window)) {
+      revealItems.forEach((item) => item.classList.add("is-visible"));
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        });
+      },
+      { rootMargin: "0px 0px -7% 0px", threshold: 0.08 },
+    );
+
+    revealItems.forEach((item) => observer.observe(item));
+    return () => observer.disconnect();
+  }, []);
+
   // Pass the state setter to components that need to open a modal, then render the selected modal.
   return (
-    <>
+    <div className="landing-page">
       {backendError && (
         <div className="home-backend-error" role="alert">
           <span>{backendError}</span>
@@ -177,19 +206,23 @@ export default function HomePage({
             title="Your School, at a glance"
             description="A clean overview for administrators to review student records, attendance, teachers, classes, and results."
           />
-          <DashboardPreview detailed />
+          <div data-reveal data-reveal-delay="1">
+            <DashboardPreview detailed />
+          </div>
         </section>
         <Features />
         <RoleSupport />
         <HowItWorks />
         <section className="final-cta">
-          <div>
+          <div data-reveal>
             <h2>Ready to transform your school?</h2>
             <p>Bring your school records, classes and daily tasks together.</p>
           </div>
-          <Button variant="cyan" onClick={() => setModalMode("started")}>
-            Get Started
-          </Button>
+          <div data-reveal data-reveal-delay="1">
+            <Button variant="cyan" onClick={() => setModalMode("started")}>
+              Get Started
+            </Button>
+          </div>
         </section>
       </main>
       <Footer />
@@ -200,6 +233,6 @@ export default function HomePage({
         onRegister={onRegister}
         onLogin={onLogin}
       />
-    </>
+    </div>
   );
 }

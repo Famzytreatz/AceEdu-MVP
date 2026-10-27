@@ -310,3 +310,515 @@
 .final-cta .button {
   min-width: 10.75rem;
 }
+
+/* Landing-wide atmosphere and viewport-triggered section reveals. */
+.landing-page {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 82% 8%, rgb(91 194 229 / 10%), transparent 34rem),
+    #f6f9ff;
+}
+
+.landing-page::before {
+  position: absolute;
+  z-index: -1;
+  inset: 5.5rem 0 auto;
+  height: 75rem;
+  background-image:
+    linear-gradient(rgb(44 96 151 / 3%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(44 96 151 / 3%) 1px, transparent 1px);
+  background-size: 3.5rem 3.5rem;
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 65%), transparent 78%);
+  content: "";
+  pointer-events: none;
+}
+
+.landing-page main {
+  position: relative;
+}
+
+.landing-page [data-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 650ms cubic-bezier(0.2, 0.7, 0.25, 1),
+    transform 700ms cubic-bezier(0.2, 0.7, 0.25, 1);
+}
+
+.landing-page [data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.landing-page [data-reveal-delay="1"] {
+  transition-delay: 130ms;
+}
+
+.landing-page [data-reveal-delay="2"] {
+  transition-delay: 240ms;
+}
+
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 39rem;
+  background:
+    radial-gradient(ellipse at 77% 47%, rgb(61 184 218 / 13%), transparent 32rem),
+    linear-gradient(115deg, #f8faff 0%, #f2f7ff 58%, #edf8fc 100%);
+}
+
+.hero::before {
+  position: absolute;
+  z-index: -1;
+  top: -17rem;
+  right: -9rem;
+  width: 42rem;
+  height: 42rem;
+  border: 1px solid rgb(48 150 190 / 10%);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2.7rem rgb(48 150 190 / 2%),
+    0 0 0 5.5rem rgb(48 150 190 / 2%);
+  content: "";
+  pointer-events: none;
+  animation: landing-orbit 34s linear infinite;
+}
+
+.hero::after {
+  position: absolute;
+  z-index: -1;
+  right: 12%;
+  bottom: -15rem;
+  width: 28rem;
+  height: 28rem;
+  border-radius: 50%;
+  background: rgb(70 200 225 / 13%);
+  filter: blur(90px);
+  content: "";
+  pointer-events: none;
+}
+
+.hero__content {
+  position: relative;
+  z-index: 1;
+}
+
+.hero__content > div:first-child::before {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgb(39 138 172 / 17%);
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  background: rgb(255 255 255 / 70%);
+  box-shadow: 0 0.25rem 1rem rgb(33 95 138 / 5%);
+  color: #3787a1;
+  content: "A CLEARER WAY TO RUN YOUR SCHOOL";
+  font-family: "Poppins:SemiBold", sans-serif;
+  font-size: 0.63rem;
+  letter-spacing: 0.1em;
+}
+
+.hero__content > div:first-child::after {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.55rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: #42c6bb;
+  box-shadow: 0 0 0 0.3rem rgb(66 198 187 / 12%);
+  content: "";
+  animation: landing-status-pulse 2.5s ease-out infinite;
+}
+
+.hero__content > div:first-child {
+  position: relative;
+  gap: var(--space-5);
+}
+
+.hero h1 {
+  background: linear-gradient(115deg, #102d68 10%, #15518b 62%, #178ca4);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero__content p {
+  max-width: 35rem;
+}
+
+.hero__preview {
+  position: relative;
+  z-index: 1;
+  animation: landing-float 7s ease-in-out 900ms infinite;
+  transition: filter 350ms ease;
+}
+
+.hero__preview:hover {
+  filter: drop-shadow(0 1.4rem 2rem rgb(26 111 157 / 12%));
+  animation-play-state: paused;
+}
+
+.hero > .dashboard {
+  min-height: 0;
+}
+
+.school-overview {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 12%, rgb(56 183 204 / 8%), transparent 38rem),
+    #f8fbff;
+}
+
+.school-overview::before {
+  position: absolute;
+  top: 15%;
+  left: -12rem;
+  width: 22rem;
+  height: 22rem;
+  border: 1px solid rgb(27 116 165 / 9%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2.5rem rgb(27 116 165 / 2%);
+  content: "";
+  pointer-events: none;
+}
+
+.content-section {
+  position: relative;
+}
+
+.features {
+  background:
+    radial-gradient(ellipse at 7% 75%, rgb(57 184 203 / 6%), transparent 25rem),
+    #fff;
+}
+
+.features__grid,
+.role-support__grid,
+.workflow__steps {
+  perspective: 1000px;
+}
+
+.feature-card,
+.role-card,
+.workflow__steps li {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: rgb(159 181 209 / 38%);
+  border-radius: 1.2rem;
+  background: linear-gradient(145deg, rgb(255 255 255 / 97%), rgb(247 250 255 / 94%));
+  box-shadow: 0 0.55rem 1.6rem rgb(16 47 91 / 4%);
+  transition:
+    transform 320ms cubic-bezier(0.2, 0.7, 0.25, 1),
+    border-color 320ms ease,
+    box-shadow 320ms ease,
+    background 320ms ease;
+}
+
+.feature-card::before,
+.role-card::before,
+.workflow__steps li::before {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #56ced7 45%, #6786f2 70%, transparent);
+  opacity: 0;
+  content: "";
+  transition: opacity 300ms ease;
+}
+
+.feature-card::after,
+.role-card::after,
+.workflow__steps li::after {
+  position: absolute;
+  z-index: -1;
+  top: -5rem;
+  right: -5rem;
+  width: 12rem;
+  height: 12rem;
+  border-radius: 50%;
+  background: rgb(66 196 218 / 9%);
+  filter: blur(38px);
+  opacity: 0;
+  content: "";
+  transition: opacity 350ms ease;
+}
+
+.feature-card:hover,
+.role-card:hover,
+.workflow__steps li:hover {
+  transform: translateY(-7px) rotateX(1deg);
+  border-color: rgb(59 174 200 / 45%);
+  background: #fff;
+  box-shadow:
+    0 1.3rem 2.7rem rgb(20 66 112 / 10%),
+    0 0 0 1px rgb(75 192 208 / 5%);
+}
+
+.landing-page .feature-card[data-reveal].is-visible:hover,
+.landing-page .role-card[data-reveal].is-visible:hover,
+.landing-page .workflow__steps li[data-reveal].is-visible:hover {
+  transform: translateY(-7px) rotateX(1deg);
+}
+
+.feature-card:hover::before,
+.role-card:hover::before,
+.workflow__steps li:hover::before,
+.feature-card:hover::after,
+.role-card:hover::after,
+.workflow__steps li:hover::after {
+  opacity: 1;
+}
+
+.feature-card__asset {
+  border: 1px solid rgb(73 160 194 / 10%);
+  background: linear-gradient(145deg, #eef8ff, #f4f3ff);
+  transition:
+    transform 300ms ease,
+    box-shadow 300ms ease,
+    background 300ms ease;
+}
+
+.feature-card:hover .feature-card__asset {
+  transform: translateY(-2px) rotate(-5deg) scale(1.05);
+  background: linear-gradient(145deg, #e1f7fb, #ebedff);
+  box-shadow: 0 0.5rem 1rem rgb(30 132 173 / 13%);
+}
+
+.feature-card h3,
+.role-card h3,
+.workflow h3 {
+  transition: color 250ms ease;
+}
+
+.feature-card:hover h3,
+.role-card:hover h3,
+.workflow__steps li:hover h3 {
+  color: #167da0;
+}
+
+.role-support {
+  background:
+    radial-gradient(ellipse at 92% 20%, rgb(104 124 235 / 6%), transparent 28rem),
+    #f7faff;
+}
+
+.role-card {
+  min-height: 20rem;
+}
+
+.role-card li picture {
+  transition:
+    transform 240ms ease,
+    background 240ms ease;
+}
+
+.role-card li:hover picture {
+  transform: scale(1.12);
+  background: #e9f8fa;
+}
+
+.workflow {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f7faff 0%, #eef6fc 100%);
+}
+
+.workflow__steps {
+  gap: 1rem;
+}
+
+.workflow__steps li {
+  transition-delay: 0ms;
+}
+
+.workflow__steps li:nth-child(2) {
+  transition-delay: 60ms;
+}
+
+.workflow__steps li:nth-child(3) {
+  transition-delay: 120ms;
+}
+
+.workflow__number {
+  position: relative;
+  overflow: hidden;
+  flex: 0 0 auto;
+  border: 1px solid rgb(34 144 176 / 18%);
+  background: linear-gradient(145deg, #bff5f0, #bde8fa 60%, #d7ddff);
+  box-shadow: 0 0.5rem 1rem rgb(36 149 181 / 12%);
+  transition:
+    transform 300ms ease,
+    box-shadow 300ms ease;
+}
+
+.workflow__steps li:hover .workflow__number {
+  transform: rotate(8deg) scale(1.1);
+  box-shadow: 0 0.7rem 1.3rem rgb(36 149 181 / 20%);
+}
+
+.final-cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 18% 120%, rgb(0 194 242 / 26%), transparent 30rem),
+    radial-gradient(ellipse at 88% -40%, rgb(112 95 232 / 25%), transparent 32rem),
+    linear-gradient(120deg, #071b3d, #0b2d6b 58%, #103f75);
+}
+
+.final-cta::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(255 255 255 / 5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 5%) 1px, transparent 1px);
+  background-size: 2.5rem 2.5rem;
+  mask-image: radial-gradient(ellipse at center, #000 0%, transparent 75%);
+  content: "";
+  pointer-events: none;
+}
+
+.final-cta::after {
+  position: absolute;
+  top: -14rem;
+  left: calc(50% - 14rem);
+  width: 28rem;
+  height: 28rem;
+  border: 1px solid rgb(118 224 238 / 19%);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2.5rem rgb(118 224 238 / 4%),
+    0 0 0 5rem rgb(118 224 238 / 3%);
+  content: "";
+  pointer-events: none;
+  animation: landing-orbit 40s linear infinite reverse;
+}
+
+.final-cta > * {
+  position: relative;
+  z-index: 1;
+}
+
+.final-cta h2 {
+  text-wrap: balance;
+}
+
+.final-cta p {
+  text-wrap: balance;
+}
+
+.final-cta .button {
+  box-shadow: 0 0.7rem 1.8rem rgb(0 194 242 / 20%);
+}
+
+.final-cta .button:hover {
+  box-shadow:
+    0 1rem 2rem rgb(0 194 242 / 30%),
+    0 0 1.5rem rgb(0 194 242 / 14%);
+}
+
+@keyframes landing-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes landing-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes landing-status-pulse {
+  70% { box-shadow: 0 0 0 0.55rem rgb(66 198 187 / 0%); }
+  100% { box-shadow: 0 0 0 0 rgb(66 198 187 / 0%); }
+}
+
+@media (max-width: 768px) {
+  .landing-page::before {
+    inset-block-start: 5rem;
+    background-size: 2.5rem 2.5rem;
+  }
+
+  .hero {
+    min-height: 0;
+    background:
+      radial-gradient(ellipse at 85% 72%, rgb(61 184 218 / 11%), transparent 25rem),
+      linear-gradient(145deg, #f8faff, #f1f7ff);
+  }
+
+  .hero::before {
+    top: auto;
+    right: -18rem;
+    bottom: 1rem;
+    width: 32rem;
+    height: 32rem;
+  }
+
+  .hero__content > div:first-child::before {
+    font-size: 0.54rem;
+  }
+
+  .hero__content > div:first-child::after {
+    top: 0.57rem;
+    left: 0.5rem;
+    width: 0.34rem;
+    height: 0.34rem;
+  }
+
+  .hero__preview {
+    animation-duration: 9s;
+  }
+
+  .feature-card:hover,
+  .role-card:hover,
+  .workflow__steps li:hover {
+    transform: translateY(-3px);
+  }
+
+  .landing-page .feature-card[data-reveal].is-visible:hover,
+  .landing-page .role-card[data-reveal].is-visible:hover,
+  .landing-page .workflow__steps li[data-reveal].is-visible:hover {
+    transform: translateY(-3px);
+  }
+
+  .role-card {
+    min-height: 0;
+  }
+
+  .workflow__steps {
+    gap: 0.75rem;
+  }
+
+  .final-cta::after {
+    top: -12rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .landing-page [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .landing-page *,
+  .landing-page *::before,
+  .landing-page *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

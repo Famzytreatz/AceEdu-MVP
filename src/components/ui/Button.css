@@ -17,12 +17,34 @@
   transition:
     transform 160ms ease,
     box-shadow 160ms ease,
-    background 160ms ease;
+    background 160ms ease,
+    border-color 200ms ease,
+    filter 200ms ease;
+  isolation: isolate;
+  overflow: hidden;
 }
 
 .button:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow-button);
+  filter: saturate(1.12);
+}
+
+.button::after {
+  position: absolute;
+  z-index: -1;
+  top: -50%;
+  bottom: -50%;
+  left: -60%;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 27%), transparent);
+  content: "";
+  transform: skewX(-18deg);
+  transition: left 550ms cubic-bezier(0.2, 0.7, 0.25, 1);
+}
+
+.button:hover::after {
+  left: 130%;
 }
 
 .button:disabled {
@@ -57,9 +79,19 @@
   color: var(--color-navy);
 }
 
+.button--secondary:hover {
+  border-color: #1687a3;
+  background: #f0fbff;
+  color: #116f8d;
+}
+
 .button--cyan {
   background: var(--color-cyan);
   color: var(--color-navy);
+}
+
+.button--cyan:hover {
+  background: #41d6ef;
 }
 
 .button--compact {
@@ -78,5 +110,12 @@
     min-height: 3.25rem;
     padding: var(--space-3) var(--space-6);
     font-size: 0.9375rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  .button::after {
+    transition-duration: 0.01ms;
   }
 }

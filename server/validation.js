@@ -21,6 +21,48 @@ const enrollmentRoles = new Set([
   "school-admin",
 ])
 
+const allowedRegistrationKeys = new Set([
+  "schoolName",
+  "schoolType",
+  "country",
+  "state",
+  "city",
+  "address",
+  "schoolEmail",
+  "schoolPhone",
+  "adminName",
+  "adminEmail",
+  "adminPhone",
+  "adminRole",
+  "password",
+  "confirmPassword",
+  "acceptTerms",
+])
+
+const allowedEnrollmentKeys = new Set([
+  "fullName",
+  "role",
+  "designation",
+  "assignedClasses",
+  "subjects",
+  "passport",
+  "dob",
+  "guardianPhone",
+  "address",
+  "stateOfOrigin",
+  "phone",
+  "password",
+  "schoolId",
+])
+
+function ensureSupportedKeys(body, allowedKeys, label) {
+  const unsupportedKeys = Object.keys(body).filter((key) => !allowedKeys.has(key))
+
+  if (unsupportedKeys.length > 0) {
+    throw new Error(`Unsupported ${label} field(s): ${unsupportedKeys.join(", ")}.`)
+  }
+}
+
 function text(value, label, maxLength) {
   if (typeof value !== "string") throw new Error(`${label} is required.`)
 
@@ -46,6 +88,8 @@ export function validateRegistration(body = {}) {
   if (body === null || typeof body !== "object" || Array.isArray(body)) {
     throw new Error("Registration details must be a JSON object.")
   }
+
+  ensureSupportedKeys(body, allowedRegistrationKeys, "registration")
 
   const schoolType = text(body.schoolType, "School type", 40)
 
@@ -108,6 +152,8 @@ export function validateEnrollment(body = {}) {
   if (body === null || typeof body !== "object" || Array.isArray(body)) {
     throw new Error("Enrollment details must be a JSON object.")
   }
+
+  ensureSupportedKeys(body, allowedEnrollmentKeys, "enrollment")
 
   const role = text(body.role, "Role", 20)
 

@@ -123,3 +123,108 @@
   }
 }
 
+.site-header {
+  position: sticky;
+  top: 0;
+  border-bottom-color: rgb(178 197 221 / 38%);
+  background: rgb(255 255 255 / 84%);
+  box-shadow: 0 0.3rem 1.5rem rgb(18 56 96 / 3%);
+  backdrop-filter: blur(18px) saturate(145%);
+  animation: landing-header-in 650ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.site-nav > a {
+  position: relative;
+  padding-block: 0.4rem;
+  transition: color 220ms ease;
+}
+
+.site-nav > a::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #39bbcb, #617ff0);
+  content: "";
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 240ms ease;
+}
+
+.site-nav > a:hover {
+  color: #167da0;
+}
+
+.site-nav > a:hover::after,
+.site-nav > a:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.site-nav__mobile-head {
+  color: var(--color-navy);
+}
+
+.site-nav__mobile-head button,
+.mobile-menu-button {
+  transition:
+    border-color 220ms ease,
+    background 220ms ease,
+    transform 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.site-nav__mobile-head button:hover,
+.mobile-menu-button:hover {
+  transform: translateY(-2px);
+  border-color: rgb(54 170 196 / 45%);
+  background: #f0fbff;
+  box-shadow: 0 0.4rem 1rem rgb(32 123 161 / 12%);
+}
+
+.mobile-access > button:first-child {
+  transition: color 200ms ease;
+}
+
+.mobile-access > button:first-child:hover {
+  color: #1785a2;
+}
+
+.nav-scrim {
+  backdrop-filter: blur(4px);
+}
+
+@keyframes landing-header-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .site-nav {
+    border-left: 1px solid rgb(158 185 214 / 35%);
+    background: rgb(250 252 255 / 96%);
+    backdrop-filter: blur(22px);
+  }
+
+  .site-nav > a {
+    border-bottom: 1px solid rgb(196 210 228 / 38%);
+  }
+
+  .site-nav > a::after {
+    right: auto;
+    width: 3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header {
+    animation: none;
+  }
+}

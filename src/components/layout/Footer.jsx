@@ -6,7 +6,7 @@ import "./Footer.css"
 export default function Footer() {
   return (
     <footer className="site-footer" id="contact">
-      <div className="site-footer__top">
+      <div className="site-footer__top" data-reveal>
         <div className="site-footer__brand">
           <Brand footer />
           <p>The all-in-one school management platform for Nigerian schools.</p>
@@ -24,7 +24,7 @@ export default function Footer() {
           </div>
         </div>
       </div>
-      <div className="site-footer__legal">
+      <div className="site-footer__legal" data-reveal data-reveal-delay="1">
         <p>© 2026 AceEdu. All rights reserved.</p>
         <div>
           <a href="#privacy">Privacy Policy</a>
@@ -34,4 +34,3 @@ export default function Footer() {
     </footer>
   )
 }
-

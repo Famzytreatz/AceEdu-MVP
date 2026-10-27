@@ -67,6 +67,11 @@ test("registration rejects invalid email, unsupported roles, and weak passwords"
   )
 
   assert.throws(
+    () => validateRegistration({ ...registration, unknownField: "forged" }),
+    /Unsupported registration field\(s\): unknownField/,
+  )
+
+  assert.throws(
     () => validateRegistration({ ...registration, adminRole: "Root Admin" }),
     /administrator role/,
   )
@@ -153,6 +158,18 @@ test("enrollment only accepts supported fields and valid registry roles", () => 
         designation: "Maths",
       }),
     /Staff password/,
+  )
+
+  assert.throws(
+    () =>
+      validateEnrollment({
+        fullName: "Ada",
+        role: "teacher",
+        designation: "Maths",
+        password: "secure-password",
+        adminOverride: true,
+      }),
+    /Unsupported enrollment field\(s\): adminOverride/,
   )
 
   assert.throws(
