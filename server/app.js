@@ -22,6 +22,7 @@ import adminRouter from "./routes/admin.js"
 import authRouter from "./routes/auth.js"
 
 import platformRouter from "./routes/platform.js"
+import schoolsRouter from "./routes/schools.js"
 
 export function createApp() {
   const app = express()
@@ -111,6 +112,8 @@ export function createApp() {
   app.use("/api/platform/login", operatorLoginLimiter)
 
   app.use("/api/auth", authRouter)
+
+  app.use("/api/schools", schoolsRouter)
 
   app.use("/api/platform", platformRouter)
 

@@ -22,6 +22,7 @@ import {
   Sun,
   Plus,
   Printer,
+  RefreshCw,
   Search,
   Settings,
   ShieldCheck,
@@ -43,6 +44,7 @@ import {
   verifyEnrollment,
 } from "../data/api"
 import LoadingSpinner from "../components/ui/LoadingSpinner"
+import PremiumAcademicSetup from "./PremiumAcademicSetup"
 
 import "./AdminDashboard.css"
 
@@ -55,14 +57,17 @@ const navigation = [
 ]
 
 const premiumNavigation = [
-  { label: "Classes", Icon: BookOpen },
-  { label: "Academic records", Icon: ClipboardList },
-  { label: "Attendance", Icon: CalendarDays },
-  { label: "Exams & results", Icon: ChartNoAxesCombined },
-  { label: "Financial management", Icon: CircleDollarSign },
-  { label: "Reports & analytics", Icon: ChartNoAxesCombined },
-  { label: "Parent portal", Icon: UserRound },
+  { id: "classes", label: "Classes & academics", Icon: BookOpen },
+  { id: "academicRecords", label: "Academic records", Icon: ClipboardList },
+  { id: "attendance", label: "Attendance", Icon: CalendarDays },
+  { id: "examinations", label: "Exams & results", Icon: ChartNoAxesCombined },
+  { id: "financialManagement", label: "Financial management", Icon: CircleDollarSign },
+  { id: "advancedReports", label: "Reports & analytics", Icon: ChartNoAxesCombined },
+  { id: "parentPortal", label: "Parent portal", Icon: UserRound },
+  { id: "studentPortal", label: "Student portal", Icon: GraduationCap },
 ]
+
+const implementedPremiumViews = new Set(["classes"])
 
 const plannedNavigation = [{ label: "Settings", Icon: Settings }]
 
@@ -393,6 +398,14 @@ export default function AdminDashboard({ school, onLogout }) {
     void loadEntitlement()
   }, [loadEntitlement])
 
+  useEffect(() => {
+    const refreshEntitlement = () => {
+      if (document.visibilityState === "visible") void loadEntitlement()
+    }
+    window.addEventListener("focus", refreshEntitlement)
+    return () => window.removeEventListener("focus", refreshEntitlement)
+  }, [loadEntitlement])
+
   async function handleVerificationRequest(event) {
     event.preventDefault()
     if (verificationLock.current) return
@@ -605,7 +618,13 @@ export default function AdminDashboard({ school, onLogout }) {
     }
   }
 
-  const title = navigation.find((item) => item.id === activeView)?.label
+  const title =
+    navigation.find((item) => item.id === activeView)?.label ||
+    premiumNavigation.find((item) => item.id === activeView)?.label
+  const premiumAccessActive =
+    entitlement?.effectivePlan === "premium" ||
+    entitlement?.trialActive ||
+    entitlement?.plan === "premium"
 
   return (
     <div className="admin-app" data-theme={theme}>
@@ -652,23 +671,41 @@ export default function AdminDashboard({ school, onLogout }) {
         </nav>
 
         <div className="admin-sidebar__label admin-sidebar__label--premium">
-          Premium roadmap
+          {premiumAccessActive ? "Premium access active" : "Premium roadmap"}
         </div>
-        <nav className="admin-nav admin-nav--premium" aria-label="Planned Premium features">
-          {premiumNavigation.map(({ label, Icon }) => (
-            <button
-              className="admin-nav__item admin-nav__item--planned"
-              key={label}
-              type="button"
-              disabled
-              aria-disabled="true"
-              title={`${label} is planned for Premium and is not available yet.`}
-            >
-              <Icon size={17} aria-hidden="true" />
-              <span>{label}</span>
-              <LockKeyhole className="admin-nav__lock" size={13} aria-hidden="true" />
-            </button>
-          ))}
+        <nav className="admin-nav admin-nav--premium" aria-label="Premium features">
+          {premiumNavigation.map(({ id, label, Icon }) => {
+            const featureImplemented = implementedPremiumViews.has(id)
+            const featureEnabled = premiumAccessActive && featureImplemented
+            return (
+              <button
+                className={`admin-nav__item admin-nav__item--planned ${
+                  activeView === id ? "is-active" : ""
+                }`}
+                key={id}
+                type="button"
+                disabled={!featureEnabled}
+                aria-disabled={!featureEnabled}
+                aria-current={activeView === id ? "page" : undefined}
+                title={
+                  featureEnabled
+                    ? `Open ${label}.`
+                    : premiumAccessActive
+                      ? `${label} is covered by the active Premium entitlement, but its workflow is not implemented yet.`
+                      : `${label} requires an active Premium entitlement and is not available yet.`
+                }
+                onClick={() => setActiveView(id)}
+              >
+                <Icon size={17} aria-hidden="true" />
+                <span>{label}</span>
+                {featureEnabled ? (
+                  <Check className="admin-nav__lock" size={14} aria-hidden="true" />
+                ) : (
+                  <LockKeyhole className="admin-nav__lock" size={13} aria-hidden="true" />
+                )}
+              </button>
+            )
+          })}
         </nav>
         <div className="admin-sidebar__label admin-sidebar__label--planned">
           Planned
@@ -704,8 +741,12 @@ export default function AdminDashboard({ school, onLogout }) {
           <span className="admin-sidebar-premium__icon" aria-hidden="true">
             <ArrowUpRight size={16} />
           </span>
-          <strong>Unlock more for your school</strong>
-          <p>Explore the Premium roadmap and upcoming school workflows.</p>
+          <strong>{premiumAccessActive ? "Premium trial is active" : "Unlock more for your school"}</strong>
+          <p>
+            {premiumAccessActive
+              ? "Your school has Premium entitlement. The listed feature workflows are not implemented in this app yet."
+              : "Explore the Premium roadmap and upcoming school workflows."}
+          </p>
           <button
             type="button"
             onClick={() =>
@@ -912,6 +953,7 @@ export default function AdminDashboard({ school, onLogout }) {
                   <div className="admin-welcome__meta">
                     <span><GraduationCap size={15} /> {school.schoolType}</span>
                     <span><UserRound size={15} /> {school.adminName}</span>
+                    <span className="admin-welcome__school-id"><IdCard size={15} /> AceEdu school ID: {school.id || "Unavailable"}</span>
                     <span><CalendarDays size={15} /> Academic session not configured</span>
                   </div>
                 </div>
@@ -1114,24 +1156,28 @@ export default function AdminDashboard({ school, onLogout }) {
                     Premium is designed for the full student portal, advanced academic workflows, financial management, and deeper reporting.
                   </p>
                   <span className="admin-premium-preview__notice">
-                    Entitlement and verification are available now. Premium feature workflows are not yet enabled in this app.
+                    {premiumAccessActive
+                      ? "Premium access is active for this school. Its advertised feature workflows are still being built and are not available in this app yet."
+                      : "Entitlement and verification are available now. Premium feature workflows are not yet enabled in this app."}
                   </span>
                 </div>
-                <ul>
-                  <li><BookOpen size={17} /> Full student portal</li>
-                  <li><ClipboardList size={17} /> Advanced academic workflows</li>
-                  <li><CircleDollarSign size={17} /> School financial management</li>
-                  <li><ChartNoAxesCombined size={17} /> Advanced reports and analytics</li>
+                <ul className="admin-premium-preview__features">
+                  <li><BookOpen size={18} /><span>Full student portal</span></li>
+                  <li><ClipboardList size={18} /><span>Advanced academic workflows</span></li>
+                  <li><CircleDollarSign size={18} /><span>School financial management</span></li>
+                  <li><ChartNoAxesCombined size={18} /><span>Advanced reports and analytics</span></li>
                 </ul>
-                <div className="admin-premium-status" aria-busy={entitlementLoading || verificationPending}>
-                  <div>
-                    <span className="admin-premium-status__label">SCHOOL ACCESS</span>
-                    <strong>
+                <div className="admin-premium-access" aria-busy={entitlementLoading || verificationPending}>
+                  <div className="admin-premium-access__summary">
+                    <span className="admin-premium-access__label">
+                      <ShieldCheck size={15} /> SCHOOL ACCESS
+                    </span>
+                    <strong className="admin-premium-access__state">
                       {entitlementLoading
                         ? "Checking entitlement…"
-                        : entitlement?.trialActive
+                        : premiumAccessActive && entitlement?.trialActive
                           ? `Premium trial · ends ${formatDate(entitlement.trialEndsAt)}`
-                          : entitlement?.plan === "premium"
+                          : premiumAccessActive && entitlement?.plan === "premium"
                             ? "Premium plan active"
                             : entitlement?.trialPreviouslyGranted
                               ? "Trial ended · MVP access active"
@@ -1145,6 +1191,23 @@ export default function AdminDashboard({ school, onLogout }) {
                                       ? "Verification needs another review"
                                       : "MVP plan · default access"}
                     </strong>
+                    <button
+                      className="admin-premium-access__refresh"
+                      type="button"
+                      onClick={() => void loadEntitlement()}
+                      disabled={entitlementLoading}
+                    >
+                      <RefreshCw size={13} className={entitlementLoading ? "is-spinning" : ""} />
+                      Refresh access
+                    </button>
+                    <span className="admin-premium-access__hint">
+                      Your school identity stays the same across MVP and Premium.
+                    </span>
+                  </div>
+                  <div className="admin-premium-access__identity">
+                    <span>AceEdu school ID</span>
+                    <code>{school.id || "Unavailable"}</code>
+                    <small>Permanent platform ID · not your official registration ID</small>
                   </div>
                   {!entitlementLoading &&
                     !entitlementError &&
@@ -1153,10 +1216,14 @@ export default function AdminDashboard({ school, onLogout }) {
                       entitlement?.verificationStatus,
                     ) && (
                       <form className="admin-verification-form" onSubmit={handleVerificationRequest}>
+                        <div className="admin-verification-form__copy">
+                          <strong>Request school verification</strong>
+                          <small>Enter the official registration ID issued by your education authority.</small>
+                        </div>
                         <label htmlFor="school-registration-id">
                           Official school registration ID
                         </label>
-                        <div>
+                        <div className="admin-verification-form__controls">
                           <input
                             id="school-registration-id"
                             autoComplete="off"
@@ -1165,7 +1232,7 @@ export default function AdminDashboard({ school, onLogout }) {
                             required
                             value={registrationId}
                             onChange={(event) => setRegistrationId(event.target.value)}
-                            placeholder="Enter the ID issued to your school"
+                            placeholder="e.g. Ministry-issued registration number"
                             disabled={verificationPending}
                           />
                           <button
@@ -1176,13 +1243,13 @@ export default function AdminDashboard({ school, onLogout }) {
                             {verificationPending ? "Submitting…" : "Request verification"}
                           </button>
                         </div>
-                        <small>
-                          An operator reviews each school. Approval starts one 90-day Premium trial; submitting a request does not activate it.
+                        <small className="admin-verification-form__footnote">
+                          An authorized operator reviews each request. Approval starts one 90-day Premium trial; submission alone does not activate it.
                         </small>
                       </form>
                     )}
                   {entitlementError && (
-                    <div className="admin-premium-status__message is-error" role="alert">
+                    <div className="admin-premium-access__message is-error" role="alert">
                       <span>{entitlementError}</span>
                       <button type="button" onClick={() => void loadEntitlement()}>
                         Retry
@@ -1190,12 +1257,12 @@ export default function AdminDashboard({ school, onLogout }) {
                     </div>
                   )}
                   {verificationMessage && (
-                    <p className="admin-premium-status__message" role="status" aria-live="polite">
+                    <p className="admin-premium-access__message" role="status" aria-live="polite">
                       {verificationMessage}
                     </p>
                   )}
                   {!entitlementLoading && entitlement?.trialEndsAt && !entitlement?.trialActive && (
-                    <p className="admin-premium-status__message">
+                    <p className="admin-premium-access__message">
                       The trial period has ended. Your school data remains available on the MVP plan.
                     </p>
                   )}
@@ -1587,6 +1654,8 @@ export default function AdminDashboard({ school, onLogout }) {
                   ) : (
                     <ArrowDownToLine size={17} />
                   )}
+
+                  {activeView === "classes" && <PremiumAcademicSetup />}
                   {exportingRegistry ? "Preparing export…" : "Export CSV"}
                 </button>
               </div>

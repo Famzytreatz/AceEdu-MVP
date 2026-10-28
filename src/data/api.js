@@ -10,7 +10,9 @@ async function readJson(response) {
   }
 
   if (!response.ok) {
-    throw new Error(result?.error || "The request could not be completed.")
+    const error = new Error(result?.error || "The request could not be completed.")
+    error.status = response.status
+    throw error
   }
   return result
 }
@@ -84,9 +86,26 @@ export async function registerSchool(values) {
   return result.school
 }
 
-export async function loginSchool({ email, password }) {
-  const result = await postJson("/api/auth/login", { email, password })
+export async function loginSchool({ email, password, schoolSlug }) {
+  const result = await postJson("/api/auth/login", {
+    email,
+    password,
+    ...(schoolSlug ? { schoolSlug } : {}),
+  })
   return result.school
+}
+
+export async function getSchoolBySlug(slug) {
+  const response = await fetch(`/api/schools/${encodeURIComponent(slug)}`, {
+    credentials: "same-origin",
+  })
+  try {
+    const result = await readJson(response)
+    return result.school
+  } catch (error) {
+    if (error.status === 404) return null
+    throw error
+  }
 }
 
 export async function logoutSchool() {
@@ -113,6 +132,52 @@ export function getSchoolEntitlement() {
     const response = await fetch(path, { credentials: "same-origin" })
     return readJson(response)
   })
+}
+
+export async function getAcademicSetup() {
+  const response = await fetch("/api/admin/academic", { credentials: "same-origin" })
+  return readJson(response)
+}
+
+export function createAcademicYear(values) {
+  return postJson("/api/admin/academic/years", values)
+}
+
+export async function setCurrentAcademicYear(yearId) {
+  const response = await fetch(
+    `/api/admin/academic/years/${encodeURIComponent(yearId)}/current`,
+    {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    },
+  )
+  await readJson(response)
+}
+
+export function createSchoolClass(values) {
+  return postJson("/api/admin/academic/classes", values)
+}
+
+export function createSchoolSubject(classId, values) {
+  return postJson(
+    `/api/admin/academic/classes/${encodeURIComponent(classId)}/subjects`,
+    values,
+  )
+}
+
+export async function assignStudentsToClass(classId, studentIds) {
+  const response = await fetch(
+    `/api/admin/academic/classes/${encodeURIComponent(classId)}/students`,
+    {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentIds }),
+    },
+  )
+  return readJson(response)
 }
 
 export function requestSchoolVerification(registrationId) {
@@ -145,6 +210,13 @@ export async function logoutPlatformOperator() {
 
 export async function getVerificationRequests() {
   const response = await fetch("/api/platform/verification-requests", {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export async function getActivePremiumSchools() {
+  const response = await fetch("/api/platform/premium-schools", {
     credentials: "same-origin",
   })
   return readJson(response)

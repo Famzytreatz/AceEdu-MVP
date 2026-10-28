@@ -4,6 +4,7 @@ import { config } from "../config.js"
 import { findActivePlatformOperatorById, findPlatformOperatorByEmail } from "../models/PlatformOperator.js"
 import {
   approveSchoolVerification,
+  listActivePremiumSchools,
   listVerificationRequests,
   rejectSchoolVerification,
 } from "../models/Entitlement.js"
@@ -145,6 +146,14 @@ router.get(
       }
     })
     return res.json({ requests })
+  }),
+)
+
+router.get(
+  "/premium-schools",
+  asyncRoute(async (_req, res) => {
+    const schools = await listActivePremiumSchools()
+    return res.json({ schools })
   }),
 )
 

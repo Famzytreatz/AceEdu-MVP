@@ -1,4 +1,5 @@
 import { supabase } from "../supabase.js"
+import { mapActivePremiumSchools } from "../premium-schools.js"
 
 export async function getSchoolEntitlement(schoolId) {
   const { data, error } = await supabase.rpc("get_school_entitlement", {
@@ -27,6 +28,12 @@ export async function listVerificationRequests() {
     .limit(500)
   if (error) throw error
   return data
+}
+
+export async function listActivePremiumSchools() {
+  const { data, error } = await supabase.rpc("list_active_premium_schools")
+  if (error) throw error
+  return mapActivePremiumSchools(data)
 }
 
 export async function approveSchoolVerification(requestId, operatorId) {

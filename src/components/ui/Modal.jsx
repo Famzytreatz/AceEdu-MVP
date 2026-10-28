@@ -1,6 +1,6 @@
 
 import { useEffect, useId, useRef, useState } from "react"
-import { AlertCircle, CheckCircle2, Eye, EyeOff, X } from "lucide-react"
+import { AlertCircle, Building2, CheckCircle2, Eye, EyeOff, X } from "lucide-react"
 import Button from "./Button"
 import "./Modal.css"
 
@@ -123,7 +123,15 @@ function PasswordField({ label, name, value, onChange, visible, onToggle, requir
   )
 }
 
-export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin }) {
+export default function Modal({
+  mode,
+  onClose,
+  onOpenModal,
+  onRegister,
+  onLogin,
+  schoolContext,
+  dismissible = true,
+}) {
   const titleId = useId()
   const [step, setStep] = useState(1)
   const [school, setSchool] = useState(initialSchool)
@@ -140,7 +148,7 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
   useEffect(() => {
     if (!mode) return undefined
     const handleKeyDown = (event) => {
-      if (event.key === "Escape" && !submitLock.current) onClose()
+      if (dismissible && event.key === "Escape" && !submitLock.current) onClose()
     }
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
@@ -149,7 +157,7 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
       document.body.style.overflow = previousOverflow
       document.removeEventListener("keydown", handleKeyDown)
     }
-  }, [mode, onClose])
+  }, [mode, onClose, dismissible])
 
   useEffect(() => {
     setStep(1)
@@ -166,7 +174,12 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
   }, [mode])
 
   if (!mode || !titles[mode]) return null
-  const content = titles[mode]
+  const content = mode === "login" && schoolContext
+    ? {
+        title: `Sign in to ${schoolContext.schoolName}`,
+        description: "Use your existing school administrator account to continue.",
+      }
+    : titles[mode]
 
   const updateSchool = (event) => {
     const { name, value, type, checked } = event.target
@@ -276,7 +289,9 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
       setIsSubmitting(true)
       try {
         if (!onLogin) throw new Error("Login is not available right now.")
-        await onLogin(login)
+        await onLogin(
+          schoolContext ? { ...login, schoolSlug: schoolContext.slug } : login,
+        )
         onClose()
       } catch (error) {
         setNotice(error.message || "Login could not be completed.")
@@ -289,18 +304,31 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
   }
 
   const handleBackdropMouseDown = (event) => {
-    if (event.target === event.currentTarget && !submitLock.current) onClose()
+    if (dismissible && event.target === event.currentTarget && !submitLock.current) onClose()
   }
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={handleBackdropMouseDown}>
       <section className={`modal ${mode === "started" ? "modal--wide" : ""}`}
         role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={`${titleId}-description`}>
-        <button className="modal__close" type="button" onClick={() => { if (!submitLock.current) onClose() }} disabled={isSubmitting} aria-label="Close dialog">
-          <X size={22} aria-hidden="true" />
-        </button>
+        {dismissible && (
+          <button className="modal__close" type="button" onClick={() => { if (!submitLock.current) onClose() }} disabled={isSubmitting} aria-label="Close dialog">
+            <X size={22} aria-hidden="true" />
+          </button>
+        )}
 
         <div className="modal__heading">
+          {mode === "login" && schoolContext && (
+            <div className="modal__school-brand">
+              {schoolContext.logoUrl
+                ? <img src={schoolContext.logoUrl} alt={`${schoolContext.schoolName} logo`} />
+                : <Building2 aria-hidden="true" />}
+              <span>
+                <small>School administrator access</small>
+                <strong>{schoolContext.schoolName}</strong>
+              </span>
+            </div>
+          )}
           <h2 id={titleId}>{content.title}</h2>
           <p id={`${titleId}-description`}>{content.description}</p>
         </div>
@@ -322,7 +350,9 @@ export default function Modal({ mode, onClose, onOpenModal, onRegister, onLogin 
               </button>
             </div>
             <Button type="submit" className="modal__submit" loading={isSubmitting} loadingLabel="Signing you in...">Login</Button>
-            <p className="modal__switch">Registering a new school? <button type="button" className="modal__text-button" onClick={() => onOpenModal?.("started")}>Use Get Started on the page to register.</button></p>
+            {schoolContext
+              ? <p className="modal__switch">Need an account? Contact your school administrator.</p>
+              : <p className="modal__switch">Registering a new school? <button type="button" className="modal__text-button" onClick={() => onOpenModal?.("started")}>Use Get Started on the page to register.</button></p>}
             </fieldset>
           </form>
         )}

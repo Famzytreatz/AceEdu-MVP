@@ -1,11 +1,21 @@
 
 import { lazy, Suspense, useEffect, useState } from "react"
 import HomePage from "./pages/HomePage"
-import { getCurrentSchool, loginSchool, logoutSchool, registerSchool } from "./data/api"
+import {
+  getCurrentSchool,
+  getSchoolBySlug,
+  loginSchool,
+  logoutSchool,
+  registerSchool,
+} from "./data/api"
 import PageLoader from "./components/ui/PageLoader"
 import PlatformConsole from "./pages/PlatformConsole"
+import SchoolSpacePage from "./pages/SchoolSpacePage"
 
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"))
+const schoolSpacePath = window.location.pathname === "/s" || window.location.pathname.startsWith("/s/")
+const schoolSpaceMatch = window.location.pathname.match(/^\/s\/([^/]+)\/?$/)
+const schoolSpaceSlug = schoolSpaceMatch?.[1] || null
 
 function readSavedTheme() {
   try {
@@ -20,6 +30,9 @@ export default function App() {
   const [school, setSchool] = useState(null)
   const [checkingSession, setCheckingSession] = useState(!platformRoute)
   const [backendError, setBackendError] = useState("")
+  const [schoolSpace, setSchoolSpace] = useState(null)
+  const [schoolSpaceNotFound, setSchoolSpaceNotFound] = useState(false)
+  const [schoolSpaceError, setSchoolSpaceError] = useState("")
   const [sessionRetry, setSessionRetry] = useState(0)
   const [theme] = useState(readSavedTheme)
 
@@ -33,13 +46,26 @@ export default function App() {
     async function checkSession() {
       let retryScheduled = false
       try {
-        const currentSchool = await getCurrentSchool()
+        setSchoolSpaceError("")
+        setSchoolSpaceNotFound(false)
+        const [currentSchool, resolvedSchool] = await Promise.all([
+          getCurrentSchool(),
+          schoolSpacePath && schoolSpaceSlug
+            ? getSchoolBySlug(schoolSpaceSlug)
+            : Promise.resolve(null),
+        ])
         if (active) {
           setSchool(currentSchool)
+          setSchoolSpace(resolvedSchool)
+          if (schoolSpacePath && !resolvedSchool) setSchoolSpaceNotFound(true)
           setBackendError("")
         }
       } catch (error) {
         if (active) {
+          if (schoolSpacePath) {
+            setSchoolSpaceError(error.message || "The school space could not be loaded.")
+            return
+          }
           const message = error.message || ""
           const unavailable = /failed to fetch|fetch failed|HTTP 5\d\d/i.test(message)
           if (unavailable && retryAttempt < retryDelays.length) {
@@ -71,6 +97,7 @@ export default function App() {
 
   function retrySessionCheck() {
     setBackendError("")
+    setSchoolSpaceError("")
     setCheckingSession(true)
     setSessionRetry((current) => current + 1)
   }
@@ -94,6 +121,24 @@ export default function App() {
 
   const application = platformRoute ? (
     <PlatformConsole />
+  ) : schoolSpacePath ? (
+    checkingSession ? null : school && schoolSpace && school.slug === schoolSpace.slug ? (
+      <Suspense
+        fallback={<PageLoader message="Loading your school workspace…" theme={theme} />}
+      >
+        <AdminDashboard school={school} onLogout={handleLogout} />
+      </Suspense>
+    ) : (
+      <SchoolSpacePage
+        school={schoolSpace}
+        notFound={schoolSpaceNotFound}
+        error={schoolSpaceError}
+        signedInElsewhere={Boolean(school && schoolSpace && school.slug !== schoolSpace.slug)}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+        onRetry={retrySessionCheck}
+      />
+    )
   ) : checkingSession ? null : school ? (
       <Suspense
         fallback={<PageLoader message="Loading your school workspace…" theme={theme} />}

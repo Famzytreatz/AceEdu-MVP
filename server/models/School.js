@@ -1,11 +1,12 @@
 import { supabase } from "../supabase.js"
 
 const publicColumns =
-  "id,school_name,school_type,country,state,city,address,school_email,school_phone,admin_name,admin_email,admin_phone,admin_role,created_at,updated_at"
+  "id,public_school_id,school_name,school_type,country,state,city,address,school_email,school_phone,admin_name,admin_email,admin_phone,admin_role,slug,logo_url,created_at,updated_at"
 
 function schoolFromRow(row) {
   return {
     _id: String(row.id),
+    publicId: row.public_school_id,
     schoolName: row.school_name,
     schoolType: row.school_type,
     country: row.country,
@@ -18,6 +19,8 @@ function schoolFromRow(row) {
     adminEmail: row.admin_email,
     adminPhone: row.admin_phone,
     adminRole: row.admin_role,
+    slug: row.slug,
+    logoUrl: row.logo_url,
     ...(row.password_hash === undefined ? {} : { passwordHash: row.password_hash }),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -76,4 +79,21 @@ export async function findSchoolById(id) {
     .maybeSingle()
   if (error) throw error
   return data ? schoolFromRow(data) : null
+}
+
+export async function findSchoolBySlug(slug) {
+  const { data, error } = await supabase
+    .from("schools")
+    .select("public_school_id,school_name,slug,logo_url")
+    .eq("slug", slug)
+    .maybeSingle()
+  if (error) throw error
+  return data
+    ? {
+        publicId: data.public_school_id,
+        schoolName: data.school_name,
+        slug: data.slug,
+        logoUrl: data.logo_url,
+      }
+    : null
 }

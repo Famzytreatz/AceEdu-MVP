@@ -3,6 +3,7 @@ import express from "express"
 import { config } from "../config.js"
 import { createSchool, findSchoolByEmail, findSchoolById, schoolEmailExists } from "../models/School.js"
 import { asyncRoute } from "../security.js"
+import { schoolSlugMatches, validateSchoolSlug } from "../school-slugs.js"
 import { normalizeEmail, validateRegistration } from "../validation.js"
 
 const router = express.Router()
@@ -10,7 +11,7 @@ const passwordRounds = 12
 
 function publicSchool(school) {
   return {
-    id: school._id,
+    id: school.publicId,
     schoolName: school.schoolName,
     schoolType: school.schoolType,
     country: school.country,
@@ -23,6 +24,8 @@ function publicSchool(school) {
     adminEmail: school.adminEmail,
     adminPhone: school.adminPhone,
     adminRole: school.adminRole,
+    slug: school.slug,
+    logoUrl: school.logoUrl,
     createdAt: school.createdAt,
   }
 }
@@ -77,8 +80,16 @@ router.post(
   "/login",
   asyncRoute(async (req, res) => {
     let email
+    let schoolSlug
     if (typeof req.body?.password !== "string" || !req.body.password || req.body.password.length > 128) {
       return res.status(400).json({ error: "Enter your email address and password." })
+    }
+    if (req.body.schoolSlug !== undefined) {
+      try {
+        schoolSlug = validateSchoolSlug(req.body.schoolSlug)
+      } catch (error) {
+        return res.status(400).json({ error: error.message })
+      }
     }
     try {
       email = normalizeEmail(req.body.email)
@@ -87,7 +98,11 @@ router.post(
     }
 
     const school = await findSchoolByEmail(email)
-    if (!school || !(await bcrypt.compare(req.body.password, school.passwordHash))) {
+    if (!school) {
+      return res.status(401).json({ error: "Email or password is incorrect." })
+    }
+    const passwordMatches = await bcrypt.compare(req.body.password, school.passwordHash)
+    if (!passwordMatches || !schoolSlugMatches(school, schoolSlug)) {
       return res.status(401).json({ error: "Email or password is incorrect." })
     }
 

@@ -19,19 +19,23 @@ export function requireAllowedOrigin(req, res, next) {
   return next()
 }
 
-export function requireSchool(req, res, next) {
-  const schoolId = req.session?.schoolId
-  if (!isValidDatabaseId(schoolId)) {
-    return res.status(401).json({ error: "Sign in to access this school account." })
+export function createRequireSchool(findSchool = findSchoolById) {
+  return function requireSchool(req, res, next) {
+    const schoolId = req.session?.schoolId
+    if (!isValidDatabaseId(schoolId)) {
+      return res.status(401).json({ error: "Sign in to access this school account." })
+    }
+    return findSchool(schoolId)
+      .then((school) => {
+        if (!school) return res.status(401).json({ error: "This school account is no longer available." })
+        req.school = school
+        return next()
+      })
+      .catch(next)
   }
-  return findSchoolById(schoolId)
-    .then((school) => {
-      if (!school) return res.status(401).json({ error: "This school account is no longer available." })
-      req.school = school
-      return next()
-    })
-    .catch(next)
 }
+
+export const requireSchool = createRequireSchool()
 
 export function requirePlatformOperator(req, res, next) {
   const operatorId = req.session?.operatorId

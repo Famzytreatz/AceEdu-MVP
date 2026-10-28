@@ -18,6 +18,7 @@ import { isValidDatabaseId } from "../ids.js"
 
 import { asyncRoute } from "../security.js"
 import entitlementRouter from "./entitlements.js"
+import academicRouter from "./academic.js"
 
 import { validateEnrollment } from "../validation.js"
 
@@ -26,6 +27,7 @@ const router = express.Router()
 const pageSize = 50
 
 router.use("/entitlements", entitlementRouter)
+router.use("/academic", academicRouter)
 
 function csvCell(value) {
   let text = String(value ?? "")
@@ -54,8 +56,16 @@ router.get(
     const schoolId = req.session.schoolId
 
     const analytics = await getDashboardAnalytics(schoolId)
+    const {
+      _id: _internalSchoolId,
+      publicId,
+      ...schoolProfile
+    } = req.school
 
-    return res.json({ school: req.school, ...analytics })
+    return res.json({
+      school: { ...schoolProfile, id: publicId },
+      ...analytics,
+    })
   }),
 )
 

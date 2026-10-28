@@ -17,7 +17,9 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       "/api": {
-        target: process.env.API_PROXY_TARGET || "http://127.0.0.1:3001",
+        // VS Code can reserve 127.0.0.1:3001 for its port-forward service.
+        // Use another loopback address so local API requests reach Express.
+        target: process.env.API_PROXY_TARGET || "http://127.0.0.2:3001",
         changeOrigin: false,
       },
     },

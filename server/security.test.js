@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { config } from "./config.js"
-import { requireAllowedOrigin } from "./security.js"
+import { createRequireSchool, requireAllowedOrigin } from "./security.js"
 
 function requestFor({ origin, host = "localhost:8443", protocol = "http", method = "POST" }) {
   return {
@@ -70,4 +70,25 @@ test("origin guard rejects an origin that does not match the configured origin o
   assert.equal(continued, false)
   assert.equal(response.statusCode, 403)
   assert.deepEqual(response.body, { error: "Request origin is not allowed." })
+})
+
+test("school authorization uses the authenticated session ID, not a requested school ID", async () => {
+  let queriedSchoolId
+  const middleware = createRequireSchool(async (id) => {
+    queriedSchoolId = id
+    return { _id: id }
+  })
+  const req = {
+    session: { schoolId: "42" },
+    body: { schoolId: "99" },
+    params: { schoolId: "99" },
+    query: { schoolId: "99" },
+  }
+  const response = responseRecorder()
+  await new Promise((resolve, reject) => {
+    middleware(req, response, (error) => error ? reject(error) : resolve())
+  })
+
+  assert.equal(queriedSchoolId, "42")
+  assert.deepEqual(req.school, { _id: "42" })
 })
