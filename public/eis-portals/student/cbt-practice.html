@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>CBT Practice Center | Exam Prep</title>
+    <style>
+        :root { --navy: #002366; --gold: #D4AF37; --white: #ffffff; }
+        body { font-family: 'Arial', sans-serif; background: #eef2f7; margin: 0; }
+        .cbt-header { background: var(--navy); color: var(--gold); padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; }
+        .exam-container { max-width: 800px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        .question-number { font-weight: bold; color: var(--navy); margin-bottom: 10px; }
+        .option { display: block; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+        .option:hover { background: #f0f8ff; border-color: var(--navy); }
+        .option input { margin-right: 15px; }
+        .controls { display: flex; justify-content: space-between; margin-top: 30px; }
+        .btn-nav { background: var(--navy); color: white; border: none; padding: 10px 25px; cursor: pointer; border-radius: 4px; }
+        #timer { font-size: 20px; font-weight: bold; color: #ff4444; }
+    </style>
+</head>
+<body>
+
+    <div class="cbt-header">
+        <h2>WAEC/JAMB SIMULATOR</h2>
+        <div id="timer">Time Left: 20:00</div>
+    </div>
+
+    <div class="exam-container">
+        <div id="quiz-box">
+            <div class="question-number" id="qNo">Question 1 of 10</div>
+            <h3 id="questionText">Loading question...</h3>
+            <div id="optionsContainer">
+                </div>
+            <div class="controls">
+                <button class="btn-nav" onclick="prevQuestion()">Previous</button>
+                <button class="btn-nav" id="nextBtn" onclick="nextQuestion()">Next</button>
+            </div>
+        </div>
+        
+        <div id="result-box" style="display:none; text-align:center;">
+            <h2 style="color:var(--navy)">Exam Completed!</h2>
+            <div style="font-size: 48px; margin: 20px 0;" id="scoreDisplay">0/0</div>
+            <button class="btn-nav" onclick="location.href='student-dashboard.html' + location.search">Back to Portal</button>
+        </div>
+    </div>
+
+    <script>
+        // Sample Questions (In a real system, these come from your MongoDB)
+        const questions = [
+            { q: "What is the capital of Nigeria?", a: ["Lagos", "Kano", "Abuja", "Ibadan"], correct: 2 },
+            { q: "Solve for x: 2x + 4 = 10", a: ["2", "3", "5", "6"], correct: 1 },
+            { q: "Which part of the cell is known as the powerhouse?", a: ["Nucleus", "Ribosome", "Mitochondria", "Vacuole"], correct: 2 }
+        ];
+
+        let currentQ = 0;
+        let score = 0;
+        let userAnswers = [];
+
+        function loadQuestion() {
+            const q = questions[currentQ];
+            document.getElementById('qNo').innerText = `Question ${currentQ + 1} of ${questions.length}`;
+            document.getElementById('questionText').innerText = q.q;
+            
+            const optionsDiv = document.getElementById('optionsContainer');
+            optionsDiv.innerHTML = "";
+            
+            q.a.forEach((opt, index) => {
+                optionsDiv.innerHTML += `
+                    <label class="option">
+                        <input type="radio" name="answer" value="${index}" ${userAnswers[currentQ] == index ? 'checked' : ''}>
+                        ${opt}
+                    </label>
+                `;
+            });
+
+            if (currentQ === questions.length - 1) {
+                document.getElementById('nextBtn').innerText = "Submit Exam";
+            }
+        }
+
+        function nextQuestion() {
+            const selected = document.querySelector('input[name="answer"]:checked');
+            if (selected) {
+                userAnswers[currentQ] = selected.value;
+                if (currentQ < questions.length - 1) {
+                    currentQ++;
+                    loadQuestion();
+                } else {
+                    finishExam();
+                }
+            } else {
+                alert("Please select an answer!");
+            }
+        }
+
+        function finishExam() {
+            score = 0;
+            questions.forEach((q, i) => {
+                if (userAnswers[i] == q.correct) score++;
+            });
+
+            document.getElementById('quiz-box').style.display = 'none';
+            document.getElementById('result-box').style.display = 'block';
+            document.getElementById('scoreDisplay').innerText = `${score} / ${questions.length}`;
+            
+            // Send result to Admin/Teacher automatically
+            saveExamResult(score);
+        }
+
+        window.onload = loadQuestion;
+        async function fetchExamQuestions() {
+    const studentLevel = localStorage.getItem("userClass"); // JSS3 or SSS3
+    const response = await fetch(`http://localhost:3000/api/questions/${studentLevel}`);
+    const globalQuestions = await response.json();
+    
+    // Shuffle and pick 10 random questions
+    questions = globalQuestions.sort(() => 0.5 - Math.random()).slice(0, 10);
+    loadQuestion();
+}
+    </script>
+</body>
+</html>

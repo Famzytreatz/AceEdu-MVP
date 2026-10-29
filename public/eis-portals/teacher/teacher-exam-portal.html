@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exam Portal | AceEdu Faculty Command</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --deep-navy: #0a192f;
+        --dark-surface: #112240;
+        --primary: #d4af37; /* Gold */
+        --secondary: #00d2ff; /* Cyber Blue */
+        --danger: #ef4444;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Inter", sans-serif;
+        background-color: var(--deep-navy);
+        color: var(--text-main);
+        display: flex;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* --- SIDEBAR --- */
+      .sidebar {
+        width: 260px;
+        background: #020c1b;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        flex-direction: column;
+        padding: 30px 20px;
+        position: fixed;
+        height: 100vh;
+        z-index: 100;
+      }
+
+      .profile-card {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .profile-card img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        border: 3px solid var(--primary);
+        object-fit: cover;
+        margin-bottom: 10px;
+      }
+      .profile-card h3 {
+        margin: 0;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 20px;
+        font-weight: 700;
+        color: white;
+        letter-spacing: 1px;
+      }
+      .profile-card p {
+        margin: 5px 0 0 0;
+        font-size: 12px;
+        color: var(--primary);
+        font-family: monospace;
+      }
+
+      .menu-item {
+        display: flex;
+        align-items: center;
+        padding: 14px 18px;
+        color: var(--text-muted);
+        text-decoration: none;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        transition: 0.3s;
+        font-size: 14px;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+      .menu-item:hover,
+      .menu-item.active {
+        background: rgba(212, 175, 55, 0.08);
+        color: var(--primary);
+        border-color: rgba(212, 175, 55, 0.2);
+      }
+
+      .logout-btn {
+        margin-top: auto;
+        background: none;
+        border: none;
+        color: var(--danger);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: bold;
+        padding: 14px 18px;
+        width: 100%;
+        border-radius: 8px;
+        font-family: "Rajdhani", sans-serif;
+        letter-spacing: 1px;
+      }
+      .logout-btn:hover {
+        background: rgba(239, 68, 68, 0.1);
+      }
+
+      /* --- MAIN CONTENT --- */
+      .main-content {
+        margin-left: 260px;
+        flex-grow: 1;
+        padding: 40px;
+      }
+      .page-header h1 {
+        font-family: "Rajdhani", sans-serif;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: white;
+        margin: 0 0 5px 0;
+        font-size: 2.5rem;
+      }
+      .page-header p {
+        color: var(--text-muted);
+        margin: 0 0 40px 0;
+        font-family: "Inter", sans-serif;
+      }
+
+      /* --- FORM STYLES --- */
+      .form-panel {
+        background: var(--dark-surface);
+        padding: 30px;
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      .form-group label {
+        display: block;
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        background: var(--deep-navy);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text-main);
+        border-radius: 6px;
+        transition: 0.2s;
+        font-size: 14px;
+        box-sizing: border-box;
+        font-family: "Inter", sans-serif;
+      }
+      .form-group input:focus,
+      .form-group select:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+      }
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+      }
+
+      .submit-btn {
+        width: 100%;
+        padding: 15px;
+        background: var(--primary);
+        color: var(--deep-navy);
+        border: none;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 16px;
+        cursor: pointer;
+        transition: 0.3s;
+        font-family: "Rajdhani", sans-serif;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .submit-btn:hover {
+        transform: translateY(-2px);
+        background: white;
+      }
+
+      /* --- QUESTION CARD --- */
+      #questionsList .question-card {
+        background: var(--deep-navy);
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+      .question-header label {
+        color: var(--primary);
+        font-weight: bold;
+      }
+      .remove-q-btn {
+        background: none;
+        border: none;
+        color: var(--danger);
+        cursor: pointer;
+      }
+      .options-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+      .correct-answer-group {
+        margin-top: 15px;
+        background: rgba(212, 175, 55, 0.08);
+        padding: 10px;
+        border-radius: 8px;
+      }
+      .correct-answer-group label {
+        margin-right: 15px;
+        font-size: 13px;
+      }
+
+      .exam-builder-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        align-items: flex-start;
+      }
+
+      .question-builder-panel {
+        background: var(--dark-surface);
+        padding: 30px;
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .panel-header h3 {
+        margin: 0 0 5px 0;
+        color: white;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 18px;
+      }
+
+      .panel-header p {
+        margin: 0 0 25px 0;
+        font-size: 14px;
+        color: var(--text-muted);
+      }
+
+      /* View Switching */
+      .view-section {
+        display: none;
+        animation: fadeIn 0.4s ease-out;
+      }
+      .view-section.active {
+        display: block;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Results View Enhancements */
+      .result-card {
+        background: var(--dark-surface);
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        margin-bottom: 15px;
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        align-items: center;
+        gap: 20px;
+        transition: 0.3s;
+      }
+      .result-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+      .history-card {
+        background: var(--dark-surface);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        margin-bottom: 15px;
+        transition: 0.3s;
+      }
+      .history-card-header {
+        padding: 20px;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 20px;
+        cursor: pointer;
+      }
+      .history-card-header:hover {
+        background: rgba(212, 175, 55, 0.05);
+      }
+      .history-card-content {
+        padding: 0 20px 20px 20px;
+        border-top: 1px solid rgba(212, 175, 55, 0.2);
+        display: none; /* Hidden by default */
+      }
+      .result-card-icon {
+        font-size: 24px;
+        color: var(--primary);
+        background: rgba(212, 175, 55, 0.1);
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+      }
+      .result-card-stats {
+        text-align: center;
+        padding: 0 20px;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .stat-value {
+        display: block;
+        font-size: 22px;
+        font-weight: 700;
+        color: white;
+        font-family: "Rajdhani", sans-serif;
+      }
+      .stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+      .view-submissions-btn {
+        background: var(--primary);
+        color: var(--deep-navy);
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .view-submissions-btn:hover {
+        background: white;
+      }
+
+      /* Modal Enhancements */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+      }
+      .modal-content {
+        background-color: var(--dark-surface);
+        margin: 5% auto;
+        padding: 0;
+        border: 1px solid var(--primary);
+        width: 80%;
+        max-width: 800px;
+        border-radius: 15px;
+        box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
+        animation: slideDown 0.4s;
+        color: var(--text-main);
+      }
+      @keyframes slideDown {
+        from {
+          transform: translateY(-30px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(212, 175, 55, 0.05);
+      }
+      .modal-header h2 {
+        margin: 0;
+        font-family: "Rajdhani", sans-serif;
+        color: var(--primary);
+        font-size: 18px;
+      }
+      .close-modal {
+        color: var(--text-muted);
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .close-modal:hover {
+        color: var(--danger);
+      }
+      .modal-body {
+        padding: 30px;
+      }
+      .results-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        background: var(--deep-navy);
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+      .summary-item .stat-label {
+        color: var(--text-muted);
+      }
+      .summary-item .stat-value {
+        color: var(--primary);
+        font-size: 28px;
+      }
+      .print-btn {
+        background: transparent;
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        padding: 8px 15px;
+        cursor: pointer;
+        font-weight: bold;
+        border-radius: 6px;
+        transition: 0.3s;
+      }
+      .print-btn:hover {
+        background: var(--primary);
+        color: var(--deep-navy);
+      }
+      .table-wrapper {
+        overflow-x: auto;
+      }
+      .modal-body table {
+        width: 100%;
+        border-collapse: collapse;
+        color: var(--text-main);
+        margin-top: 20px;
+      }
+      .modal-body th {
+        text-align: left;
+        padding: 12px 15px;
+        color: var(--primary);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-bottom: 2px solid rgba(212, 175, 55, 0.2);
+      }
+      .modal-body td {
+        padding: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 14px;
+      }
+      .modal-body tbody tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      @media (max-width: 900px) {
+        .sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+          padding: 20px;
+        }
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+        .options-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="profile-card">
+        <img
+          id="teacherPassport"
+          src="https://via.placeholder.com/80"
+          alt="Teacher Photo"
+        />
+        <h3 id="teacherName">Loading...</h3>
+        <p id="teacherPin">ID: TCH-######</p>
+      </div>
+      <nav class="menu">
+        <a class="menu-item" href="./teacher.html" id="returnToTeacherDashboard"
+          ><i class="fas fa-chalkboard-teacher fa-fw"></i> Classroom Hub</a
+        >
+        <div
+          class="menu-label"
+          style="
+            margin: 20px 0 10px 15px;
+            font-size: 11px;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+          "
+        >
+          EXAM PORTAL
+        </div>
+        <a href="#create" data-exam-tab="create" class="menu-item active"
+          ><i class="fas fa-file-signature fa-fw"></i> Set Questions</a
+        >
+        <a href="#history" data-exam-tab="history" class="menu-item"
+          ><i class="fas fa-clock fa-fw"></i> Exam History</a
+        >
+        <a href="#results" data-exam-tab="results" class="menu-item"
+          ><i class="fas fa-poll fa-fw"></i> View Results</a
+        >
+      </nav>
+      <button class="logout-btn" id="examLogoutBtn">
+        <i class="fas fa-power-off"></i> LOGOUT
+      </button>
+    </aside>
+
+    <main class="main-content">
+      <header class="page-header">
+        <h1 id="pageTitle">Set Questions</h1>
+        <p id="pageDesc">
+          Create and deploy secure, timed assessments for your students.
+        </p>
+      </header>
+
+      <!-- 1. CREATE EXAM VIEW -->
+      <section id="createView" class="view-section active">
+        <form id="examCreationForm">
+          <div class="exam-builder-grid">
+            <!-- Left Column: Question Builder -->
+            <div class="question-builder-panel">
+              <div class="panel-header">
+                <h3>Question Bank</h3>
+                <p>Add or remove questions for this examination.</p>
+              </div>
+              <div id="questionsList">
+                <!-- Questions will be dynamically added here -->
+              </div>
+              <button
+                type="button"
+                id="addQuestionBtn"
+                style="
+                  background: transparent;
+                  border: 1px solid var(--primary);
+                  color: var(--primary);
+                  padding: 10px 20px;
+                  border-radius: 5px;
+                  cursor: pointer;
+                  margin-top: 15px;
+                "
+              >
+                <i class="fas fa-plus-circle"></i> Add Question
+              </button>
+            </div>
+
+            <!-- Right Column: Configuration -->
+            <div class="config-panel">
+              <div class="form-panel">
+                <div class="panel-header">
+                  <h3>Exam Configuration</h3>
+                  <p>Set the parameters for this exam.</p>
+                </div>
+                <div class="form-group">
+                  <label for="examTitle">Exam Title</label>
+                  <input
+                    type="text"
+                    id="examTitle"
+                    placeholder="e.g., SSS 1 Mathematics Mid-Term"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="examTargetClass">Target Class</label>
+                  <select id="examTargetClass" required></select>
+                </div>
+                <div class="form-row" style="grid-template-columns: 1fr 1fr">
+                  <div class="form-group">
+                    <label for="examTargetSubject">Subject</label>
+                    <select id="examTargetSubject">
+                      <option value="">No subject selected</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="examTargetTerm">Academic Term</label>
+                    <select id="examTargetTerm" required>
+                      <option value="">Select a class first</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row" style="grid-template-columns: 1fr 1fr 1fr">
+                  <div class="form-group">
+                    <label for="durationMinutes">Exam Timer (Mins)</label>
+                    <input
+                      type="number"
+                      id="durationMinutes"
+                      value="60"
+                      min="1"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="validityMinutes">Expires In (Mins)</label>
+                    <input
+                      type="number"
+                      id="validityMinutes"
+                      value="1440"
+                      min="1"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="attemptsAllowed">Attempts</label>
+                    <input
+                      type="number"
+                      id="attemptsAllowed"
+                      value="1"
+                      min="1"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <button type="submit" class="submit-btn" style="margin-top: 20px">
+                CREATE & DEPLOY EXAM
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <!-- 2. HISTORY VIEW -->
+      <section id="historyView" class="view-section">
+        <div id="examHistoryContainer"></div>
+      </section>
+
+      <!-- 3. RESULTS VIEW -->
+      <section id="resultsView" class="view-section">
+        <div id="resultsListContainer">
+          <p style="text-align: center; color: var(--text-dim)">
+            Select an exam to view submitted results.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Results Modal -->
+    <div id="resultsModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="resultsTitle">Exam Results</h2>
+          <span class="close-modal" id="closeResultsModalBtn">&times;</span>
+        </div>
+        <div class="modal-body">
+          <div
+            style="
+              margin-bottom: 20px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <span
+              id="resultsClass"
+              style="color: var(--text-muted); font-size: 14px"
+              >Class: ---</span
+            >
+            <button id="printResultsBtn" class="print-btn">
+              <i class="fas fa-print"></i> Print Results
+            </button>
+          </div>
+
+          <div
+            id="resultsSummary"
+            class="results-summary"
+            style="display: none"
+          >
+            <!-- Summary items will be injected here -->
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>ID</th>
+                  <th>Score</th>
+                  <th>Percentage</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="resultsTableBody">
+                <!-- Rows go here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="../shared/portal-client.js"></script>
+    <script src="./teacher-exam-portal.js"></script>
+  </body>
+</html>

@@ -2,8 +2,6 @@ import bcrypt from "bcryptjs"
 
 import express from "express"
 
-import { config } from "../config.js"
-
 import { findPortalEnrollmentByCredentials } from "../models/Portal.js"
 
 import { findSchoolLoginIdentityBySlug } from "../models/School.js"
@@ -15,24 +13,15 @@ import { featureEntitlements, hasFeatureAccess } from "../entitlements.js"
 import { getSchoolEntitlement } from "../models/Entitlement.js"
 
 import { validatePortalLogin } from "../portal-validation.js"
+import { removeAuthenticationSession, updateAuthenticationSession } from "../session-auth.js"
 
 const requirePortalMember = createRequirePortalMember()
 
 function startPortalSession(req, member, schoolId) {
-  return new Promise((resolve, reject) => {
-    req.session.regenerate((regenerateError) => {
-      if (regenerateError) return reject(regenerateError)
-
-      req.session.portalMemberId = String(member.id)
-
-      req.session.portalSchoolId = String(schoolId)
-
-      req.session.portalRole = member.role
-
-      req.session.save((saveError) =>
-        saveError ? reject(saveError) : resolve(),
-      )
-    })
+  return updateAuthenticationSession(req, {
+    portalMemberId: String(member.id),
+    portalSchoolId: String(schoolId),
+    portalRole: member.role,
   })
 }
 
@@ -172,19 +161,11 @@ export function createPortalAuthRouter({
     "/logout",
 
     asyncRoute(async (req, res) => {
-      await new Promise((resolve, reject) => {
-        req.session.destroy((error) => (error ? reject(error) : resolve()))
-      })
-
-      res.clearCookie("aceedu.sid", {
-        httpOnly: true,
-
-        secure: config.isProduction,
-
-        sameSite: "lax",
-
-        path: "/",
-      })
+      await removeAuthenticationSession(req, res, [
+        "portalMemberId",
+        "portalSchoolId",
+        "portalRole",
+      ])
 
       return res.status(204).end()
     }),

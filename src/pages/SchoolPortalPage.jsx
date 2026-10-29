@@ -1792,6 +1792,41 @@ export default function SchoolPortalPage({
     )
   }
 
+  // Preserve the original EIS Student and Teacher portal design after AceEdu
+  // has verified the existing session, school identity, Premium entitlement,
+  // and role-specific dashboard API.
+  if (
+    !checking &&
+    member &&
+    !mismatch &&
+    dashboard &&
+    !premiumRequired &&
+    ["student", "teacher"].includes(member.role)
+  ) {
+    const isStudent = member.role === "student"
+    const legacyPortalPath = isStudent
+      ? "/eis-portals/student/student-dashboard.html"
+      : "/eis-portals/teacher/teacher.html"
+    const portalUrl = `${legacyPortalPath}?schoolSlug=${encodeURIComponent(member.school.slug)}`
+
+    return (
+      <iframe
+        key={`${member.school.slug}:${member.role}`}
+        title={`${isStudent ? "Student" : "Teacher"} portal for ${school.schoolName}`}
+        src={portalUrl}
+        style={{
+          position: "fixed",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          border: 0,
+          zIndex: 9999,
+          background: "#0a192f",
+        }}
+      />
+    )
+  }
+
   return (
     <main
       className="school-portal"

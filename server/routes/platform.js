@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs"
 import express from "express"
-import { config } from "../config.js"
 import { findActivePlatformOperatorById, findPlatformOperatorByEmail } from "../models/PlatformOperator.js"
 import {
   approveSchoolVerification,
@@ -10,18 +9,13 @@ import {
 } from "../models/Entitlement.js"
 import { isValidDatabaseId } from "../ids.js"
 import { asyncRoute, requirePlatformOperator } from "../security.js"
+import { removeAuthenticationSession, updateAuthenticationSession } from "../session-auth.js"
 import { normalizeEmail } from "../validation.js"
 
 const router = express.Router()
 
 function startOperatorSession(req, operatorId) {
-  return new Promise((resolve, reject) => {
-    req.session.regenerate((regenerateError) => {
-      if (regenerateError) return reject(regenerateError)
-      req.session.operatorId = operatorId
-      req.session.save((saveError) => (saveError ? reject(saveError) : resolve()))
-    })
-  })
+  return updateAuthenticationSession(req, { operatorId })
 }
 
 function compareNames(first, second) {
@@ -90,15 +84,7 @@ router.post(
   "/logout",
   requirePlatformOperator,
   asyncRoute(async (req, res) => {
-    await new Promise((resolve, reject) => {
-      req.session.destroy((error) => (error ? reject(error) : resolve()))
-    })
-    res.clearCookie("aceedu.sid", {
-      httpOnly: true,
-      secure: config.isProduction,
-      sameSite: "lax",
-      path: "/",
-    })
+    await removeAuthenticationSession(req, res, ["operatorId"])
     return res.status(204).end()
   }),
 )

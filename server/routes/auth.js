@@ -1,9 +1,9 @@
 import bcrypt from "bcryptjs"
 import express from "express"
-import { config } from "../config.js"
 import { createSchool, findSchoolByEmail, findSchoolById, schoolEmailExists } from "../models/School.js"
 import { asyncRoute } from "../security.js"
 import { schoolSlugMatches, validateSchoolSlug } from "../school-slugs.js"
+import { removeAuthenticationSession, updateAuthenticationSession } from "../session-auth.js"
 import { normalizeEmail, validateRegistration } from "../validation.js"
 
 const router = express.Router()
@@ -31,16 +31,7 @@ function publicSchool(school) {
 }
 
 function startSession(req, schoolId) {
-  return new Promise((resolve, reject) => {
-    req.session.regenerate((regenerateError) => {
-      if (regenerateError) return reject(regenerateError)
-      req.session.schoolId = schoolId.toString()
-      req.session.save((saveError) => {
-        if (saveError) return reject(saveError)
-        return resolve()
-      })
-    })
-  })
+  return updateAuthenticationSession(req, { schoolId: schoolId.toString() })
 }
 
 router.post(
@@ -119,7 +110,7 @@ router.get(
     }
     const school = await findSchoolById(req.session.schoolId)
     if (!school) {
-      req.session.destroy(() => {})
+      await removeAuthenticationSession(req, res, ["schoolId"])
       return res.status(401).json({ error: "This school account is no longer available." })
     }
     return res.json({ school: publicSchool(school) })
@@ -129,15 +120,7 @@ router.get(
 router.post(
   "/logout",
   asyncRoute(async (req, res) => {
-    await new Promise((resolve, reject) => {
-      req.session.destroy((error) => (error ? reject(error) : resolve()))
-    })
-    res.clearCookie("aceedu.sid", {
-      httpOnly: true,
-      secure: config.isProduction,
-      sameSite: "lax",
-      path: "/",
-    })
+    await removeAuthenticationSession(req, res, ["schoolId"])
     return res.status(204).end()
   }),
 )

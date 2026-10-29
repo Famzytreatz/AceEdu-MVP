@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secure Exam | AceEdu</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --danger: #ef4444;
+        --success: #4ade80;
+        --bg-body: #020617;
+        --bg-surface: #0f172a;
+        --card-bg: #1e293b;
+        --text-main: #f1f5f9;
+        --text-secondary: #94a3b8;
+        --gold: #d4af37;
+      }
+
+      body {
+        background: var(--bg-body);
+        color: var(--text-main);
+        font-family: "Plus Jakarta Sans", sans-serif;
+        margin: 0;
+        overflow: hidden;
+        user-select: none; /* Prevents highlighting text */
+      }
+
+      /* THE TOP LOCK BAR */
+      .exam-header {
+        background: var(--bg-surface);
+        padding: 15px 40px;
+        border-bottom: 2px solid var(--danger);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .exam-title h3 {
+        margin: 0;
+        font-family: "Outfit", sans-serif;
+        font-size: 1.2rem;
+      }
+      .timer-box {
+        background: var(--danger);
+        padding: 5px 20px;
+        border-radius: 5px;
+        font-weight: 800;
+        font-size: 20px;
+        color: white;
+      }
+
+      /* THE EXAM WORKSPACE */
+      .exam-container {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        height: calc(100vh - 70px);
+      }
+
+      .question-area {
+        padding: 30px;
+        overflow-y: auto;
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .q-card {
+        background: var(--card-bg);
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        border-left: 5px solid var(--gold);
+      }
+      .q-card p {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+      }
+      .q-card h2 {
+        font-family: "Outfit", sans-serif;
+        font-size: 1.3rem;
+        margin-top: 0;
+        margin-bottom: 20px;
+      }
+      .options label {
+        display: block;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.2s;
+        border: 1px solid transparent;
+      }
+      .options label:hover {
+        background: rgba(212, 175, 55, 0.1);
+        border-color: var(--gold);
+      }
+      .options input[type="radio"] {
+        margin-right: 10px;
+        accent-color: var(--gold);
+      }
+
+      .submit-btn {
+        background: var(--gold);
+        color: var(--bg-body);
+        padding: 15px 40px;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+        font-size: 1rem;
+      }
+      .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+      }
+
+      .options label.correct-answer {
+        background: rgba(74, 222, 128, 0.1);
+        border-color: var(--success);
+      }
+      .options label.wrong-answer {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: var(--danger);
+      }
+
+      /* STUDENT SIDEBAR MONITOR */
+      .monitor-sidebar {
+        background: var(--bg-surface);
+        padding: 20px;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .monitor-photo {
+        width: 100%;
+        height: 150px;
+        border: 2px solid var(--gold);
+        border-radius: 10px;
+        object-fit: cover;
+        margin-bottom: 15px;
+      }
+      .monitor-sidebar h4 {
+        margin-top: 0;
+        margin-bottom: 5px;
+        color: var(--text-main);
+      }
+      .monitor-sidebar p {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+      }
+      .security-log small {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        display: block;
+        margin-bottom: 10px;
+      }
+      .status-badge {
+        color: var(--success);
+        font-size: 0.8rem;
+        margin-top: 5px;
+        display: block;
+      }
+      .status-badge i {
+        font-size: 8px;
+        margin-right: 5px;
+      }
+
+      /* Message Box */
+      .message-box {
+        background: var(--card-bg);
+        padding: 40px;
+        border-radius: 15px;
+        text-align: center;
+        margin: 50px auto;
+        max-width: 600px;
+        border: 1px solid var(--gold);
+      }
+      .message-box h1 {
+        color: var(--gold);
+        font-family: "Outfit", sans-serif;
+        font-size: 2rem;
+      }
+      .message-box p {
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+      }
+      .message-box .btn {
+        background: var(--gold);
+        color: var(--bg-body);
+        padding: 10px 25px;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 20px;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      @media (max-width: 768px) {
+        .exam-container {
+          grid-template-columns: 1fr;
+          height: calc(
+            100vh - 120px
+          ); /* Adjust for header and potential footer */
+        }
+        .monitor-sidebar {
+          display: none; /* Hide sidebar on small screens */
+        }
+        .exam-header {
+          padding: 10px 20px;
+        }
+        .exam-title h3 {
+          font-size: 1rem;
+        }
+        .timer-box {
+          font-size: 1rem;
+          padding: 3px 10px;
+        }
+        .question-area {
+          padding: 20px;
+        }
+        .q-card h2 {
+          font-size: 1.1rem;
+        }
+        .submit-btn {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="exam-list-wrapper" style="display: none">
+      <header class="exam-header">
+        <div class="exam-title">
+          <h3>Available Examinations</h3>
+          <span id="student-id-tag-list" style="color: var(--gold)"
+            >ID: VERIFIED</span
+          >
+        </div>
+        <a
+          href="./student-dashboard.html"
+          style="color: white; text-decoration: none; font-size: 14px"
+        >
+          <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+      </header>
+      <div class="question-area" id="exam-list-container">
+        <!-- Exam list will be rendered here -->
+      </div>
+    </div>
+
+    <div id="exam-wrapper" style="display: none">
+      <header class="exam-header">
+        <div class="exam-title">
+          <h3 id="exam-title-display">Loading Exam...</h3>
+          <span id="student-id-tag" style="color: var(--gold)"
+            >ID: VERIFIED</span
+          >
+        </div>
+        <div class="timer-box" id="timer">00:00</div>
+      </header>
+
+      <div class="exam-container">
+        <main class="question-area">
+          <div id="questions-container">
+            <!-- Questions will be loaded here by JavaScript -->
+            <div class="message-box" id="loading-message">
+              <h1><i class="fas fa-spinner fa-spin"></i> Loading Exam...</h1>
+              <p>Please wait while we prepare your questions.</p>
+            </div>
+          </div>
+          <button class="submit-btn" id="submit-exam-btn" style="display: none">
+            SUBMIT FINAL ANSWERS
+          </button>
+        </main>
+
+        <aside class="monitor-sidebar">
+          <img
+            id="monitor-photo"
+            src="https://via.placeholder.com/150"
+            class="monitor-photo"
+          />
+          <h4>Student: <span id="s-name">Loading...</span></h4>
+          <p>Class: <span id="s-class">...</span></p>
+          <hr style="border-color: rgba(255, 255, 255, 0.1)" />
+          <div class="security-log">
+            <small>SECURITY STATUS</small>
+            <span class="status-badge"
+              ><i class="fas fa-circle"></i> Biometric Linked</span
+            >
+            <span class="status-badge"
+              ><i class="fas fa-circle"></i> Timed Session</span
+            >
+            <span class="status-badge"
+              ><i class="fas fa-circle"></i> Secure Submission</span
+            >
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="message-box" id="exam-message" style="display: none">
+      <h1 id="message-title"></h1>
+      <p id="message-text"></p>
+      <a href="./student-dashboard.html" class="btn">Return to Dashboard</a>
+    </div>
+
+    <!-- NEW: Post-Submission Results View -->
+    <div class="message-box" id="exam-results" style="display: none">
+      <h1 id="results-title"></h1>
+      <p id="results-score"></p>
+      <div id="results-actions" style="margin-top: 30px">
+        <button id="review-answers-btn" class="submit-btn">
+          Review Answers
+        </button>
+        <a
+          href="./student-dashboard.html"
+          class="submit-btn"
+          style="
+            background: #555;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+          "
+          >Return to Dashboard</a
+        >
+      </div>
+    </div>
+    <script src="../shared/portal-client.js"></script>
+    <script src="./exam-room.js"></script>
+  </body>
+</html>
