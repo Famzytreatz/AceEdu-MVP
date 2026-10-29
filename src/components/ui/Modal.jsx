@@ -351,7 +351,15 @@ export default function Modal({
             </div>
             <Button type="submit" className="modal__submit" loading={isSubmitting} loadingLabel="Signing you in...">Login</Button>
             {schoolContext
-              ? <p className="modal__switch">Need an account? Contact your school administrator.</p>
+              ? <>
+                  <p className="modal__switch">Need an account? Contact your school administrator.</p>
+                  <p className="modal__switch">
+                    Access your portal:{" "}
+                    <a href={`/s/${encodeURIComponent(schoolContext.slug)}/student`}>Student</a>
+                    {" · "}
+                    <a href={`/s/${encodeURIComponent(schoolContext.slug)}/teacher`}>Teacher</a>
+                  </p>
+                </>
               : <p className="modal__switch">Registering a new school? <button type="button" className="modal__text-button" onClick={() => onOpenModal?.("started")}>Use Get Started on the page to register.</button></p>}
             </fieldset>
           </form>

@@ -13,9 +13,12 @@ import PlatformConsole from "./pages/PlatformConsole"
 import SchoolSpacePage from "./pages/SchoolSpacePage"
 
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"))
+const SchoolPortalPage = lazy(() => import("./pages/SchoolPortalPage"))
 const schoolSpacePath = window.location.pathname === "/s" || window.location.pathname.startsWith("/s/")
-const schoolSpaceMatch = window.location.pathname.match(/^\/s\/([^/]+)\/?$/)
+const schoolSpaceMatch = window.location.pathname.match(/^\/s\/([^/]+)(?:\/(student|teacher|portal))?\/?$/)
 const schoolSpaceSlug = schoolSpaceMatch?.[1] || null
+const schoolSpaceRole = schoolSpaceMatch?.[2] || null
+const schoolPortalPath = ["student", "teacher", "portal"].includes(schoolSpaceRole)
 
 function readSavedTheme() {
   try {
@@ -122,7 +125,19 @@ export default function App() {
   const application = platformRoute ? (
     <PlatformConsole />
   ) : schoolSpacePath ? (
-    checkingSession ? null : school && schoolSpace && school.slug === schoolSpace.slug ? (
+    checkingSession ? null : schoolPortalPath ? (
+      <Suspense
+        fallback={<PageLoader message="Loading your school portal…" theme={theme} />}
+      >
+        <SchoolPortalPage
+          school={schoolSpace}
+          role={schoolSpaceRole === "portal" ? null : schoolSpaceRole}
+          notFound={schoolSpaceNotFound}
+          error={schoolSpaceError}
+          onRetry={retrySessionCheck}
+        />
+      </Suspense>
+    ) : school && schoolSpace && school.slug === schoolSpace.slug ? (
       <Suspense
         fallback={<PageLoader message="Loading your school workspace…" theme={theme} />}
       >

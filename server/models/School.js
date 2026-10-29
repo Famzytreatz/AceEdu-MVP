@@ -88,12 +88,54 @@ export async function findSchoolBySlug(slug) {
     .eq("slug", slug)
     .maybeSingle()
   if (error) throw error
+  const school = data || (await findSchoolBySlugAlias(slug, "public_school_id,school_name,slug,logo_url"))
+  return school ? publicSchoolFromRow(school) : null
+}
+
+export async function findSchoolLoginIdentityBySlug(slug) {
+  const { data, error } = await supabase
+    .from("schools")
+    .select("id,public_school_id,school_name,slug,logo_url")
+    .eq("slug", slug)
+    .maybeSingle()
+  if (error) throw error
+  const school = data || (await findSchoolBySlugAlias(slug, "id,public_school_id,school_name,slug,logo_url"))
+  return school ? loginIdentityFromRow(school) : null
+}
+
+async function findSchoolBySlugAlias(slug, columns) {
+  const { data: alias, error: aliasError } = await supabase
+    .from("school_slug_aliases")
+    .select("school_id")
+    .eq("slug", slug)
+    .maybeSingle()
+  if (aliasError) throw aliasError
+  if (!alias) return null
+
+  const { data, error } = await supabase
+    .from("schools")
+    .select(columns)
+    .eq("id", alias.school_id)
+    .maybeSingle()
+  if (error) throw error
   return data
-    ? {
-        publicId: data.public_school_id,
-        schoolName: data.school_name,
-        slug: data.slug,
-        logoUrl: data.logo_url,
-      }
-    : null
+}
+
+function publicSchoolFromRow(data) {
+  return {
+    publicId: data.public_school_id,
+    schoolName: data.school_name,
+    slug: data.slug,
+    logoUrl: data.logo_url,
+  }
+}
+
+function loginIdentityFromRow(data) {
+  return {
+    _id: String(data.id),
+    publicId: data.public_school_id,
+    schoolName: data.school_name,
+    slug: data.slug,
+    logoUrl: data.logo_url,
+  }
 }

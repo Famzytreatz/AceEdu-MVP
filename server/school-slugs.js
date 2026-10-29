@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto"
+
 const reservedSlugs = new Set([
   "admin",
   "api",
@@ -42,7 +44,7 @@ export function generateSchoolSlug(schoolName, publicSchoolId) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "") || "school"
-  const suffix = `-${schoolId}`
+  const suffix = `-${createHash("md5").update(schoolId).digest("hex").slice(0, 16)}`
   const slug = `${base.slice(0, 63 - suffix.length)}${suffix}`
 
   return validateSchoolSlug(slug)

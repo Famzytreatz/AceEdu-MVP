@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { createHash } from "node:crypto"
 import test from "node:test"
 
 import {
@@ -11,16 +12,17 @@ import {
 
 const publicSchoolId = "80415273906182740519362847051936"
 
-test("school slugs normalize names and use the opaque public school ID", () => {
+test("school slugs normalize names and use a short opaque uniqueness suffix", () => {
+  const suffix = createHash("md5").update(publicSchoolId).digest("hex").slice(0, 16)
   assert.equal(
     generateSchoolSlug("Bright Future Academy", publicSchoolId),
-    `bright-future-academy-${publicSchoolId}`,
+    `bright-future-academy-${suffix}`,
   )
   assert.equal(
     generateSchoolSlug("École Example", "70000000000000000000000000000007"),
-    "cole-example-70000000000000000000000000000007",
+    `cole-example-${createHash("md5").update("70000000000000000000000000000007").digest("hex").slice(0, 16)}`,
   )
-  assert.equal(generateSchoolSlug("!!!", publicSchoolId), `school-${publicSchoolId}`)
+  assert.equal(generateSchoolSlug("!!!", publicSchoolId), `school-${suffix}`)
 })
 
 test("school slug suffixes remain unique for duplicate school names", () => {
@@ -54,11 +56,12 @@ test("slug generation rejects missing names and malformed public school IDs", ()
 })
 
 test("public branding contains no private school or administrator fields", () => {
+  const suffix = createHash("md5").update(publicSchoolId).digest("hex").slice(0, 16)
   assert.deepEqual(
     publicSchoolBranding({
       _id: "42",
       schoolName: "Example School",
-      slug: "example-school-80415273906182740519362847051936",
+      slug: `example-school-${suffix}`,
       publicId: publicSchoolId,
       logoUrl: "https://cdn.example/logo.png",
       adminEmail: "private@example.com",
@@ -67,7 +70,7 @@ test("public branding contains no private school or administrator fields", () =>
     {
       id: publicSchoolId,
       schoolName: "Example School",
-      slug: "example-school-80415273906182740519362847051936",
+      slug: `example-school-${suffix}`,
       logoUrl: "https://cdn.example/logo.png",
     },
   )

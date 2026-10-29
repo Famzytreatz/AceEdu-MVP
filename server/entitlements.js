@@ -11,6 +11,7 @@ export const featureEntitlements = Object.freeze({
   financialManagement: "premium",
   advancedReports: "premium",
   studentPortal: "premium",
+  teacherPortal: "premium",
   parentPortal: "premium",
 })
 

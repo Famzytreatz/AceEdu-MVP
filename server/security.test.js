@@ -1,7 +1,12 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { config } from "./config.js"
-import { createRequireSchool, requireAllowedOrigin } from "./security.js"
+import {
+  createRequireEntitlement,
+  createRequirePortalMember,
+  createRequireSchool,
+  requireAllowedOrigin,
+} from "./security.js"
 
 function requestFor({ origin, host = "localhost:8443", protocol = "http", method = "POST" }) {
   return {
@@ -91,4 +96,95 @@ test("school authorization uses the authenticated session ID, not a requested sc
 
   assert.equal(queriedSchoolId, "42")
   assert.deepEqual(req.school, { _id: "42" })
+})
+
+test("school administrators cannot use member-only portal APIs", () => {
+  const middleware = createRequirePortalMember({
+    findEnrollment: async () => null,
+    findSchool: async () => null,
+  })()
+  const response = responseRecorder()
+  let continued = false
+
+  middleware({ session: { schoolId: "42" } }, response, () => {
+    continued = true
+  })
+
+  assert.equal(continued, false)
+  assert.equal(response.statusCode, 401)
+})
+
+test("portal authorization is pinned to the member role and internal school ID", async () => {
+  let lookedUpSchoolId
+  let lookedUpMemberId
+  const middleware = createRequirePortalMember({
+    findEnrollment: async (schoolId, memberId) => {
+      lookedUpSchoolId = schoolId
+      lookedUpMemberId = memberId
+      return {
+        id: memberId,
+        school_id: schoolId,
+        role: "student",
+        full_name: "A Student",
+        status: "Active",
+      }
+    },
+    findSchool: async (schoolId) => ({ _id: schoolId }),
+  })("student")
+  const req = {
+    session: { portalMemberId: "15", portalSchoolId: "42", portalRole: "student" },
+    body: { schoolId: "99", role: "teacher" },
+  }
+  const response = responseRecorder()
+  await new Promise((resolve, reject) => {
+    middleware(req, response, (error) => error ? reject(error) : resolve())
+  })
+
+  assert.equal(lookedUpSchoolId, "42")
+  assert.equal(lookedUpMemberId, "15")
+  assert.equal(req.portalMember.schoolId, "42")
+  assert.equal(req.portalMember.role, "student")
+  assert.deepEqual(req.school, { _id: "42" })
+})
+
+test("portal role mismatch is denied before membership lookup", () => {
+  let queried = false
+  const middleware = createRequirePortalMember({
+    findEnrollment: async () => { queried = true },
+    findSchool: async () => ({ _id: "42" }),
+  })("teacher")
+  const response = responseRecorder()
+
+  middleware(
+    { session: { portalMemberId: "15", portalSchoolId: "42", portalRole: "student" } },
+    response,
+    () => assert.fail("Wrong-role session must not continue."),
+  )
+
+  assert.equal(queried, false)
+  assert.equal(response.statusCode, 401)
+})
+
+test("the Premium teacher portal requires the school's active entitlement", async () => {
+  let entitlementSchoolId
+  const middleware = createRequireEntitlement(async (schoolId) => {
+    entitlementSchoolId = schoolId
+    return { plan: "mvp" }
+  })("teacherPortal")
+  const response = responseRecorder()
+  await new Promise((resolve, reject) => {
+    middleware(
+      { school: { _id: "42" }, session: { portalSchoolId: "99" } },
+      response,
+      (error) => error ? reject(error) : resolve(),
+    )
+    setImmediate(resolve)
+  })
+
+  assert.equal(entitlementSchoolId, "42")
+  assert.equal(response.statusCode, 403)
+  assert.deepEqual(response.body, {
+    error: "This feature requires an active Premium entitlement.",
+    code: "PREMIUM_REQUIRED",
+  })
 })

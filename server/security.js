@@ -3,6 +3,7 @@ import { isValidDatabaseId } from "./ids.js"
 import { hasFeatureAccess } from "./entitlements.js"
 import { getSchoolEntitlement } from "./models/Entitlement.js"
 import { findActivePlatformOperatorById } from "./models/PlatformOperator.js"
+import { findActivePortalEnrollmentById } from "./models/Portal.js"
 import { findSchoolById } from "./models/School.js"
 
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"])
@@ -37,6 +38,54 @@ export function createRequireSchool(findSchool = findSchoolById) {
 
 export const requireSchool = createRequireSchool()
 
+export function createRequirePortalMember({
+  findEnrollment = findActivePortalEnrollmentById,
+  findSchool = findSchoolById,
+} = {}) {
+  return function requirePortalMember(role) {
+    return (req, res, next) => {
+      const memberId = req.session?.portalMemberId
+      const schoolId = req.session?.portalSchoolId
+      const sessionRole = req.session?.portalRole
+      if (
+        !isValidDatabaseId(memberId) ||
+        !isValidDatabaseId(schoolId) ||
+        !["student", "teacher"].includes(sessionRole) ||
+        (role && sessionRole !== role)
+      ) {
+        return res.status(401).json({ error: "Sign in to your school portal." })
+      }
+
+      return Promise.all([
+        findEnrollment(schoolId, memberId),
+        findSchool(schoolId),
+      ])
+        .then(([member, school]) => {
+          if (
+            !member ||
+            !school ||
+            String(member.school_id) !== String(schoolId) ||
+            member.role !== sessionRole
+          ) {
+            return res.status(401).json({ error: "This portal account is no longer available." })
+          }
+          req.portalMember = {
+            id: String(member.id),
+            schoolId: String(member.school_id),
+            role: member.role,
+            fullName: member.full_name,
+            designation: member.designation,
+            passport: member.passport,
+            accessPin: member.access_pin,
+          }
+          req.school = school
+          return next()
+        })
+        .catch(next)
+    }
+  }
+}
+
 export function requirePlatformOperator(req, res, next) {
   const operatorId = req.session?.operatorId
   if (!isValidDatabaseId(operatorId)) {
@@ -51,9 +100,10 @@ export function requirePlatformOperator(req, res, next) {
     .catch(next)
 }
 
-export function requireEntitlement(feature) {
-  return (req, res, next) => {
-    getSchoolEntitlement(req.session.schoolId)
+export function createRequireEntitlement(findEntitlement = getSchoolEntitlement) {
+  return (feature) => (req, res, next) => {
+    const schoolId = req.school?._id ?? req.session.schoolId
+    findEntitlement(schoolId)
       .then((entitlement) => {
         if (!hasFeatureAccess(entitlement, feature)) {
           return res.status(403).json({
@@ -67,6 +117,8 @@ export function requireEntitlement(feature) {
       .catch(next)
   }
 }
+
+export const requireEntitlement = createRequireEntitlement()
 
 export function asyncRoute(handler) {
   return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next)

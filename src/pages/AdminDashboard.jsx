@@ -45,6 +45,7 @@ import {
 } from "../data/api"
 import LoadingSpinner from "../components/ui/LoadingSpinner"
 import PremiumAcademicSetup from "./PremiumAcademicSetup"
+import PremiumOperations from "./PremiumOperations"
 
 import "./AdminDashboard.css"
 
@@ -65,9 +66,16 @@ const premiumNavigation = [
   { id: "advancedReports", label: "Reports & analytics", Icon: ChartNoAxesCombined },
   { id: "parentPortal", label: "Parent portal", Icon: UserRound },
   { id: "studentPortal", label: "Student portal", Icon: GraduationCap },
+  { id: "teacherPortal", label: "Teacher portal", Icon: Users },
 ]
 
-const implementedPremiumViews = new Set(["classes"])
+const implementedPremiumViews = new Set([
+  "classes",
+  "academicRecords",
+  "attendance",
+  "studentPortal",
+  "teacherPortal",
+])
 
 const plannedNavigation = [{ label: "Settings", Icon: Settings }]
 
@@ -691,7 +699,7 @@ export default function AdminDashboard({ school, onLogout }) {
                   featureEnabled
                     ? `Open ${label}.`
                     : premiumAccessActive
-                      ? `${label} is covered by the active Premium entitlement, but its workflow is not implemented yet.`
+                      ? `${label} is still in development and is not available yet.`
                       : `${label} requires an active Premium entitlement and is not available yet.`
                 }
                 onClick={() => setActiveView(id)}
@@ -741,10 +749,10 @@ export default function AdminDashboard({ school, onLogout }) {
           <span className="admin-sidebar-premium__icon" aria-hidden="true">
             <ArrowUpRight size={16} />
           </span>
-          <strong>{premiumAccessActive ? "Premium trial is active" : "Unlock more for your school"}</strong>
+          <strong>{premiumAccessActive ? "Premium access is active" : "Unlock more for your school"}</strong>
           <p>
             {premiumAccessActive
-              ? "Your school has Premium entitlement. The listed feature workflows are not implemented in this app yet."
+              ? "Academic setup, attendance, and academic records are ready. More Premium workflows are being built."
               : "Explore the Premium roadmap and upcoming school workflows."}
           </p>
           <button
@@ -983,6 +991,31 @@ export default function AdminDashboard({ school, onLogout }) {
                 </div>
               </section>
 
+              <section className="admin-panel admin-school-space">
+                <div>
+                  <span className="admin-panel__icon"><ArrowUpRight size={18} /></span>
+                  <div>
+                    <h2>School sign-in link</h2>
+                    <p>Share your permanent AceEdu school entry point with staff and families.</p>
+                  </div>
+                </div>
+                {school.slug ? (
+                  <>
+                    <code>{window.location.origin}/s/{encodeURIComponent(school.slug)}</code>
+                    <a
+                      className="admin-outline-button"
+                      href={`/s/${encodeURIComponent(school.slug)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open school entry <ArrowUpRight size={15} />
+                    </a>
+                  </>
+                ) : (
+                  <p role="status">School URL is unavailable until a school identity is configured.</p>
+                )}
+              </section>
+
               <div className="admin-stats-grid">
                 <StatCard
                   Icon={GraduationCap}
@@ -1157,12 +1190,13 @@ export default function AdminDashboard({ school, onLogout }) {
                   </p>
                   <span className="admin-premium-preview__notice">
                     {premiumAccessActive
-                      ? "Premium access is active for this school. Its advertised feature workflows are still being built and are not available in this app yet."
-                      : "Entitlement and verification are available now. Premium feature workflows are not yet enabled in this app."}
+                      ? "Premium is active. Academic setup, attendance, academic records, and the student and teacher portals are available now; more workflows are in development."
+                      : "An active Premium plan or approved trial unlocks academic setup, attendance, academic records, and student and teacher portals. Other Premium workflows are in development."}
                   </span>
                 </div>
                 <ul className="admin-premium-preview__features">
-                  <li><BookOpen size={18} /><span>Full student portal</span></li>
+                  <li><GraduationCap size={18} /><span>Student portal</span></li>
+                  <li><Users size={18} /><span>Teacher portal</span></li>
                   <li><ClipboardList size={18} /><span>Advanced academic workflows</span></li>
                   <li><CircleDollarSign size={18} /><span>School financial management</span></li>
                   <li><ChartNoAxesCombined size={18} /><span>Advanced reports and analytics</span></li>
@@ -1624,6 +1658,51 @@ export default function AdminDashboard({ school, onLogout }) {
             </div>
           )}
 
+          {activeView === "classes" && <PremiumAcademicSetup />}
+          {activeView === "attendance" && <PremiumOperations mode="attendance" />}
+          {activeView === "academicRecords" && <PremiumOperations mode="academicRecords" />}
+          {(activeView === "studentPortal" || activeView === "teacherPortal") && (
+            <section className="admin-panel admin-portal-access">
+              <div className="admin-panel__heading">
+                <div>
+                  <span className="admin-panel__icon">
+                    {activeView === "studentPortal" ? (
+                      <GraduationCap size={18} />
+                    ) : (
+                      <Users size={18} />
+                    )}
+                  </span>
+                  <div>
+                    <h2>{activeView === "studentPortal" ? "Student portal" : "Teacher portal"}</h2>
+                    <p>Share one school-specific sign-in address with students and teachers.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="admin-portal-access__link">
+                {school.slug ? (
+                  <>
+                    <code>
+                      {window.location.origin}/s/{encodeURIComponent(school.slug)}/portal
+                    </code>
+                    <a
+                      className="admin-primary-button"
+                      href={`/s/${encodeURIComponent(school.slug)}/portal`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open shared sign-in <ArrowUpRight size={15} />
+                    </a>
+                  </>
+                ) : (
+                  <span>School URL is unavailable until a school identity is configured.</span>
+                )}
+              </div>
+              <p className="admin-portal-access__hint">
+                Access requires an active enrollment in this school and the member’s existing school-issued sign-in credentials. Premium access is checked by the server.
+              </p>
+            </section>
+          )}
+
           {["registry", "students", "staff"].includes(activeView) && (
             <section
               className="admin-panel admin-registry-panel"
@@ -1655,7 +1734,6 @@ export default function AdminDashboard({ school, onLogout }) {
                     <ArrowDownToLine size={17} />
                   )}
 
-                  {activeView === "classes" && <PremiumAcademicSetup />}
                   {exportingRegistry ? "Preparing export…" : "Export CSV"}
                 </button>
               </div>

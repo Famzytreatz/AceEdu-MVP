@@ -57,6 +57,30 @@ test("unknown features are denied and trial duration is fixed", () => {
   assert.equal(premiumTrialDays, 90)
 })
 
+test("every declared Premium entitlement activates for a Premium plan and active trial", () => {
+  const activeTrial = {
+    trialStartedAt: "2026-01-01T00:00:00.000Z",
+    trialEndsAt: "2026-04-01T00:00:00.000Z",
+  }
+  for (const [feature, requiredPlan] of Object.entries(featureEntitlements)) {
+    if (requiredPlan !== "premium") continue
+    assert.equal(hasFeatureAccess({ plan: "premium" }, feature, now), true, `${feature} plan access`)
+    assert.equal(hasFeatureAccess(activeTrial, feature, now), true, `${feature} trial access`)
+    assert.equal(
+      hasFeatureAccess(
+        {
+          trialStartedAt: "2025-01-01T00:00:00.000Z",
+          trialEndsAt: "2025-04-01T00:00:00.000Z",
+        },
+        feature,
+        now,
+      ),
+      false,
+      `${feature} access after trial expiry`,
+    )
+  }
+})
+
 test("effective plan falls back to MVP for invalid or future trial dates", () => {
   assert.equal(getEffectivePlan(null, now), "mvp")
   assert.equal(

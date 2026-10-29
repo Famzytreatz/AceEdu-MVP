@@ -18,6 +18,9 @@ Editor:
 6. `supabase/migrations/20261027190000_school_public_ids.sql`
 7. `supabase/migrations/20261027210000_platform_premium_school_list.sql`
 8. `supabase/migrations/20261027220000_premium_academic_operations.sql`
+9. `supabase/migrations/20261028110000_premium_operations_workflows.sql`
+10. `supabase/migrations/20261028130000_school_short_slugs.sql`
+11. `supabase/migrations/20261028150000_school_classroom_and_exams.sql`
 
 `supabase/migrations/20261021120000_eis_legacy_schema.sql` is additionally
 required only for the separate EIS legacy portals. Then run `npm install` and
@@ -87,16 +90,17 @@ and authorization. The separate AceEdu school ID is a 32-digit random numeric
 identifier generated from a cryptographically random UUID and protected by a
 database unique index. It is not the school's official registration number.
 The School Spaces migration derives the public slug from the school name and
-the random public ID (for example, `bright-future-academy-8041...`); the
-internal auto-increment ID is no longer included in the URL. Existing school
-slugs will change once when the public-ID migration is applied. The slug and
-public ID are locators, not authorization boundaries. School administrator
+a short opaque suffix (for example, `bright-future-academy-7f3a9c1b2d4e8a01`);
+neither internal database IDs nor the long public school ID are included in
+the URL. `20261028130000_school_short_slugs.sql` updates existing slugs and
+preserves old addresses as server-resolved aliases. The slug and public ID are
+locators, not authorization boundaries. School administrator
 sign-in still uses the existing server session, and a sign-in from a
 school-specific page is checked against that school's slug on the server.
 
 After applying the migration, open a registered school's path-based entry at
 `/s/<slug>` (for local development, for example,
-`http://localhost:8443/s/bright-future-academy-42`). The registered slug is
+`http://localhost:8443/s/bright-future-academy-7f3a9c1b2d4e8a01`). The registered slug is
 returned with the normal school account response. The public lookup
 `GET /api/schools/:slug` returns only the school name, slug, and optional HTTPS
 logo URL; unknown slugs return 404. The optional `logo_url` column can be
@@ -112,20 +116,67 @@ host-based resolution must be implemented and verified after those deployment
 details are known. Do not configure a DNS wildcard without confirming the
 domain and hosting setup.
 
-The branded entry reuses the existing school administrator login only. It
-does not add student, teacher, parent, or sub-admin authentication. The
-separately maintained `EIS-WEBSITE - Copy` portals still use their legacy
-tables and authentication patterns and are not yet associated with these
-school IDs.
+The branded school entry serves the school administrator sign-in. Student and
+teacher members use the shared Premium portal sign-in described below.
 
 The SQL migration creates the Supabase schema; it does not copy records from
 an existing MongoDB database. Export and import any existing school or
 enrollment data before removing the old MongoDB instance.
 
 Run `npm run test:server` for server-side validation, school slug, and database
-ID tests.
+ID tests. The Premium operations migration adds transactional attendance and
+assessment-result saves. Apply it after the academic operations migration
+before using those workflows.
 
-The separately maintained `EIS-WEBSITE - Copy` portals also use this Supabase
-project. Apply `supabase/migrations/20261021120000_eis_legacy_schema.sql` for
-their users, messages, content, exams, and attempts tables. Their setup and
-legacy-data import notes are in `EIS-WEBSITE - Copy/README.md`.
+With an active permanent Premium plan or approved trial, the school admin
+dashboard enables Academic Setup, Attendance, and Academic Records. Attendance
+and assessment results are saved through school-scoped database functions.
+Other advertised Premium items remain unavailable until their workflows are
+implemented; an entitlement does not by itself enable an unfinished portal.
+
+### Student and teacher portals
+
+The path-based school space has one shared student/teacher sign-in:
+
+- `/s/<slug>/portal` — school-branded shared sign-in; the server resolves the
+  active student or teacher account from its school-issued PIN and redirects to
+  the matching role-specific portal.
+- `/s/<slug>/student` and `/s/<slug>/teacher` remain supported as direct
+  role-specific entry paths and use the same sign-in flow.
+
+Portal accounts use the enrollment PIN already issued by the school. A
+configured password must be supplied; teacher enrollments without a password
+cannot sign in, while existing PIN-only student enrollments continue to use
+their PIN. The school-scoped unique PIN constraint prevents ambiguous role
+resolution. Sign-in is school-slug scoped, rate limited, and
+creates a server-side member session; the slug does not determine authorization.
+The student and teacher APIs resolve the internal school and member IDs from
+that session, require the matching member role, and enforce Premium access on
+the server. Teachers can only load or save attendance for classes assigned to
+them as class teacher or subject teacher. Students see only their own published
+results and attendance.
+
+These pages adapt EIS's student identity card, published results, classroom
+stream, class roster, teacher posts and attachments, live-class links, exam
+builder, timed multiple-choice exam room, and teacher results view to AceEdu's
+school-scoped enrollment and academic records. They do not reuse EIS's separate
+legacy authentication or APIs, which trust browser-stored identity and do not
+enforce AceEdu school isolation. EIS comments, QR sign-in, student messaging,
+and other features without an equivalent AceEdu workflow remain unavailable.
+Exam answers are saved to the active school-scoped attempt as the student works
+and restored when they resume the exam.
+
+The classroom and exam APIs additionally depend on
+`20261028150000_school_classroom_and_exams.sql`, which creates school-scoped
+content, exams, attempts, scoring functions, and a private attachments bucket.
+The existing portals depend on
+`20261027220000_premium_academic_operations.sql` and
+`20261028110000_premium_operations_workflows.sql` being applied successfully
+for their existing academic functions. The repository cannot confirm whether
+these migrations are applied to a hosted database. Applying migrations is an
+explicit deployment step.
+
+The optional `supabase/migrations/20261021120000_eis_legacy_schema.sql` is for
+running the standalone EIS copy only; AceEdu does not use its legacy user,
+message, content, exam, or attempt tables. Their setup and legacy-data import
+notes are in `EIS-WEBSITE - Copy/README.md`.

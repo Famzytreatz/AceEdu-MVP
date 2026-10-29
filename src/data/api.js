@@ -4,14 +4,19 @@ async function readJson(response) {
     result = response.status === 204 ? null : await response.json()
   } catch {
     if (!response.ok) {
-      throw new Error(`Account service request failed (HTTP ${response.status}).`)
+      throw new Error(
+        `Account service request failed (HTTP ${response.status}).`,
+      )
     }
     throw new Error("The server returned an unreadable response.")
   }
 
   if (!response.ok) {
-    const error = new Error(result?.error || "The request could not be completed.")
+    const error = new Error(
+      result?.error || "The request could not be completed.",
+    )
     error.status = response.status
+    error.code = result?.code
     throw error
   }
   return result
@@ -108,6 +113,133 @@ export async function getSchoolBySlug(slug) {
   }
 }
 
+export function loginPortal(values) {
+  return postJson("/api/portal/login", values)
+}
+
+export async function getPortalMember() {
+  const response = await fetch("/api/portal/me", { credentials: "same-origin" })
+  if (response.status === 401) return null
+  const result = await readJson(response)
+  return result.member
+}
+
+export async function logoutPortal() {
+  const response = await fetch("/api/portal/logout", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  })
+  await readJson(response)
+}
+
+export async function getStudentPortalDashboard() {
+  const response = await fetch("/api/portal/student/dashboard", {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export async function getTeacherPortalDashboard() {
+  const response = await fetch("/api/portal/teacher/dashboard", {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export async function getStudentClassroom() {
+  const response = await fetch("/api/portal/student/classroom", {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export async function getTeacherClassroom(classId) {
+  const params = new URLSearchParams({ classId })
+  const response = await fetch(`/api/portal/teacher/classroom?${params}`, {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export async function getStudentPortalExams() {
+  const response = await fetch("/api/portal/student/exams", {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export async function getTeacherPortalExams() {
+  const response = await fetch("/api/portal/teacher/exams", {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export function startStudentPortalExam(examId) {
+  return postJson(
+    `/api/portal/student/exams/${encodeURIComponent(examId)}/start`,
+    {},
+  )
+}
+
+export function submitStudentPortalExam(examId, values) {
+  return postJson(
+    `/api/portal/student/exams/${encodeURIComponent(examId)}/submit`,
+    values,
+  )
+}
+
+export async function saveStudentPortalExamDraft(examId, values) {
+  const response = await fetch(
+    `/api/portal/student/exams/${encodeURIComponent(examId)}/attempt`,
+    {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    },
+  )
+  return readJson(response)
+}
+
+export function createTeacherClassroomPost(values) {
+  return postJson("/api/portal/teacher/classroom/posts", values)
+}
+
+export async function deleteTeacherClassroomPost(postId) {
+  const response = await fetch(
+    `/api/portal/teacher/classroom/posts/${encodeURIComponent(postId)}`,
+    { method: "DELETE", credentials: "same-origin" },
+  )
+  return readJson(response)
+}
+
+export function createTeacherPortalExam(values) {
+  return postJson("/api/portal/teacher/exams", values)
+}
+
+export async function getTeacherPortalExamResults(examId) {
+  const response = await fetch(
+    `/api/portal/teacher/exams/${encodeURIComponent(examId)}/results`,
+    { credentials: "same-origin" },
+  )
+  return readJson(response)
+}
+
+export async function getTeacherAttendance(classId, date) {
+  const params = new URLSearchParams({ classId, date })
+  const response = await fetch(`/api/portal/teacher/attendance?${params}`, {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export function saveTeacherAttendance(values) {
+  return postJson("/api/portal/teacher/attendance", values)
+}
+
 export async function logoutSchool() {
   const response = await fetch("/api/auth/logout", {
     method: "POST",
@@ -135,7 +267,9 @@ export function getSchoolEntitlement() {
 }
 
 export async function getAcademicSetup() {
-  const response = await fetch("/api/admin/academic", { credentials: "same-origin" })
+  const response = await fetch("/api/admin/academic", {
+    credentials: "same-origin",
+  })
   return readJson(response)
 }
 
@@ -180,6 +314,43 @@ export async function assignStudentsToClass(classId, studentIds) {
   return readJson(response)
 }
 
+export async function getAttendance(classId, date) {
+  const params = new URLSearchParams({ classId, date })
+  const response = await fetch(`/api/admin/academic/attendance?${params}`, {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export function saveAttendance(values) {
+  return postJson("/api/admin/academic/attendance", values)
+}
+
+export async function getClassAssessments(classId, termId) {
+  const params = new URLSearchParams({ classId, termId })
+  const response = await fetch(`/api/admin/academic/assessments?${params}`, {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export function createClassAssessment(values) {
+  return postJson("/api/admin/academic/assessments", values)
+}
+
+export async function saveAssessmentResults(assessmentId, results) {
+  const response = await fetch(
+    `/api/admin/academic/assessments/${encodeURIComponent(assessmentId)}/results`,
+    {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ results }),
+    },
+  )
+  return readJson(response)
+}
+
 export function requestSchoolVerification(registrationId) {
   return postJson("/api/admin/entitlements/verification-requests", {
     registrationId,
@@ -187,7 +358,9 @@ export function requestSchoolVerification(registrationId) {
 }
 
 export async function getCurrentPlatformOperator() {
-  const response = await fetch("/api/platform/me", { credentials: "same-origin" })
+  const response = await fetch("/api/platform/me", {
+    credentials: "same-origin",
+  })
   if (response.status === 401) return null
   const result = await readJson(response)
   return result.operator
@@ -259,12 +432,15 @@ export async function createEnrollment(values) {
 }
 
 export async function verifyEnrollment(id) {
-  const response = await fetch(`/api/admin/users/${encodeURIComponent(id)}/verify`, {
-    method: "PATCH",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-    body: "{}",
-  })
+  const response = await fetch(
+    `/api/admin/users/${encodeURIComponent(id)}/verify`,
+    {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    },
+  )
   return readJson(response)
 }
 
