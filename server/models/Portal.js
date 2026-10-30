@@ -28,10 +28,21 @@ function mapTerm(row) {
   }
 }
 
-export async function findPortalEnrollmentByCredentials(
-  schoolId,
-  accessPin,
-) {
+function normalizeClassName(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+}
+
+function splitAssignments(value) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+export async function findPortalEnrollmentByCredentials(schoolId, accessPin) {
   const { data, error } = await supabase
 
     .from("enrollments")
@@ -81,7 +92,10 @@ export async function updatePortalPassword(
 ) {
   const { data, error } = await supabase
     .from("enrollments")
-    .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+    .update({
+      password_hash: passwordHash,
+      updated_at: new Date().toISOString(),
+    })
     .eq("school_id", schoolId)
     .eq("id", memberId)
     .eq("role", role)
@@ -99,7 +113,7 @@ export async function getStudentPortalDashboard(schoolId, studentId) {
 
     .from("enrollments")
 
-    .select("id,full_name,designation,passport,class_id,class_level_id")
+    .select("id,full_name,designation,passport,class_id")
 
     .eq("school_id", schoolId)
 
@@ -115,18 +129,8 @@ export async function getStudentPortalDashboard(schoolId, studentId) {
 
   if (!student) return null
 
-  const [classLevelResult, subjectChoices] = await Promise.all([
-    student.class_level_id
-      ? supabase
-          .from("school_class_levels")
-          .select("id,name,nickname")
-          .eq("school_id", schoolId)
-          .eq("id", student.class_level_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    getStudentSubjectChoices(schoolId, studentId),
-  ])
-  if (classLevelResult.error) throw classLevelResult.error
+  const subjectChoices = await getStudentSubjectChoices(schoolId, studentId)
+  const classLevel = subjectChoices.classLevel
 
   if (!student.class_id) {
     return {
@@ -136,12 +140,10 @@ export async function getStudentPortalDashboard(schoolId, studentId) {
         passport: student.passport,
       },
 
-      schoolClass: classLevelResult.data
+      schoolClass: classLevel
         ? {
-            id: String(classLevelResult.data.id),
-            name:
-              classLevelResult.data.nickname ||
-              classLevelResult.data.name,
+            id: classLevel.id,
+            name: classLevel.name,
             academicYear: null,
           }
         : null,
@@ -227,7 +229,9 @@ export async function getStudentPortalDashboard(schoolId, studentId) {
     ...subjectChoices.approvedSubjects,
   ]
   const uniqueSubjects = [
-    ...new Map(approvedSubjects.map((subject) => [subject.id, subject])).values(),
+    ...new Map(
+      approvedSubjects.map((subject) => [subject.id, subject]),
+    ).values(),
   ]
 
   const sessionIds = sessionsResult.data.map((session) => session.id)
@@ -310,10 +314,7 @@ export async function getStudentPortalDashboard(schoolId, studentId) {
     schoolClass: classResult.data
       ? {
           id: String(classResult.data.id),
-          name:
-            classLevelResult.data?.nickname ||
-            classLevelResult.data?.name ||
-            classResult.data.name,
+          name: classLevel?.name || classResult.data.name,
           academicYear: yearResult.data?.name || null,
         }
       : null,
@@ -347,13 +348,13 @@ export async function getStudentPortalDashboard(schoolId, studentId) {
 }
 
 export async function getTeacherPortalDashboard(schoolId, teacherId) {
-  const [teacherResult, classesResult, assignedSubjectsResult] =
+  const [teacherResult, classesResult, assignedSubjectsResult, levelsResult] =
     await Promise.all([
       supabase
 
         .from("enrollments")
 
-        .select("id,full_name,designation,passport")
+        .select("id,full_name,designation,passport,assigned_classes,subjects")
 
         .eq("school_id", schoolId)
 
@@ -388,23 +389,115 @@ export async function getTeacherPortalDashboard(schoolId, teacherId) {
         .eq("teacher_id", teacherId)
 
         .order("name"),
+      supabase
+        .from("school_class_levels")
+        .select(
+          "id,name,nickname,is_active,subjects:school_subject_options(id,name,is_active)",
+        )
+        .eq("school_id", schoolId)
+        .eq("is_active", true)
+        .order("sort_order"),
     ])
 
-  for (const result of [teacherResult, classesResult, assignedSubjectsResult]) {
+  for (const result of [
+    teacherResult,
+    classesResult,
+    assignedSubjectsResult,
+    levelsResult,
+  ]) {
     if (result.error) throw result.error
   }
 
   if (!teacherResult.data) return null
+
+  const assignedClassNames = splitAssignments(
+    teacherResult.data.assigned_classes,
+  )
+  const assignedClassKeys = new Set(assignedClassNames.map(normalizeClassName))
+  const assignedLevels = levelsResult.data.filter((level) =>
+    [level.name, level.nickname]
+      .filter(Boolean)
+      .some((name) => assignedClassKeys.has(normalizeClassName(name))),
+  )
+  const matchingAcademicClassesResult = assignedClassKeys.size
+    ? await supabase
+        .from("school_classes")
+        .select("id,name,academic_year_id")
+        .eq("school_id", schoolId)
+        .order("name")
+    : { data: [], error: null }
+  if (matchingAcademicClassesResult.error) {
+    throw matchingAcademicClassesResult.error
+  }
+  const assignedLevelKeys = new Set(
+    assignedLevels.flatMap((level) =>
+      [level.name, level.nickname].filter(Boolean).map(normalizeClassName),
+    ),
+  )
+  const matchingAcademicClasses = matchingAcademicClassesResult.data.filter(
+    (schoolClass) => {
+      const classKey = normalizeClassName(schoolClass.name)
+      return assignedClassKeys.has(classKey) || assignedLevelKeys.has(classKey)
+    },
+  )
 
   const classIds = [
     ...new Set([
       ...classesResult.data.map((item) => String(item.id)),
 
       ...assignedSubjectsResult.data.map((item) => String(item.class_id)),
+      ...matchingAcademicClasses.map((item) => String(item.id)),
     ]),
   ]
 
-  if (!classIds.length) {
+  const curriculumOnlyLevels = assignedLevels.filter(
+    (level) =>
+      !matchingAcademicClasses.some((schoolClass) =>
+        [level.name, level.nickname]
+          .filter(Boolean)
+          .some(
+            (name) =>
+              normalizeClassName(name) === normalizeClassName(schoolClass.name),
+          ),
+      ),
+  )
+  const resolvedAssignmentKeys = new Set([
+    ...assignedLevels.flatMap((level) =>
+      [level.name, level.nickname].filter(Boolean).map(normalizeClassName),
+    ),
+    ...matchingAcademicClasses.map((schoolClass) =>
+      normalizeClassName(schoolClass.name),
+    ),
+  ])
+  const unresolvedAssignments = assignedClassNames.filter(
+    (name) => !resolvedAssignmentKeys.has(normalizeClassName(name)),
+  )
+  const curriculumStudentResult = curriculumOnlyLevels.length
+    ? await supabase
+        .from("enrollments")
+        .select("id,full_name,designation,class_level_id")
+        .eq("school_id", schoolId)
+        .eq("role", "student")
+        .eq("status", "Active")
+        .in(
+          "class_level_id",
+          curriculumOnlyLevels.map((level) => level.id),
+        )
+        .order("full_name")
+        .limit(501)
+    : { data: [], error: null }
+  if (curriculumStudentResult.error) throw curriculumStudentResult.error
+  if (curriculumStudentResult.data.length > 500) {
+    throw new Error(
+      "An assigned class exceeds the 500-student safe roster limit. Contact your school administrator.",
+    )
+  }
+
+  if (
+    !classIds.length &&
+    !curriculumOnlyLevels.length &&
+    !unresolvedAssignments.length
+  ) {
     return {
       profile: {
         fullName: teacherResult.data.full_name,
@@ -412,49 +505,51 @@ export async function getTeacherPortalDashboard(schoolId, teacherId) {
         passport: teacherResult.data.passport,
       },
 
-      classes: [],
+      classes: unresolvedAssignments.map((name) => ({
+        id: null,
+        classLevelId: null,
+        name,
+        academicYear: null,
+        academicYearId: null,
+        terms: [],
+        students: [],
+        subjects: [],
+        curriculumOnly: false,
+        assignmentUnresolved: true,
+      })),
     }
   }
 
   const [classResult, studentsResult, subjectsResult] = await Promise.all([
-    supabase
+    classIds.length
+      ? supabase
+          .from("school_classes")
+          .select("id,name,academic_year_id")
+          .eq("school_id", schoolId)
+          .in("id", classIds)
+          .order("name")
+      : Promise.resolve({ data: [], error: null }),
 
-      .from("school_classes")
+    classIds.length
+      ? supabase
+          .from("enrollments")
+          .select("id,full_name,designation,class_id")
+          .eq("school_id", schoolId)
+          .eq("role", "student")
+          .eq("status", "Active")
+          .in("class_id", classIds)
+          .order("full_name")
+          .limit(501)
+      : Promise.resolve({ data: [], error: null }),
 
-      .select("id,name,academic_year_id")
-
-      .eq("school_id", schoolId)
-
-      .in("id", classIds)
-
-      .order("name"),
-
-    supabase
-
-      .from("enrollments")
-
-      .select("id,full_name,designation,class_id")
-
-      .eq("school_id", schoolId)
-
-      .eq("role", "student")
-
-      .eq("status", "Active")
-      .in("class_id", classIds)
-      .order("full_name")
-      .limit(501),
-
-    supabase
-
-      .from("school_subjects")
-
-      .select("id,class_id,name,teacher_id")
-
-      .eq("school_id", schoolId)
-
-      .in("class_id", classIds)
-
-      .order("name"),
+    classIds.length
+      ? supabase
+          .from("school_subjects")
+          .select("id,class_id,name,teacher_id")
+          .eq("school_id", schoolId)
+          .in("class_id", classIds)
+          .order("name")
+      : Promise.resolve({ data: [], error: null }),
   ])
 
   for (const result of [classResult, studentsResult, subjectsResult]) {
@@ -555,6 +650,39 @@ export async function getTeacherPortalDashboard(schoolId, teacherId) {
     })
   }
 
+  const studentsByLevel = new Map()
+  for (const student of curriculumStudentResult.data) {
+    const levelId = String(student.class_level_id)
+    if (!studentsByLevel.has(levelId)) studentsByLevel.set(levelId, [])
+    studentsByLevel.get(levelId).push({
+      id: String(student.id),
+      fullName: student.full_name,
+      designation: student.designation,
+    })
+  }
+
+  const academicClasses = classResult.data.map((schoolClass) => {
+    const matchingLevel = assignedLevels.find((level) =>
+      [level.name, level.nickname]
+        .filter(Boolean)
+        .some(
+          (name) =>
+            normalizeClassName(name) === normalizeClassName(schoolClass.name),
+        ),
+    )
+    return {
+      id: String(schoolClass.id),
+      name: schoolClass.name,
+      classLevelId: matchingLevel ? String(matchingLevel.id) : null,
+      academicYear: yearNames.get(String(schoolClass.academic_year_id)) || null,
+      academicYearId: String(schoolClass.academic_year_id),
+      terms: termsByYear.get(String(schoolClass.academic_year_id)) || [],
+      students: studentsByClass.get(String(schoolClass.id)) || [],
+      subjects: assignedSubjectsByClass.get(String(schoolClass.id)) || [],
+      curriculumOnly: false,
+    }
+  })
+
   return {
     profile: {
       fullName: teacherResult.data.full_name,
@@ -562,21 +690,45 @@ export async function getTeacherPortalDashboard(schoolId, teacherId) {
       passport: teacherResult.data.passport,
     },
 
-    classes: classResult.data.map((schoolClass) => ({
-      id: String(schoolClass.id),
-
-      name: schoolClass.name,
-
-      academicYear: yearNames.get(String(schoolClass.academic_year_id)) || null,
-
-      academicYearId: String(schoolClass.academic_year_id),
-
-      terms: termsByYear.get(String(schoolClass.academic_year_id)) || [],
-
-      students: studentsByClass.get(String(schoolClass.id)) || [],
-
-      subjects: assignedSubjectsByClass.get(String(schoolClass.id)) || [],
-    })),
+    classes: [
+      ...academicClasses,
+      ...curriculumOnlyLevels.map((level) => ({
+        id: null,
+        classLevelId: String(level.id),
+        name: level.nickname || level.name,
+        academicYear: null,
+        academicYearId: null,
+        terms: [],
+        students: studentsByLevel.get(String(level.id)) || [],
+        subjects: level.subjects
+          .filter(
+            (subject) =>
+              subject.is_active &&
+              splitAssignments(teacherResult.data.subjects).some(
+                (name) =>
+                  normalizeClassName(name) === normalizeClassName(subject.name),
+              ),
+          )
+          .map((subject) => ({
+            id: String(subject.id),
+            name: subject.name,
+            classId: null,
+          })),
+        curriculumOnly: true,
+      })),
+      ...unresolvedAssignments.map((name) => ({
+        id: null,
+        classLevelId: null,
+        name,
+        academicYear: null,
+        academicYearId: null,
+        terms: [],
+        students: [],
+        subjects: [],
+        curriculumOnly: false,
+        assignmentUnresolved: true,
+      })),
+    ],
   }
 }
 
@@ -615,5 +767,50 @@ export async function teacherCanAccessClass(schoolId, teacherId, classId) {
 
   if (subjectResult.error) throw subjectResult.error
 
-  return Boolean(classResult.data || subjectResult.data.length)
+  if (classResult.data || subjectResult.data.length) return true
+
+  const [schoolClassResult, teacherResult, levelsResult] = await Promise.all([
+    supabase
+      .from("school_classes")
+      .select("id,name")
+      .eq("school_id", schoolId)
+      .eq("id", classId)
+      .maybeSingle(),
+    supabase
+      .from("enrollments")
+      .select("assigned_classes")
+      .eq("school_id", schoolId)
+      .eq("id", teacherId)
+      .eq("role", "teacher")
+      .eq("status", "Active")
+      .maybeSingle(),
+    supabase
+      .from("school_class_levels")
+      .select("name,nickname")
+      .eq("school_id", schoolId),
+  ])
+  for (const result of [schoolClassResult, teacherResult, levelsResult]) {
+    if (result.error) throw result.error
+  }
+  if (!schoolClassResult.data || !teacherResult.data) return false
+
+  const assignedNames = new Set(
+    splitAssignments(teacherResult.data.assigned_classes).map(
+      normalizeClassName,
+    ),
+  )
+  const academicClassName = normalizeClassName(schoolClassResult.data.name)
+  if (assignedNames.has(academicClassName)) return true
+
+  const matchingLevel = levelsResult.data.find((level) =>
+    [level.name, level.nickname]
+      .filter(Boolean)
+      .some((name) => normalizeClassName(name) === academicClassName),
+  )
+  return Boolean(
+    matchingLevel &&
+      [matchingLevel.name, matchingLevel.nickname]
+        .filter(Boolean)
+        .some((name) => assignedNames.has(normalizeClassName(name))),
+  )
 }

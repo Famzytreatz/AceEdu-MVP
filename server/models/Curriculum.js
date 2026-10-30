@@ -46,6 +46,63 @@ function classLevelFromRow(row) {
   }
 }
 
+function normalizeClassName(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+}
+
+async function findStudentClassLevel(schoolId, student) {
+  if (student.class_level_id) {
+    const { data, error } = await supabase
+      .from("school_class_levels")
+      .select(
+        "id,name,nickname,rules:school_class_subject_rules(minimum_subjects,maximum_subjects),subjects:school_subject_options(id,name,is_compulsory,is_active)",
+      )
+      .eq("school_id", schoolId)
+      .eq("id", student.class_level_id)
+      .maybeSingle()
+    if (error) throw error
+    return data
+  }
+
+  const designation = normalizeClassName(student.designation)
+  if (!designation) return null
+
+  const { data: levels, error } = await supabase
+    .from("school_class_levels")
+    .select(
+      "id,name,nickname,rules:school_class_subject_rules(minimum_subjects,maximum_subjects),subjects:school_subject_options(id,name,is_compulsory,is_active)",
+    )
+    .eq("school_id", schoolId)
+  if (error) throw error
+
+  const standardMatch = levels.find(
+    (level) => normalizeClassName(level.name) === designation,
+  )
+  const nicknameMatches = levels.filter(
+    (level) => normalizeClassName(level.nickname) === designation,
+  )
+  const match =
+    standardMatch ||
+    (nicknameMatches.length === 1 ? nicknameMatches[0] : null)
+  if (!match) return null
+
+  const { error: updateError } = await supabase
+    .from("enrollments")
+    .update({
+      class_level_id: match.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("school_id", schoolId)
+    .eq("id", student.id)
+    .eq("role", "student")
+    .is("class_level_id", null)
+  if (updateError) throw updateError
+  return match
+}
+
 export async function ensureSchoolClassLevels(schoolId, schoolType) {
   const { data: existing, error: existingError } = await supabase
     .from("school_class_levels")
@@ -222,26 +279,18 @@ export async function updateSchoolSubjectOption(
 export async function getStudentSubjectChoices(schoolId, studentId) {
   const { data: student, error: studentError } = await supabase
     .from("enrollments")
-    .select("class_level_id")
+    .select("id,class_level_id,designation")
     .eq("school_id", schoolId)
     .eq("id", studentId)
     .eq("role", "student")
     .eq("status", "Active")
     .maybeSingle()
   if (studentError) throw studentError
-  if (!student?.class_level_id) {
+  if (!student) {
     return { classLevel: null, request: null, approvedSubjects: [] }
   }
 
-  const { data: classLevel, error: classError } = await supabase
-    .from("school_class_levels")
-    .select(
-      "id,name,nickname,rules:school_class_subject_rules(minimum_subjects,maximum_subjects),subjects:school_subject_options(id,name,is_compulsory,is_active)",
-    )
-    .eq("school_id", schoolId)
-    .eq("id", student.class_level_id)
-    .maybeSingle()
-  if (classError) throw classError
+  const classLevel = await findStudentClassLevel(schoolId, student)
   if (!classLevel) return { classLevel: null, request: null, approvedSubjects: [] }
 
   const { data: requests, error: requestError } = await supabase
@@ -268,6 +317,7 @@ export async function getStudentSubjectChoices(schoolId, studentId) {
     classLevel: {
       id: String(classLevel.id),
       name: classLevel.nickname || classLevel.name,
+      standardName: classLevel.name,
       minimumSubjects: classLevel.rules?.[0]?.minimum_subjects ?? 1,
       maximumSubjects: classLevel.rules?.[0]?.maximum_subjects ?? 15,
       subjects: classLevel.subjects

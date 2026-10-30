@@ -161,8 +161,11 @@ creates a server-side member session; the slug does not determine authorization.
 The student and teacher APIs resolve the internal school and member IDs from
 that session, require the matching member role, and enforce Premium access on
 the server. Teachers can only load or save attendance for classes assigned to
-them as class teacher or subject teacher. Students see only their own published
-results and attendance.
+them as class teacher, subject teacher, or through their school class-level
+assignment. Students see only their own published results and attendance.
+Class-level assignments appear in the teacher classroom even before an
+academic-year class exists; posting, attendance, and exams require an academic
+class and terms to be configured and linked.
 
 These pages adapt EIS's student identity card, published results, classroom
 stream, class roster, teacher posts and attachments, live-class links, exam

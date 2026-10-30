@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import { supabase } from "../supabase.js"
 
 import { teacherCanAccessClass } from "./Portal.js"
+import { getStudentSubjectChoices } from "./Curriculum.js"
 
 const attachmentBucket = "school-classroom-files"
 
@@ -48,13 +49,26 @@ function mapExam(row, includeCorrectAnswers = false) {
   }
 }
 
-async function getClassForMember(schoolId, memberId, role, classId) {
+function normalizeClassName(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+}
+
+async function getClassForMember(
+  schoolId,
+  memberId,
+  role,
+  classId,
+  classLevelId,
+) {
   if (role === "student") {
     const { data: student, error: studentError } = await supabase
 
       .from("enrollments")
 
-      .select("id,class_id")
+      .select("id,class_id,class_level_id")
 
       .eq("school_id", schoolId)
 
@@ -68,13 +82,93 @@ async function getClassForMember(schoolId, memberId, role, classId) {
 
     if (studentError) throw studentError
 
-    if (
-      !student?.class_id ||
-      (classId && String(student.class_id) !== String(classId))
-    )
-      return null
+    if (!student) return null
+
+    if (!student.class_id) {
+      const { classLevel } = await getStudentSubjectChoices(schoolId, memberId)
+      if (
+        !classLevel ||
+        (classId && String(classLevel.id) !== String(classId))
+      ) {
+        return null
+      }
+      return {
+        id: null,
+        levelId: classLevel.id,
+        name: classLevel.name,
+        standardName: classLevel.standardName,
+        academic_year_id: null,
+        class_teacher_id: null,
+        curriculumOnly: true,
+        curriculumSubjects: classLevel.subjects,
+      }
+    }
+
+    if (classId && String(student.class_id) !== String(classId)) return null
 
     classId = String(student.class_id)
+  } else if (classLevelId) {
+    const [levelResult, teacherResult] = await Promise.all([
+      supabase
+        .from("school_class_levels")
+        .select(
+          "id,name,nickname,subjects:school_subject_options(id,name,is_compulsory,is_active)",
+        )
+        .eq("school_id", schoolId)
+        .eq("id", classLevelId)
+        .eq("is_active", true)
+        .maybeSingle(),
+      supabase
+        .from("enrollments")
+        .select("assigned_classes,subjects")
+        .eq("school_id", schoolId)
+        .eq("id", memberId)
+        .eq("role", "teacher")
+        .eq("status", "Active")
+        .maybeSingle(),
+    ])
+    if (levelResult.error) throw levelResult.error
+    if (teacherResult.error) throw teacherResult.error
+    if (!levelResult.data || !teacherResult.data) return null
+
+    const assignedNames = new Set(
+      String(teacherResult.data.assigned_classes || "")
+        .split(",")
+        .map(normalizeClassName),
+    )
+    if (
+      ![levelResult.data.name, levelResult.data.nickname]
+        .filter(Boolean)
+        .some((name) => assignedNames.has(normalizeClassName(name)))
+    ) {
+      return null
+    }
+
+    return {
+      id: null,
+      levelId: String(levelResult.data.id),
+      name: levelResult.data.nickname || levelResult.data.name,
+      standardName: levelResult.data.name,
+      academic_year_id: null,
+      class_teacher_id: null,
+      curriculumOnly: true,
+      curriculumSubjects: levelResult.data.subjects
+        .filter(
+          (subject) =>
+            subject.is_active &&
+            String(teacherResult.data.subjects || "")
+              .split(",")
+              .some(
+                (assignedSubject) =>
+                  normalizeClassName(assignedSubject) ===
+                  normalizeClassName(subject.name),
+              ),
+        )
+        .map((subject) => ({
+          id: String(subject.id),
+          name: subject.name,
+        })),
+    }
   } else if (!(await teacherCanAccessClass(schoolId, memberId, classId))) {
     return null
   }
@@ -209,10 +303,93 @@ async function signedAttachment(path) {
   return data.signedUrl
 }
 
-export async function getSchoolClassroom(schoolId, memberId, role, classId) {
-  const schoolClass = await getClassForMember(schoolId, memberId, role, classId)
+export async function getSchoolClassroom(
+  schoolId,
+  memberId,
+  role,
+  classId,
+  classLevelId,
+) {
+  const schoolClass = await getClassForMember(
+    schoolId,
+    memberId,
+    role,
+    classId,
+    classLevelId,
+  )
 
   if (!schoolClass) return null
+
+  if (schoolClass.curriculumOnly) {
+    const [studentsResult, teachersResult] = await Promise.all([
+      supabase
+        .from("enrollments")
+        .select("id,full_name,designation")
+        .eq("school_id", schoolId)
+        .eq("class_level_id", schoolClass.levelId)
+        .eq("role", "student")
+        .eq("status", "Active")
+        .order("full_name")
+        .limit(501),
+      supabase
+        .from("enrollments")
+        .select("id,full_name,designation,assigned_classes")
+        .eq("school_id", schoolId)
+        .eq("role", "teacher")
+        .eq("status", "Active")
+        .order("full_name")
+        .limit(501),
+    ])
+    if (studentsResult.error) throw studentsResult.error
+    if (teachersResult.error) throw teachersResult.error
+    if (studentsResult.data.length > 500) {
+      throw new Error("This class exceeds the 500-student safe roster limit.")
+    }
+
+    const normalizeName = (value) =>
+      String(value || "")
+        .toLocaleLowerCase()
+        .replace(/[^a-z0-9]/g, "")
+    const classNames = new Set([
+      normalizeName(schoolClass.name),
+      normalizeName(schoolClass.standardName),
+    ])
+    const teachers = teachersResult.data
+      .filter((teacher) =>
+        (teacher.assigned_classes || "")
+          .split(",")
+          .some((assignedClass) =>
+            classNames.has(normalizeName(assignedClass)),
+          ),
+      )
+      .map((teacher) => ({
+        id: String(teacher.id),
+        fullName: teacher.full_name,
+        designation: teacher.designation,
+      }))
+
+    return {
+      schoolClass: {
+        id: null,
+        classLevelId: schoolClass.levelId,
+        name: schoolClass.name,
+        academicYear: null,
+        classTeacher: teachers[0]?.fullName || null,
+      },
+      students: studentsResult.data.map((student) => ({
+        id: String(student.id),
+        fullName: student.full_name,
+        designation: student.designation,
+      })),
+      teachers,
+      subjects: schoolClass.curriculumSubjects.map((subject) => ({
+        id: subject.id,
+        name: subject.name,
+        teacherId: null,
+      })),
+      curriculumOnly: true,
+    }
+  }
 
   const [roster, yearResult, subjectResult, teacherResult] = await Promise.all([
     getRoster(schoolId, schoolClass.id),

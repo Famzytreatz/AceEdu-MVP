@@ -717,7 +717,7 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
   const teacherSubjectOptions = [
     ...new Set(
       classLevels
-        .filter((level) => level.isActive && selectedTeacherClasses.has(level.displayName))
+        .filter((level) => level.isActive && selectedTeacherClasses.has(level.name))
         .flatMap((level) =>
           level.subjects
             .filter((subject) => subject.isActive)
@@ -1595,11 +1595,11 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                             <label key={level.id}>
                               <input
                                 type="checkbox"
-                                checked={selectedTeacherClasses.has(level.displayName)}
+                                checked={selectedTeacherClasses.has(level.name)}
                                 onChange={(event) =>
                                   setEnrollmentChoices(
                                     "assignedClasses",
-                                    level.displayName,
+                                    level.name,
                                     event.target.checked,
                                   )
                                 }

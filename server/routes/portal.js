@@ -137,10 +137,12 @@ studentRouter.get(
     }
     return res.json({
       ...classroom,
-      posts: await getClassroomPosts(
-        req.portalMember.schoolId,
-        classroom.schoolClass.id,
-      ),
+      posts: classroom.curriculumOnly
+        ? []
+        : await getClassroomPosts(
+            req.portalMember.schoolId,
+            classroom.schoolClass.id,
+          ),
     })
   }),
 )
@@ -282,14 +284,20 @@ teacherRouter.get(
   "/classroom",
   asyncRoute(async (req, res) => {
     const classId = String(req.query.classId || "")
-    if (!isValidDatabaseId(classId)) {
+    const classLevelId = String(req.query.classLevelId || "")
+    if (
+      Boolean(classId) === Boolean(classLevelId) ||
+      (classId && !isValidDatabaseId(classId)) ||
+      (classLevelId && !isValidDatabaseId(classLevelId))
+    ) {
       return res.status(400).json({ error: "Select a valid class." })
     }
     const classroom = await getSchoolClassroom(
       req.portalMember.schoolId,
       req.portalMember.id,
       "teacher",
-      classId,
+      classId || null,
+      classLevelId || null,
     )
     if (!classroom) {
       return res
@@ -298,10 +306,12 @@ teacherRouter.get(
     }
     return res.json({
       ...classroom,
-      posts: await getClassroomPosts(
-        req.portalMember.schoolId,
-        classroom.schoolClass.id,
-      ),
+      posts: classroom.curriculumOnly
+        ? []
+        : await getClassroomPosts(
+            req.portalMember.schoolId,
+            classroom.schoolClass.id,
+          ),
     })
   }),
 )

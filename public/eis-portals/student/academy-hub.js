@@ -1,4 +1,4 @@
-(() => {
+;(() => {
   const portal = window.AceEduPortal
   let member = null
   let classroom = null
@@ -16,7 +16,8 @@
 
   function showBusy(message) {
     const stream = document.getElementById("assignmentStream")
-    if (stream) stream.innerHTML = `<div class="message-box" style="padding:35px;text-align:center;color:var(--text-secondary);">${portal.escapeHtml(message)}</div>`
+    if (stream)
+      stream.innerHTML = `<div class="message-box" style="padding:35px;text-align:center;color:var(--text-secondary);">${portal.escapeHtml(message)}</div>`
   }
 
   function renderPosts() {
@@ -24,38 +25,86 @@
     const posts = classroom?.posts || []
     if (!stream) return
     if (!posts.length) {
-      stream.innerHTML = '<div class="empty-state"><i class="fa fa-satellite-dish"></i><strong>It’s quiet in here… for now</strong>No announcements or learning materials have been posted yet. Check back soon for classroom updates.</div>'
+      stream.innerHTML =
+        '<div class="empty-state"><i class="fa fa-satellite-dish"></i><strong>It’s quiet in here… for now</strong>No announcements or learning materials have been posted yet. Check back soon for classroom updates.</div>'
       return
     }
-    stream.innerHTML = posts.map((post) => {
-      const isOwner = member?.role === "teacher" && post.authorId === member.id
-      const type = post.type || "notice"
-      const attachmentUrl = safeHref(post.attachmentUrl)
-      const meetingUrl = safeHref(post.meetingUrl)
-      let attachmentHtml = ""
-      if (attachmentUrl) {
-        const name = portal.escapeHtml(post.attachmentName || "Download attached material")
-        attachmentHtml = `<a class="attachment" href="${portal.escapeHtml(attachmentUrl)}"><i class="fa fa-file-download"></i><span>${name}</span></a>`
-      }
-      const meetingHtml = meetingUrl ? `<p><a class="attachment" href="${portal.escapeHtml(meetingUrl)}"><i class="fas fa-video"></i><span>Join online class</span></a></p>` : ""
-      const due = post.deadline ? ` · Due ${portal.escapeHtml(post.deadline)}` : ""
-      return `<article class="post-card" id="post-${portal.escapeHtml(post.id)}">
-        <div class="post-header"><div class="post-meta"><div class="post-icon"><i class="fas ${type === "assignment" ? "fa-book-open" : type === "live_class" ? "fa-video" : type === "lesson" ? "fa-graduation-cap" : type === "material" ? "fa-file-alt" : "fa-bullhorn"}"></i></div><div class="post-info"><h3>${portal.escapeHtml(post.title)}</h3><span>${portal.escapeHtml(post.author || "Instructor")} · ${portal.escapeHtml(new Date(post.createdAt).toLocaleDateString())}${due}</span></div></div>${isOwner ? `<button type="button" data-delete-post="${portal.escapeHtml(post.id)}" aria-label="Delete your post" style="background:none;border:none;color:#ff4444;cursor:pointer;font-size:16px;"><i class="fa fa-trash-alt"></i></button>` : ""}</div>
+    stream.innerHTML = posts
+      .map((post) => {
+        const isOwner =
+          member?.role === "teacher" && post.authorId === member.id
+        const type = post.type || "notice"
+        const attachmentUrl = safeHref(post.attachmentUrl)
+        const meetingUrl = safeHref(post.meetingUrl)
+        let attachmentHtml = ""
+        if (attachmentUrl) {
+          const name = portal.escapeHtml(
+            post.attachmentName || "Download attached material",
+          )
+          attachmentHtml = `<a class="attachment" href="${portal.escapeHtml(attachmentUrl)}"><i class="fa fa-file-download"></i><span>${name}</span></a>`
+        }
+        const meetingHtml = meetingUrl
+          ? `<p><a class="attachment" href="${portal.escapeHtml(meetingUrl)}"><i class="fas fa-video"></i><span>Join online class</span></a></p>`
+          : ""
+        const due = post.deadline
+          ? ` · Due ${portal.escapeHtml(post.deadline)}`
+          : ""
+        return `<article class="post-card" id="post-${portal.escapeHtml(post.id)}">
+        <div class="post-header"><div class="post-meta"><div class="post-icon"><i class="fas ${
+          type === "assignment"
+            ? "fa-book-open"
+            : type === "live_class"
+              ? "fa-video"
+              : type === "lesson"
+                ? "fa-graduation-cap"
+                : type === "material"
+                  ? "fa-file-alt"
+                  : "fa-bullhorn"
+        }"></i></div><div class="post-info"><h3>${portal.escapeHtml(post.title)}</h3><span>${portal.escapeHtml(post.author || "Instructor")} · ${portal.escapeHtml(new Date(post.createdAt).toLocaleDateString())}${due}</span></div></div>${
+          isOwner
+            ? `<button type="button" data-delete-post="${portal.escapeHtml(post.id)}" aria-label="Delete your post" style="background:none;border:none;color:#ff4444;cursor:pointer;font-size:16px;"><i class="fa fa-trash-alt"></i></button>`
+            : ""
+        }</div>
         <div class="post-content" style="white-space:pre-wrap;">${portal.escapeHtml(post.contentBody || "")}</div>${attachmentHtml}${meetingHtml}
         <div class="post-footer"><span><i class="far fa-comment"></i> Comments disabled</span><span>${portal.escapeHtml(type.replaceAll("_", " ").toUpperCase())}</span></div>
       </article>`
-    }).join("")
-    stream.querySelectorAll("[data-delete-post]").forEach((button) => button.addEventListener("click", () => deletePost(button.dataset.deletePost)))
+      })
+      .join("")
+    stream
+      .querySelectorAll("[data-delete-post]")
+      .forEach((button) =>
+        button.addEventListener("click", () =>
+          deletePost(button.dataset.deletePost),
+        ),
+      )
   }
 
   function renderRoster() {
     const teacherCards = document.getElementById("teacherCards")
     const studentCards = document.getElementById("studentCards")
     if (teacherCards) {
-      teacherCards.innerHTML = (classroom?.teachers || []).map((teacher) => `<div class="person-card"><img src="${portal.avatarData(teacher.fullName, "d4af37", "0a192f")}" class="person-img" alt=""><div class="person-name">${portal.escapeHtml(teacher.fullName)}</div><div class="person-role">FACULTY${teacher.designation ? ` · ${portal.escapeHtml(teacher.designation)}` : ""}</div></div>`).join("") || '<p style="color:var(--text-secondary);">No instructors are assigned to this class yet.</p>'
+      teacherCards.innerHTML =
+        (classroom?.teachers || [])
+          .map(
+            (teacher) =>
+              `<div class="person-card"><img src="${portal.avatarData(teacher.fullName, "d4af37", "0a192f")}" class="person-img" alt=""><div class="person-name">${portal.escapeHtml(teacher.fullName)}</div><div class="person-role">FACULTY${
+                teacher.designation
+                  ? ` · ${portal.escapeHtml(teacher.designation)}`
+                  : ""
+              }</div></div>`,
+          )
+          .join("") ||
+        '<p style="color:var(--text-secondary);">No instructors are assigned to this class yet.</p>'
     }
     if (studentCards) {
-      studentCards.innerHTML = (classroom?.students || []).map((student) => `<div class="person-card"><img src="${portal.avatarData(student.fullName, "112240", "f1f5f9")}" class="person-img" alt=""><div class="person-name">${portal.escapeHtml(student.fullName)}</div><div class="person-role">${portal.escapeHtml(student.designation || "STUDENT")}</div></div>`).join("") || '<p style="color:var(--text-secondary);">No active students are assigned to this class.</p>'
+      studentCards.innerHTML =
+        (classroom?.students || [])
+          .map(
+            (student) =>
+              `<div class="person-card"><img src="${portal.avatarData(student.fullName, "112240", "f1f5f9")}" class="person-img" alt=""><div class="person-name">${portal.escapeHtml(student.fullName)}</div><div class="person-role">${portal.escapeHtml(student.designation || "STUDENT")}</div></div>`,
+          )
+          .join("") ||
+        '<p style="color:var(--text-secondary);">No active students are assigned to this class.</p>'
     }
   }
 
@@ -131,9 +180,13 @@
   }
 
   async function deletePost(postId) {
-    if (member?.role !== "teacher" || !confirm("Delete this classroom post?")) return
+    if (member?.role !== "teacher" || !confirm("Delete this classroom post?"))
+      return
     try {
-      await portal.request(`/api/portal/teacher/classroom/posts/${encodeURIComponent(postId)}`, { method: "DELETE" })
+      await portal.request(
+        `/api/portal/teacher/classroom/posts/${encodeURIComponent(postId)}`,
+        { method: "DELETE" },
+      )
       await loadClassroom()
     } catch (error) {
       alert(error.message || "The post could not be deleted.")
@@ -143,19 +196,33 @@
   async function submitPost() {
     if (member?.role !== "teacher" || !classroom?.schoolClass?.id) return
     const title = document.getElementById("postTitle")?.value.trim() || ""
-    const contentBody = document.getElementById("postContent")?.value.trim() || ""
+    const contentBody =
+      document.getElementById("postContent")?.value.trim() || ""
     const type = document.getElementById("postType")?.value || "notice"
     const subjectId = document.getElementById("postSubject")?.value || null
     const deadline = document.getElementById("postDeadline")?.value || null
-    const meetingUrl = document.getElementById("postMeetingUrl")?.value.trim() || null
+    const meetingUrl =
+      document.getElementById("postMeetingUrl")?.value.trim() || null
     const btn = document.getElementById("transmitBtn")
     if (!title) return alert("Please enter a title.")
-    if (!contentBody && !meetingUrl) return alert("Add the post content or a meeting link.")
-    if (type === "assignment" && !deadline) return alert("Choose a due date for this assignment.")
-    if (type === "live_class" && !meetingUrl) return alert("Enter a valid HTTPS meeting URL.")
-    if (meetingUrl && !meetingUrl.startsWith("https://")) return alert("Meeting links must use HTTPS.")
+    if (!contentBody && !meetingUrl)
+      return alert("Add the post content or a meeting link.")
+    if (type === "assignment" && !deadline)
+      return alert("Choose a due date for this assignment.")
+    if (type === "live_class" && !meetingUrl)
+      return alert("Enter a valid HTTPS meeting URL.")
+    if (meetingUrl && !meetingUrl.startsWith("https://"))
+      return alert("Meeting links must use HTTPS.")
 
-    const payload = { classId: classroom.schoolClass.id, subjectId, type, title, contentBody, deadline, meetingUrl }
+    const payload = {
+      classId: classroom.schoolClass.id,
+      subjectId,
+      type,
+      title,
+      contentBody,
+      deadline,
+      meetingUrl,
+    }
     if (attachedFile) {
       payload.attachment = {
         name: attachedFile.file.name,
@@ -163,39 +230,76 @@
         dataBase64: attachedFile.dataUrl.split(",")[1] || "",
       }
     }
-    if (btn) { btn.disabled = true; btn.textContent = "TRANSMITTING…" }
+    if (btn) {
+      btn.disabled = true
+      btn.textContent = "TRANSMITTING…"
+    }
     try {
-      await portal.request("/api/portal/teacher/classroom/posts", { method: "POST", body: JSON.stringify(payload) })
+      await portal.request("/api/portal/teacher/classroom/posts", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      })
       closeCreator()
       await loadClassroom()
     } catch (error) {
       alert(error.message || "The classroom post could not be published.")
     } finally {
-      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-broadcast-tower"></i> TRANSMIT' }
+      if (btn) {
+        btn.disabled = false
+        btn.innerHTML = '<i class="fas fa-broadcast-tower"></i> TRANSMIT'
+      }
     }
   }
 
   async function loadClassroom() {
     if (!member) return
-    const classId = new URLSearchParams(location.search).get("classId")
-    const path = member.role === "teacher"
-      ? `/api/portal/teacher/classroom?classId=${encodeURIComponent(classId || "")}`
-      : "/api/portal/student/classroom"
+    const params = new URLSearchParams(location.search)
+    const classId = params.get("classId")
+    const classLevelId = params.get("classLevelId")
+    const path =
+      member.role === "teacher"
+        ? `/api/portal/teacher/classroom?${
+            classLevelId
+              ? `classLevelId=${encodeURIComponent(classLevelId)}`
+              : `classId=${encodeURIComponent(classId || "")}`
+          }`
+        : "/api/portal/student/classroom"
     classroom = await portal.request(path)
     portal.setText("className", classroom.schoolClass?.name || "Classroom")
-    portal.setText("broadcastTarget", `Targeting: ${classroom.schoolClass?.name || "Class"}`)
+    portal.setText(
+      "broadcastTarget",
+      `Targeting: ${classroom.schoolClass?.name || "Class"}`,
+    )
     renderPosts()
     renderRoster()
     const subjects = document.getElementById("postSubject")
     if (subjects) {
-      subjects.innerHTML = '<option value="">General classroom post</option>' + (classroom.subjects || []).map((subject) => `<option value="${portal.escapeHtml(subject.id)}">${portal.escapeHtml(subject.name)}</option>`).join("")
+      subjects.innerHTML =
+        '<option value="">General classroom post</option>' +
+        (classroom.subjects || [])
+          .map(
+            (subject) =>
+              `<option value="${portal.escapeHtml(subject.id)}">${portal.escapeHtml(subject.name)}</option>`,
+          )
+          .join("")
+    }
+    if (member.role === "teacher" && classroom.curriculumOnly) {
+      const notice = document.getElementById("teacherClassSetupNotice")
+      if (notice) {
+        notice.textContent =
+          "Your class assignment is active. Posts, live classes, and exams unlock after the administrator links this class to an academic year."
+        notice.style.display = "block"
+      }
+      document.getElementById("openPostCreator")?.setAttribute("hidden", "")
+      document.getElementById("startLiveClassBtn")?.setAttribute("hidden", "")
     }
   }
 
   function startLiveClass() {
+    if (classroom?.curriculumOnly) return
     if (!classroom?.schoolClass?.id) return
     const className = classroom.schoolClass.name || "Class"
-    const meetingUrl = `https://meet.jit.si/AceEdu-${(member.school?.slug || "school")}-${classroom.schoolClass.id}`
+    const meetingUrl = `https://meet.jit.si/AceEdu-${member.school?.slug || "school"}-${classroom.schoolClass.id}`
     const target = document.getElementById("postMeetingUrl")
     const type = document.getElementById("postType")
     const title = document.getElementById("postTitle")
@@ -203,7 +307,8 @@
     if (target) target.value = meetingUrl
     if (type) type.value = "live_class"
     if (title) title.value = `Live class · ${className}`
-    if (body) body.value = "Join the scheduled online class using the meeting link."
+    if (body)
+      body.value = "Join the scheduled online class using the meeting link."
     openCreator()
   }
 
@@ -229,7 +334,12 @@
         portal.goToPortal("portal")
         return
       }
-      if (member.role === "teacher" && !new URLSearchParams(location.search).get("classId")) {
+      const params = new URLSearchParams(location.search)
+      if (
+        member.role === "teacher" &&
+        !params.get("classId") &&
+        !params.get("classLevelId")
+      ) {
         portal.goToPortal("teacher")
         return
       }
@@ -238,32 +348,73 @@
       portal.setText("accessLevel", member.role.toUpperCase())
       const schoolNameSpan = document.querySelector(".brand span")
       if (schoolNameSpan) {
-        const words = (member.school?.schoolName || "YOUR SCHOOL").toUpperCase().trim().split(/\s+/)
-        const accent = words.splice(Math.max(0, words.length - 2)).join(" ") || "SCHOOL"
-        schoolNameSpan.innerHTML = `${portal.escapeHtml(words.join(" "))}${words.length ? " " : ""}<span style="color:var(--primary)">${portal.escapeHtml(accent)}</span>`
+        const words = (member.school?.schoolName || "YOUR SCHOOL")
+          .toUpperCase()
+          .trim()
+          .split(/\s+/)
+        const accent =
+          words.splice(Math.max(0, words.length - 2)).join(" ") || "SCHOOL"
+        schoolNameSpan.innerHTML = `${portal.escapeHtml(words.join(" "))}${
+          words.length ? " " : ""
+        }<span style="color:var(--primary)">${portal.escapeHtml(accent)}</span>`
       }
       document.title = `Classroom Hub | ${member.school?.schoolName || "AceEdu"}`
       const photo = document.getElementById("studentPhoto")
       if (photo) {
-        photo.src = member.passport || portal.avatarData(member.fullName, "d4af37", "0a192f")
+        photo.src =
+          member.passport ||
+          portal.avatarData(member.fullName, "d4af37", "0a192f")
         photo.alt = `${member.fullName} profile photo`
       }
       const teacherConsole = document.getElementById("teacherConsole")
-      if (teacherConsole) teacherConsole.style.display = member.role === "teacher" ? "flex" : "none"
+      if (teacherConsole)
+        teacherConsole.style.display =
+          member.role === "teacher" ? "flex" : "none"
       const exitBtn = document.getElementById("exitClassroomBtn")
-      if (exitBtn) exitBtn.style.display = member.role === "teacher" ? "inline-flex" : "none"
+      if (exitBtn)
+        exitBtn.style.display =
+          member.role === "teacher" ? "inline-flex" : "none"
       const brandHome = document.getElementById("academyBrandHome")
-      if (brandHome) brandHome.addEventListener("click", () => portal.goToPortal(member.role))
-      document.querySelectorAll("[data-hub-tab]").forEach((button) => button.addEventListener("click", () => switchTab(button.dataset.hubTab)))
-      document.getElementById("openPostCreator")?.addEventListener("click", openCreator)
-      document.getElementById("startLiveClassBtn")?.addEventListener("click", startLiveClass)
-      document.getElementById("exitClassroomBtn")?.addEventListener("click", () => portal.goToPortal("teacher"))
-      document.getElementById("chooseAttachmentBtn")?.addEventListener("click", () => document.getElementById("mediaUpload")?.click())
-      document.getElementById("mediaUpload")?.addEventListener("change", (event) => processFile(event.target))
-      document.getElementById("clearAttachedFileBtn")?.addEventListener("click", clearFile)
-      document.getElementById("transmitBtn")?.addEventListener("click", submitPost)
-      document.getElementById("cancelPostBtn")?.addEventListener("click", closeCreator)
-      document.getElementById("postType")?.addEventListener("change", updateComposerFields)
+      if (brandHome)
+        brandHome.addEventListener("click", () =>
+          portal.goToPortal(member.role),
+        )
+      document
+        .querySelectorAll("[data-hub-tab]")
+        .forEach((button) =>
+          button.addEventListener("click", () =>
+            switchTab(button.dataset.hubTab),
+          ),
+        )
+      document
+        .getElementById("openPostCreator")
+        ?.addEventListener("click", openCreator)
+      document
+        .getElementById("startLiveClassBtn")
+        ?.addEventListener("click", startLiveClass)
+      document
+        .getElementById("exitClassroomBtn")
+        ?.addEventListener("click", () => portal.goToPortal("teacher"))
+      document
+        .getElementById("chooseAttachmentBtn")
+        ?.addEventListener("click", () =>
+          document.getElementById("mediaUpload")?.click(),
+        )
+      document
+        .getElementById("mediaUpload")
+        ?.addEventListener("change", (event) => processFile(event.target))
+      document
+        .getElementById("clearAttachedFileBtn")
+        ?.addEventListener("click", clearFile)
+      document
+        .getElementById("transmitBtn")
+        ?.addEventListener("click", submitPost)
+      document
+        .getElementById("cancelPostBtn")
+        ?.addEventListener("click", closeCreator)
+      document
+        .getElementById("postType")
+        ?.addEventListener("change", updateComposerFields)
       const upload = document.getElementById("mediaUpload")
       if (upload) upload.accept = ".pdf,.jpg,.jpeg,.png,.webp"
       await loadClassroom()
