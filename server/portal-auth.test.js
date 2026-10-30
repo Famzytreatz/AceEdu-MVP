@@ -89,6 +89,54 @@ async function postLogin(body, dependencies) {
   }
 }
 
+async function patchStudentPassword(body, dependencies = {}) {
+  const {
+    hasPortalPassword = false,
+    role: memberRole = "student",
+    ...routerDependencies
+  } = dependencies
+  const app = express()
+  app.use(express.json())
+  app.use((req, _res, next) => {
+    req.session = {}
+    next()
+  })
+  app.use(
+    "/api/portal",
+    createPortalAuthRouter({
+      requireMember: () => (req, _res, next) => {
+        req.portalMember = {
+          id: "15",
+          schoolId: "42",
+          role: memberRole,
+          hasPortalPassword,
+        }
+        next()
+      },
+      ...routerDependencies,
+    }),
+  )
+
+  const server = createServer(app)
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve))
+
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:${server.address().port}/api/portal/password`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    )
+    return { status: response.status, body: await response.json() }
+  } finally {
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    )
+  }
+}
+
 test("shared school member login detects role and binds session to resolved school", async () => {
   let schoolQuery
 
@@ -146,6 +194,8 @@ test("shared school member login detects role and binds session to resolved scho
   assert.equal(result.body.member.premiumAccess, true)
 
   assert.equal(result.body.member.school.slug, "bright-future")
+
+  assert.equal(result.body.member.hasPortalPassword, true)
 
   assert.equal(result.body.member.access_pin, undefined)
 
@@ -225,4 +275,92 @@ test("a student without a configured password can use only the school-issued PIN
   assert.equal(result.body.member.premiumAccess, false)
 
   assert.equal(result.body.code, "PREMIUM_REQUIRED")
+
+  assert.equal(result.body.member.accessCode, "482193")
+
+  assert.equal(result.body.member.hasPortalPassword, false)
+})
+
+test("students can set a portal password using their school-bound session", async () => {
+  let savedPassword
+  let hashedPasswordInput
+  const result = await patchStudentPassword(
+    { newPassword: "StudentPass123" },
+    {
+      hashPassword: async (password) => {
+        hashedPasswordInput = password
+        return "secure-hash"
+      },
+      setMemberPassword: async (...args) => {
+        savedPassword = args
+        return true
+      },
+    },
+  )
+
+  assert.equal(result.status, 200)
+  assert.deepEqual(result.body, { hasPortalPassword: true })
+  assert.equal(hashedPasswordInput, "StudentPass123")
+  assert.deepEqual(savedPassword, ["42", "15", "student", "secure-hash"])
+})
+
+test("changing a student password requires and verifies the current password", async () => {
+  const dependencies = {
+    hasPortalPassword: true,
+    findActiveEnrollment: async (schoolId, id) => {
+      assert.equal(schoolId, "42")
+      assert.equal(id, "15")
+      return { id: "15", password_hash: "existing-hash" }
+    },
+    comparePassword: async (password, hash) =>
+      password === "CurrentPass123" && hash === "existing-hash",
+    hashPassword: async () => "new-hash",
+    setMemberPassword: async () => true,
+  }
+
+  const missingCurrentPassword = await patchStudentPassword(
+    { newPassword: "NextPass123" },
+    dependencies,
+  )
+  assert.equal(missingCurrentPassword.status, 400)
+  assert.match(missingCurrentPassword.body.error, /current password/i)
+
+  const incorrectCurrentPassword = await patchStudentPassword(
+    { currentPassword: "WrongPass123", newPassword: "NextPass123" },
+    dependencies,
+  )
+  assert.equal(incorrectCurrentPassword.status, 401)
+  assert.match(incorrectCurrentPassword.body.error, /incorrect/i)
+
+  const correctCurrentPassword = await patchStudentPassword(
+    { currentPassword: "CurrentPass123", newPassword: "NextPass123" },
+    dependencies,
+  )
+  assert.equal(correctCurrentPassword.status, 200)
+  assert.deepEqual(correctCurrentPassword.body, { hasPortalPassword: true })
+})
+
+test("teachers can change their portal password after verifying the current password", async () => {
+  let savedPassword
+  const result = await patchStudentPassword(
+    { currentPassword: "CurrentPass123", newPassword: "NextPass123" },
+    {
+      role: "teacher",
+      hasPortalPassword: true,
+      findActiveEnrollment: async () => ({
+        id: "15",
+        password_hash: "teacher-hash",
+      }),
+      comparePassword: async (password, hash) =>
+        password === "CurrentPass123" && hash === "teacher-hash",
+      hashPassword: async () => "next-hash",
+      setMemberPassword: async (...args) => {
+        savedPassword = args
+        return true
+      },
+    },
+  )
+
+  assert.equal(result.status, 200)
+  assert.deepEqual(savedPassword, ["42", "15", "teacher", "next-hash"])
 })

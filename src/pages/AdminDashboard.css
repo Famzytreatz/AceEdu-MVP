@@ -736,6 +736,32 @@
 .admin-quick-actions { border-radius: 1rem; }
 .admin-enrollment-fields label,
 .admin-enrollment-form label { color: var(--admin-ink); font-weight: 500; }
+.admin-enrollment-choice-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: start;
+  gap: .55rem .8rem;
+  min-width: 0;
+  padding: .8rem;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-control);
+}
+.admin-enrollment-choice-list legend {
+  padding: 0 .25rem;
+  color: var(--admin-ink);
+  font-size: .78rem;
+  font-weight: 700;
+}
+.admin-enrollment-choice-list label {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .77rem;
+}
+.admin-enrollment-choice-list input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--admin-blue);
+}
 .admin-enrollment-form input,
 .admin-enrollment-form select,
 .admin-search input,

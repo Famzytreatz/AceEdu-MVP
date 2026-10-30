@@ -1,10 +1,11 @@
+import { isValidDatabaseId } from "./ids.js"
+
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const schoolTypes = new Set([
-  "Nursery/Primary",
+  "Primary",
   "Secondary",
   "Combined",
-  "Other",
 ])
 
 const adminRoles = new Set([
@@ -43,6 +44,7 @@ const allowedEnrollmentKeys = new Set([
   "fullName",
   "role",
   "designation",
+  "classLevelId",
   "assignedClasses",
   "subjects",
   "passport",
@@ -158,6 +160,19 @@ export function validateEnrollment(body = {}) {
   const role = text(body.role, "Role", 20)
 
   if (!enrollmentRoles.has(role)) throw new Error("Choose a valid role.")
+  let classLevelId = null
+  if (role === "student") {
+    if (!isValidDatabaseId(body.classLevelId)) {
+      throw new Error("Choose a valid class.")
+    }
+    classLevelId = String(body.classLevelId)
+  } else if (
+    body.classLevelId !== undefined &&
+    body.classLevelId !== null &&
+    body.classLevelId !== ""
+  ) {
+    throw new Error("Only students can be assigned a class level.")
+  }
 
   const optionalText = (value, label, maxLength) => {
     if (value === undefined || value === null || value === "") return null
@@ -212,6 +227,8 @@ export function validateEnrollment(body = {}) {
     role,
 
     designation: text(body.designation, "Class or designation", 120),
+
+    classLevelId,
 
     assignedClasses: optionalText(
       body.assignedClasses,

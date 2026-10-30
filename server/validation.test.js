@@ -61,6 +61,14 @@ test("registration keeps the submitted school and administrator profile", () => 
 })
 
 test("registration rejects invalid email, unsupported roles, and weak passwords", () => {
+  for (const schoolType of ["Primary", "Secondary", "Combined"]) {
+    assert.equal(validateRegistration({ ...registration, schoolType }).schoolType, schoolType)
+  }
+  assert.throws(
+    () => validateRegistration({ ...registration, schoolType: "Other" }),
+    /Choose a valid school type/,
+  )
+
   assert.throws(
     () => validateRegistration({ ...registration, adminEmail: "not-an-email" }),
     /valid administrator email/,
@@ -120,6 +128,8 @@ test("enrollment only accepts supported fields and valid registry roles", () => 
 
       designation: "Maths",
 
+      classLevelId: null,
+
       assignedClasses: null,
 
       subjects: null,
@@ -178,6 +188,7 @@ test("enrollment only accepts supported fields and valid registry roles", () => 
         fullName: "Ada",
         role: "student",
         designation: "JSS 1",
+        classLevelId: "1",
         dob: "2026-02-31",
       }),
     /valid date of birth/,
@@ -189,6 +200,17 @@ test("enrollment only accepts supported fields and valid registry roles", () => 
         fullName: "Ada",
         role: "student",
         designation: "JSS 1",
+      }),
+    /Choose a valid class/,
+  )
+
+  assert.throws(
+    () =>
+      validateEnrollment({
+        fullName: "Ada",
+        role: "student",
+        designation: "JSS 1",
+        classLevelId: "1",
         passport: "data:text/html;base64,PHNjcmlwdD4=",
       }),
     /valid JPEG, PNG, or WebP/,

@@ -1,7 +1,8 @@
 import { supabase } from "../supabase.js"
+import { getStudentSubjectChoices } from "./Curriculum.js"
 
 const memberColumns =
-  "id,school_id,full_name,role,designation,passport,access_pin,status,password_hash,class_id"
+  "id,school_id,full_name,role,designation,passport,access_pin,status,password_hash,class_id,class_level_id,assigned_classes,subjects"
 
 function mapSubject(row) {
   return {
@@ -72,12 +73,33 @@ export async function findActivePortalEnrollmentById(schoolId, memberId) {
   return data
 }
 
+export async function updatePortalPassword(
+  schoolId,
+  memberId,
+  role,
+  passwordHash,
+) {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+    .eq("school_id", schoolId)
+    .eq("id", memberId)
+    .eq("role", role)
+    .eq("status", "Active")
+    .select("id")
+    .maybeSingle()
+
+  if (error) throw error
+
+  return data !== null
+}
+
 export async function getStudentPortalDashboard(schoolId, studentId) {
   const { data: student, error: studentError } = await supabase
 
     .from("enrollments")
 
-    .select("id,full_name,designation,passport,class_id")
+    .select("id,full_name,designation,passport,class_id,class_level_id")
 
     .eq("school_id", schoolId)
 
@@ -93,6 +115,19 @@ export async function getStudentPortalDashboard(schoolId, studentId) {
 
   if (!student) return null
 
+  const [classLevelResult, subjectChoices] = await Promise.all([
+    student.class_level_id
+      ? supabase
+          .from("school_class_levels")
+          .select("id,name,nickname")
+          .eq("school_id", schoolId)
+          .eq("id", student.class_level_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    getStudentSubjectChoices(schoolId, studentId),
+  ])
+  if (classLevelResult.error) throw classLevelResult.error
+
   if (!student.class_id) {
     return {
       profile: {
@@ -101,9 +136,17 @@ export async function getStudentPortalDashboard(schoolId, studentId) {
         passport: student.passport,
       },
 
-      schoolClass: null,
+      schoolClass: classLevelResult.data
+        ? {
+            id: String(classLevelResult.data.id),
+            name:
+              classLevelResult.data.nickname ||
+              classLevelResult.data.name,
+            academicYear: null,
+          }
+        : null,
 
-      subjects: [],
+      subjects: subjectChoices.approvedSubjects,
 
       attendance: { present: 0, absent: 0, late: 0, excused: 0, total: 0 },
 
@@ -178,6 +221,14 @@ export async function getStudentPortalDashboard(schoolId, studentId) {
   ]) {
     if (result.error) throw result.error
   }
+
+  const approvedSubjects = [
+    ...subjectsResult.data.map((subject) => mapSubject(subject)),
+    ...subjectChoices.approvedSubjects,
+  ]
+  const uniqueSubjects = [
+    ...new Map(approvedSubjects.map((subject) => [subject.id, subject])).values(),
+  ]
 
   const sessionIds = sessionsResult.data.map((session) => session.id)
 
@@ -259,12 +310,15 @@ export async function getStudentPortalDashboard(schoolId, studentId) {
     schoolClass: classResult.data
       ? {
           id: String(classResult.data.id),
-          name: classResult.data.name,
+          name:
+            classLevelResult.data?.nickname ||
+            classLevelResult.data?.name ||
+            classResult.data.name,
           academicYear: yearResult.data?.name || null,
         }
       : null,
 
-    subjects: subjectsResult.data.map(mapSubject),
+    subjects: uniqueSubjects,
 
     attendance,
 

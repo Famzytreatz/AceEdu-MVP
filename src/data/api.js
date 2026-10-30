@@ -113,6 +113,100 @@ export async function getSchoolBySlug(slug) {
   }
 }
 
+export async function getSchoolCurriculum() {
+  const response = await fetch("/api/admin/curriculum", {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export async function updateSchoolType(schoolType) {
+  const response = await fetch("/api/admin/curriculum/school-type", {
+    method: "PATCH",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ schoolType }),
+  })
+  return readJson(response)
+}
+
+export async function updateClassLevel(id, values) {
+  const response = await fetch(
+    `/api/admin/curriculum/classes/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    },
+  )
+  return readJson(response)
+}
+
+export async function saveClassSubjectRules(id, values) {
+  const response = await fetch(
+    `/api/admin/curriculum/classes/${encodeURIComponent(id)}/subject-rules`,
+    {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    },
+  )
+  return readJson(response)
+}
+
+export async function createClassSubject(id, values) {
+  return postJson(
+    `/api/admin/curriculum/classes/${encodeURIComponent(id)}/subjects`,
+    values,
+  )
+}
+
+export async function updateClassSubject(classId, subjectId, values) {
+  const response = await fetch(
+    `/api/admin/curriculum/classes/${encodeURIComponent(classId)}/subjects/${encodeURIComponent(subjectId)}`,
+    {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    },
+  )
+  return readJson(response)
+}
+
+export async function getSubjectRequests() {
+  const response = await fetch("/api/admin/curriculum/subject-requests", {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export async function reviewSubjectRequest(id, decision) {
+  const response = await fetch(
+    `/api/admin/curriculum/subject-requests/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decision }),
+    },
+  )
+  return readJson(response)
+}
+
+export async function getStudentSubjectChoices() {
+  const response = await fetch("/api/portal/student/subjects", {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export async function submitStudentSubjectChoices(subjectIds) {
+  return postJson("/api/portal/student/subjects", { subjectIds })
+}
+
 export function loginPortal(values) {
   return postJson("/api/portal/login", values)
 }
@@ -132,6 +226,16 @@ export async function logoutPortal() {
     body: "{}",
   })
   await readJson(response)
+}
+
+export async function updateStudentPortalPassword(values) {
+  const response = await fetch("/api/portal/password", {
+    method: "PATCH",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  })
+  return readJson(response)
 }
 
 export async function getStudentPortalDashboard() {
@@ -442,6 +546,13 @@ export async function verifyEnrollment(id) {
     },
   )
   return readJson(response)
+}
+
+export async function resetStudentPortalPassword(id) {
+  return postJson(
+    `/api/admin/users/${encodeURIComponent(id)}/password/reset`,
+    {},
+  )
 }
 
 export async function deleteEnrollment(id) {

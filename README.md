@@ -21,6 +21,7 @@ Editor:
 9. `supabase/migrations/20261028110000_premium_operations_workflows.sql`
 10. `supabase/migrations/20261028130000_school_short_slugs.sql`
 11. `supabase/migrations/20261028150000_school_classroom_and_exams.sql`
+12. `supabase/migrations/20261030120000_school_class_subject_choices.sql`
 
 `supabase/migrations/20261021120000_eis_legacy_schema.sql` is additionally
 required only for the separate EIS legacy portals. Then run `npm install` and
@@ -30,6 +31,13 @@ runs on port 8443 by default and proxies `/api` requests to the API on port
 `127.0.0.1:3001` for port forwarding and respond with HTTP 426 instead of
 reaching the local API. Set `API_PROXY_TARGET` only if your API runs at a
 different address.
+
+School setup supports Primary, Secondary, and Combined school types. Class
+levels are generated from the selected type, while Primary 6 starts optional.
+Administrators can nickname classes, configure class subject limits and
+compulsory subjects, and review student subject combinations. Students' and
+teachers' portal password changes remain school-scoped. Apply the class and
+subject choices migration before using these features.
 
 On PowerShell, you can copy the example environment with
 `Copy-Item .env.example .env` and generate a local secret with

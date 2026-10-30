@@ -39,13 +39,16 @@ import {
   downloadRegistry,
   getDashboard,
   getEnrollments,
+  getSchoolCurriculum,
   getSchoolEntitlement,
   requestSchoolVerification,
+  resetStudentPortalPassword,
   verifyEnrollment,
 } from "../data/api"
 import LoadingSpinner from "../components/ui/LoadingSpinner"
-import PremiumAcademicSetup from "./PremiumAcademicSetup"
 import PremiumOperations from "./PremiumOperations"
+import SchoolCurriculumSetup from "./SchoolCurriculumSetup"
+import SchoolSettings from "./SchoolSettings"
 
 import "./AdminDashboard.css"
 
@@ -55,10 +58,11 @@ const navigation = [
   { id: "staff", label: "Staff", Icon: Users },
   { id: "registry", label: "Registry", Icon: IdCard },
   { id: "enrollment", label: "Add record", Icon: Plus },
+  { id: "classes", label: "Classes & subjects", Icon: BookOpen },
+  { id: "settings", label: "Settings", Icon: Settings },
 ]
 
 const premiumNavigation = [
-  { id: "classes", label: "Classes & academics", Icon: BookOpen },
   { id: "academicRecords", label: "Academic records", Icon: ClipboardList },
   { id: "attendance", label: "Attendance", Icon: CalendarDays },
   { id: "examinations", label: "Exams & results", Icon: ChartNoAxesCombined },
@@ -70,16 +74,11 @@ const premiumNavigation = [
 ]
 
 const implementedPremiumViews = new Set([
-  "classes",
   "academicRecords",
   "attendance",
   "studentPortal",
   "teacherPortal",
 ])
-
-const plannedNavigation = [{ label: "Settings", Icon: Settings }]
-
-const studentClasses = ["SSS 1", "SSS 2", "SSS 3", "JSS 1", "JSS 2", "JSS 3"]
 
 const emptyForm = {
   fullName: "",
@@ -87,6 +86,8 @@ const emptyForm = {
   role: "student",
 
   designation: "",
+
+  classLevelId: "",
 
   assignedClasses: "",
 
@@ -182,8 +183,10 @@ async function optimizePassport(file) {
   }
 }
 
-export default function AdminDashboard({ school, onLogout }) {
+export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
   const [activeView, setActiveView] = useState("dashboard")
+  const [classLevels, setClassLevels] = useState([])
+  const [curriculumError, setCurriculumError] = useState("")
   const [theme, setTheme] = useState(() => {
     try {
       return window.localStorage.getItem("aceedu-admin-theme") === "dark" ? "dark" : "light"
@@ -248,11 +251,26 @@ export default function AdminDashboard({ school, onLogout }) {
 
   const [passportPending, setPassportPending] = useState(false)
 
+  const loadCurriculum = useCallback(async () => {
+    try {
+      const result = await getSchoolCurriculum()
+      setClassLevels(result.classLevels)
+      setCurriculumError("")
+    } catch (loadError) {
+      setCurriculumError(loadError.message)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadCurriculum()
+  }, [loadCurriculum])
+
   const enrollmentLock = useRef(false)
 
   const passportLock = useRef(false)
 
   const rowActionLock = useRef(false)
+  const passwordResetLock = useRef(false)
 
   const verificationLock = useRef(false)
 
@@ -265,6 +283,10 @@ export default function AdminDashboard({ school, onLogout }) {
   const [qrCode, setQrCode] = useState("")
 
   const [selectedRecord, setSelectedRecord] = useState(null)
+
+  const [passwordResetPending, setPasswordResetPending] = useState(false)
+
+  const [passwordResetResult, setPasswordResetResult] = useState(null)
 
   const [profileOpen, setProfileOpen] = useState(false)
 
@@ -308,8 +330,9 @@ export default function AdminDashboard({ school, onLogout }) {
     function closeOnEscape(event) {
       if (event.key === "Escape") {
         setSelectedRecord(null)
+      setPasswordResetResult(null)
 
-        setProfileOpen(false)
+      setProfileOpen(false)
       }
     }
 
@@ -512,6 +535,8 @@ export default function AdminDashboard({ school, onLogout }) {
 
       designation: "",
 
+      classLevelId: "",
+
       assignedClasses: role === "teacher" ? current.assignedClasses : "",
 
       subjects: role === "teacher" ? current.subjects : "",
@@ -524,6 +549,20 @@ export default function AdminDashboard({ school, onLogout }) {
 
       password: role === "student" ? "" : current.password,
     }))
+  }
+
+  function setEnrollmentChoices(field, value, checked) {
+    setForm((current) => {
+      const selected = new Set(
+        (current[field] || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      )
+      if (checked) selected.add(value)
+      else selected.delete(value)
+      return { ...current, [field]: [...selected].join(", ") }
+    })
   }
 
   function startEnrollment(role) {
@@ -595,6 +634,49 @@ export default function AdminDashboard({ school, onLogout }) {
     }
   }
 
+  async function handleStudentPasswordReset(record) {
+    if (passwordResetLock.current) return
+
+    if (
+      !window.confirm(
+        `Reset ${record.fullName}'s student portal password? A new temporary password will be shown once.`,
+      )
+    ) {
+      return
+    }
+
+    passwordResetLock.current = true
+    setPasswordResetPending(true)
+    setPasswordResetResult(null)
+    setError("")
+    setSuccess("")
+
+    try {
+      const result = await resetStudentPortalPassword(record._id)
+      const updatedRecord = {
+        ...record,
+        ...(result.enrollment || {}),
+        hasPortalPassword: true,
+      }
+      setRecords((current) =>
+        current.map((entry) =>
+          entry._id === record._id ? updatedRecord : entry,
+        ),
+      )
+      setSelectedRecord(updatedRecord)
+      setPasswordResetResult({
+        recordId: record._id,
+        temporaryPassword: result.temporaryPassword,
+      })
+      setSuccess(`A temporary portal password was generated for ${record.fullName}.`)
+    } catch (resetError) {
+      setError(resetError.message)
+    } finally {
+      setPasswordResetPending(false)
+      passwordResetLock.current = false
+    }
+  }
+
   async function handleExport() {
     if (exportingRegistry) return
 
@@ -629,6 +711,20 @@ export default function AdminDashboard({ school, onLogout }) {
   const title =
     navigation.find((item) => item.id === activeView)?.label ||
     premiumNavigation.find((item) => item.id === activeView)?.label
+  const selectedTeacherClasses = new Set(
+    form.assignedClasses.split(",").map((item) => item.trim()).filter(Boolean),
+  )
+  const teacherSubjectOptions = [
+    ...new Set(
+      classLevels
+        .filter((level) => level.isActive && selectedTeacherClasses.has(level.displayName))
+        .flatMap((level) =>
+          level.subjects
+            .filter((subject) => subject.isActive)
+            .map((subject) => subject.name),
+        ),
+    ),
+  ]
   const premiumAccessActive =
     entitlement?.effectivePlan === "premium" ||
     entitlement?.trialActive ||
@@ -715,25 +811,6 @@ export default function AdminDashboard({ school, onLogout }) {
             )
           })}
         </nav>
-        <div className="admin-sidebar__label admin-sidebar__label--planned">
-          Planned
-        </div>
-        <nav className="admin-nav admin-nav--premium" aria-label="Other planned features">
-          {plannedNavigation.map(({ label, Icon }) => (
-            <button
-              className="admin-nav__item admin-nav__item--planned"
-              key={label}
-              type="button"
-              disabled
-              aria-disabled="true"
-              title={`${label} is not available yet.`}
-            >
-              <Icon size={17} aria-hidden="true" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-
         <div className="admin-sidebar__spacer" />
         <section className="admin-school-identity" aria-label="Current school">
           <span className="admin-school-identity__mark">
@@ -1005,8 +1082,6 @@ export default function AdminDashboard({ school, onLogout }) {
                     <a
                       className="admin-outline-button"
                       href={`/s/${encodeURIComponent(school.slug)}`}
-                      target="_blank"
-                      rel="noreferrer"
                     >
                       Open school entry <ArrowUpRight size={15} />
                     </a>
@@ -1364,43 +1439,37 @@ export default function AdminDashboard({ school, onLogout }) {
                     </label>
                     {form.role === "student" ? (
                       <label>
-                        Target class
+                        Student class
                         <select
-                          value={
-                            studentClasses.includes(form.designation)
-                              ? form.designation
-                              : form.designation
-                                ? "custom"
-                                : ""
-                          }
-                          onChange={(event) =>
+                          value={form.classLevelId}
+                          onChange={(event) => {
+                            const selectedClass = classLevels.find(
+                              (level) => level.id === event.target.value,
+                            )
                             setForm((current) => ({
                               ...current,
-                              designation:
-                                event.target.value === "custom"
-                                  ? "Custom"
-                                  : event.target.value,
+                              classLevelId: event.target.value,
+                              designation: selectedClass?.displayName || "",
                             }))
-                          }
+                          }}
                           required
+                          disabled={Boolean(curriculumError)}
                         >
-                          <option value="">Select class…</option>
-                          <optgroup label="Senior secondary">
-                            {studentClasses.slice(0, 3).map((className) => (
-                              <option value={className} key={className}>
-                                {className}
+                          <option value="">Select a class…</option>
+                          {classLevels
+                            .filter((level) => level.isActive)
+                            .map((level) => (
+                              <option value={level.id} key={level.id}>
+                                {level.displayName}
+                                {level.isOptional ? " · Optional" : ""}
                               </option>
                             ))}
-                          </optgroup>
-                          <optgroup label="Junior secondary">
-                            {studentClasses.slice(3).map((className) => (
-                              <option value={className} key={className}>
-                                {className}
-                              </option>
-                            ))}
-                          </optgroup>
-                          <option value="custom">Other / custom class</option>
                         </select>
+                        {curriculumError && (
+                          <small role="alert">
+                            Class options could not be loaded: {curriculumError}
+                          </small>
+                        )}
                       </label>
                     ) : (
                       <label>
@@ -1423,30 +1492,6 @@ export default function AdminDashboard({ school, onLogout }) {
                         />
                       </label>
                     )}
-                    {form.role === "student" &&
-                      (form.designation === "Custom" ||
-                        (!studentClasses.includes(form.designation) &&
-                          form.designation !== "")) && (
-                        <label>
-                          Custom class
-                          <input
-                            value={
-                              form.designation === "Custom"
-                                ? ""
-                                : form.designation
-                            }
-                            maxLength={120}
-                            onChange={(event) =>
-                              setForm((current) => ({
-                                ...current,
-                                designation: event.target.value,
-                              }))
-                            }
-                            placeholder="Enter class or year"
-                            required
-                          />
-                        </label>
-                      )}
                     <label>
                       State of origin
                       <input
@@ -1544,34 +1589,46 @@ export default function AdminDashboard({ school, onLogout }) {
                     )}
                     {form.role === "teacher" && (
                       <>
-                        <label>
-                          Teaching classes
-                          <input
-                            value={form.assignedClasses}
-                            maxLength={500}
-                            onChange={(event) =>
-                              setForm((current) => ({
-                                ...current,
-                                assignedClasses: event.target.value,
-                              }))
-                            }
-                            placeholder="e.g. SSS 1, SSS 3"
-                          />
-                        </label>
-                        <label>
-                          Department / subject
-                          <input
-                            value={form.subjects}
-                            maxLength={300}
-                            onChange={(event) =>
-                              setForm((current) => ({
-                                ...current,
-                                subjects: event.target.value,
-                              }))
-                            }
-                            placeholder="e.g. Physics, Mathematics"
-                          />
-                        </label>
+                        <fieldset className="admin-enrollment-choice-list">
+                          <legend>Teaching classes</legend>
+                          {classLevels.filter((level) => level.isActive).map((level) => (
+                            <label key={level.id}>
+                              <input
+                                type="checkbox"
+                                checked={selectedTeacherClasses.has(level.displayName)}
+                                onChange={(event) =>
+                                  setEnrollmentChoices(
+                                    "assignedClasses",
+                                    level.displayName,
+                                    event.target.checked,
+                                  )
+                                }
+                              />
+                              {level.displayName}
+                            </label>
+                          ))}
+                        </fieldset>
+                        <fieldset className="admin-enrollment-choice-list">
+                          <legend>Subjects to teach</legend>
+                          {teacherSubjectOptions.length ? teacherSubjectOptions.map((subject) => (
+                            <label key={subject}>
+                              <input
+                                type="checkbox"
+                                checked={form.subjects.split(",").map((item) => item.trim()).includes(subject)}
+                                onChange={(event) =>
+                                  setEnrollmentChoices(
+                                    "subjects",
+                                    subject,
+                                    event.target.checked,
+                                  )
+                                }
+                              />
+                              {subject}
+                            </label>
+                          )) : (
+                            <small>Select teaching classes that already have subject options configured.</small>
+                          )}
+                        </fieldset>
                       </>
                     )}
                     <label className="admin-photo-field">
@@ -1658,7 +1715,19 @@ export default function AdminDashboard({ school, onLogout }) {
             </div>
           )}
 
-          {activeView === "classes" && <PremiumAcademicSetup />}
+          {activeView === "classes" && (
+            <SchoolCurriculumSetup
+              schoolType={school.schoolType}
+              onSchoolTypeChange={() => setActiveView("settings")}
+            />
+          )}
+          {activeView === "settings" && (
+            <SchoolSettings
+              school={school}
+              onSchoolUpdated={onSchoolUpdated}
+              onCurriculumUpdated={setClassLevels}
+            />
+          )}
           {activeView === "attendance" && <PremiumOperations mode="attendance" />}
           {activeView === "academicRecords" && <PremiumOperations mode="academicRecords" />}
           {(activeView === "studentPortal" || activeView === "teacherPortal") && (
@@ -1687,8 +1756,6 @@ export default function AdminDashboard({ school, onLogout }) {
                     <a
                       className="admin-primary-button"
                       href={`/s/${encodeURIComponent(school.slug)}/portal`}
-                      target="_blank"
-                      rel="noreferrer"
                     >
                       Open shared sign-in <ArrowUpRight size={15} />
                     </a>
@@ -1829,6 +1896,7 @@ export default function AdminDashboard({ school, onLogout }) {
                       <th>Role</th>
                       <th>Class / designation</th>
                       <th>Access PIN</th>
+                      <th>Portal password</th>
                       <th>Status</th>
                       <th>Added</th>
                       <th>
@@ -1842,7 +1910,7 @@ export default function AdminDashboard({ school, onLogout }) {
                     )}
                     {!registryLoading && !registryError && records.length === 0 && (
                       <tr>
-                        <td colSpan="7" className="admin-empty">
+                        <td colSpan="8" className="admin-empty">
                           <span className="admin-empty__icon"><Users size={20} /></span>
                           <strong>
                             {appliedQuery || registryStatus
@@ -1905,6 +1973,13 @@ export default function AdminDashboard({ school, onLogout }) {
                           <code className="admin-pin">{record.accessPin}</code>
                         </td>
                         <td>
+                          {record.role === "student"
+                            ? record.hasPortalPassword
+                              ? "Set"
+                              : "Not set"
+                            : "—"}
+                        </td>
+                        <td>
                           <span
                             className={`admin-status ${
                               record.status === "Active" ? "is-active" : "is-pending"
@@ -1920,7 +1995,10 @@ export default function AdminDashboard({ school, onLogout }) {
                           <div className="admin-row-actions">
                             <button
                               type="button"
-                              onClick={() => setSelectedRecord(record)}
+                              onClick={() => {
+                                setPasswordResetResult(null)
+                                setSelectedRecord(record)
+                              }}
                               aria-label={`View ${record.fullName}`}
                               title="View details"
                             >
@@ -1995,9 +2073,16 @@ export default function AdminDashboard({ school, onLogout }) {
                     record={record}
                     busy={busyId === record._id}
                     disabled={Boolean(busyId)}
-                    onView={() => setSelectedRecord(record)}
+                    onView={() => {
+                      setPasswordResetResult(null)
+                      setSelectedRecord(record)
+                    }}
                     onVerify={() => handleVerify(record)}
                     onDelete={() => handleDelete(record)}
+                    onResetStudentPassword={() =>
+                      handleStudentPasswordReset(record)
+                    }
+                    passwordResetPending={passwordResetPending}
                   />
                 ))}
               </div>
@@ -2023,7 +2108,10 @@ export default function AdminDashboard({ school, onLogout }) {
         <div
           className="admin-modal-backdrop"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setSelectedRecord(null)
+            if (event.target === event.currentTarget) {
+              setSelectedRecord(null)
+              setPasswordResetResult(null)
+            }
           }}
         >
           <section
@@ -2042,7 +2130,10 @@ export default function AdminDashboard({ school, onLogout }) {
               <button
                 className="admin-modal__close"
                 type="button"
-                onClick={() => setSelectedRecord(null)}
+                onClick={() => {
+                  setSelectedRecord(null)
+                  setPasswordResetResult(null)
+                }}
                 aria-label="Close identity profile"
               >
                 <X size={20} />
@@ -2073,6 +2164,16 @@ export default function AdminDashboard({ school, onLogout }) {
                   value={`${selectedRecord.role} — ${selectedRecord.designation}`}
                 />
                 <Detail label="Status" value={selectedRecord.status} />
+                {selectedRecord.role === "student" && (
+                  <Detail
+                    label="Portal password"
+                    value={
+                      selectedRecord.hasPortalPassword
+                        ? "Set — stored securely; cannot be viewed."
+                        : "Not set"
+                    }
+                  />
+                )}
                 <Detail label="Address" value={selectedRecord.address} />
                 <Detail
                   label="State of origin"
@@ -2113,6 +2214,44 @@ export default function AdminDashboard({ school, onLogout }) {
                 <Detail label="Access PIN" value={selectedRecord.accessPin} />
               </dl>
             </div>
+            {selectedRecord.role === "student" && (
+              <div style={{ padding: "0 1.5rem 1.5rem" }}>
+                <button
+                  className="admin-outline-button"
+                  type="button"
+                  disabled={passwordResetPending}
+                  onClick={() => handleStudentPasswordReset(selectedRecord)}
+                >
+                  {passwordResetPending ? (
+                    <LoaderCircle size={16} className="admin-spin" />
+                  ) : (
+                    <LockKeyhole size={16} />
+                  )}
+                  {passwordResetPending ? "Resetting password…" : "Reset student password"}
+                </button>
+                {passwordResetResult?.recordId === selectedRecord._id && (
+                  <p
+                    role="status"
+                    style={{
+                      margin: "0.85rem 0 0",
+                      padding: "0.85rem",
+                      borderRadius: "0.6rem",
+                      background: "var(--admin-surface-muted, #f3f6fa)",
+                      color: "var(--admin-ink, #33495c)",
+                      fontSize: "0.78rem",
+                      lineHeight: 1.6,
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    Temporary password (shown once):{" "}
+                    <code>{passwordResetResult.temporaryPassword}</code>
+                    <br />
+                    Share it securely with the student. They can change it in
+                    portal settings.
+                  </p>
+                )}
+              </div>
+            )}
           </section>
         </div>
       )}
@@ -2300,7 +2439,7 @@ function DashboardEmpty({ title, detail }) {
 function RegistrySkeletonRows() {
   return Array.from({ length: 4 }, (_, row) => (
     <tr className="admin-table-skeleton" key={`loading-${row}`} aria-hidden="true">
-      {Array.from({ length: 7 }, (_, column) => (
+      {Array.from({ length: 8 }, (_, column) => (
         <td key={`loading-${row}-${column}`}>
           <span className="admin-table-skeleton__bar" />
         </td>
@@ -2327,6 +2466,8 @@ function RegistryRecordCard({
   onView,
   onVerify,
   onDelete,
+  onResetStudentPassword,
+  passwordResetPending,
 }) {
   const active = record.status === "Active"
 
@@ -2361,12 +2502,27 @@ function RegistryRecordCard({
       <dl className="admin-registry-card__details">
         <div><dt>Class / designation</dt><dd>{record.designation || "—"}</dd></div>
         <div><dt>Access PIN</dt><dd><code className="admin-pin">{record.accessPin}</code></dd></div>
+        {record.role === "student" && (
+          <div>
+            <dt>Portal password</dt>
+            <dd>{record.hasPortalPassword ? "Set" : "Not set"}</dd>
+          </div>
+        )}
         <div><dt>Added</dt><dd>{formatDate(record.createdAt)}</dd></div>
       </dl>
       <div className="admin-registry-card__actions" aria-label={`Actions for ${record.fullName}`}>
         <button type="button" onClick={onView} aria-label={`View ${record.fullName}`}>
           <Eye size={16} /> View
         </button>
+        {record.role === "student" && (
+          <button
+            type="button"
+            onClick={onResetStudentPassword}
+            disabled={passwordResetPending}
+          >
+            <LockKeyhole size={16} /> Reset password
+          </button>
+        )}
         {!active && (
           <button
             type="button"

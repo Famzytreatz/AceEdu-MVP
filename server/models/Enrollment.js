@@ -1,7 +1,7 @@
 import { supabase } from "../supabase.js"
 
 const enrollmentColumns =
-  "id,school_id,full_name,role,designation,assigned_classes,subjects,passport,dob,guardian_phone,address,state_of_origin,phone,access_pin,status,created_at,updated_at"
+  "id,school_id,full_name,role,designation,assigned_classes,subjects,passport,dob,guardian_phone,address,state_of_origin,phone,access_pin,password_hash,status,created_at,updated_at,class_level_id,class_level:school_class_levels(name,nickname)"
 
 const pageSize = 50
 
@@ -15,7 +15,10 @@ function enrollmentFromRow(row) {
 
     role: row.role,
 
-    designation: row.designation,
+    designation:
+      row.class_level?.nickname || row.class_level?.name || row.designation,
+
+    classLevelId: row.class_level_id ? String(row.class_level_id) : null,
 
     assignedClasses: row.assigned_classes,
 
@@ -34,6 +37,8 @@ function enrollmentFromRow(row) {
     phone: row.phone,
 
     accessPin: row.access_pin,
+
+    hasPortalPassword: Boolean(row.password_hash),
 
     status: row.status,
 
@@ -183,6 +188,8 @@ export async function createEnrollment({ schoolId, values, accessPin }) {
 
       designation: values.designation,
 
+      class_level_id: values.classLevelId,
+
       assigned_classes: values.assignedClasses,
 
       subjects: values.subjects,
@@ -228,6 +235,21 @@ export async function verifyEnrollment(schoolId, id) {
 
     .select(enrollmentColumns)
 
+    .maybeSingle()
+
+  if (error) throw error
+
+  return data ? enrollmentFromRow(data) : null
+}
+
+export async function resetStudentPortalPassword(schoolId, id, passwordHash) {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+    .eq("school_id", schoolId)
+    .eq("id", id)
+    .eq("role", "student")
+    .select(enrollmentColumns)
     .maybeSingle()
 
   if (error) throw error

@@ -7,6 +7,27 @@
   let activeResults = null
   const $ = (id) => document.getElementById(id)
 
+  function printMarkup(title, markup, styles) {
+    let frame = $("portalPrintFrame")
+    if (!frame) {
+      frame = document.createElement("iframe")
+      frame.id = "portalPrintFrame"
+      frame.title = "Print preview"
+      frame.setAttribute("aria-hidden", "true")
+      frame.style.cssText = "position:fixed;width:0;height:0;border:0;right:0;bottom:0;"
+      document.body.append(frame)
+    }
+    const printDocument = frame.contentDocument
+    if (!printDocument) throw new Error("Print preview is unavailable.")
+    printDocument.open()
+    printDocument.write(
+      `<html><head><title>${portal.escapeHtml(title)}</title><style>${styles}</style></head><body>${markup}</body></html>`,
+    )
+    printDocument.close()
+    frame.contentWindow.focus()
+    frame.contentWindow.print()
+  }
+
   function selectedClass() {
     return (dashboard?.classes || []).find((item) => String(item.id) === String($("examTargetClass")?.value)) || null
   }
@@ -18,6 +39,8 @@
     select.innerHTML = classes.length
       ? classes.map((item) => `<option value="${portal.escapeHtml(item.id)}">${portal.escapeHtml(item.name)}${item.academicYear ? ` · ${portal.escapeHtml(item.academicYear)}` : ""}</option>`).join("")
       : '<option value="">No assigned classes</option>'
+    const requestedClassId = new URLSearchParams(window.location.search).get("classId")
+    if (requestedClassId && classes.some((item) => String(item.id) === requestedClassId)) select.value = requestedClassId
     select.disabled = !classes.length
     updateClassSelectors()
   }
@@ -160,12 +183,12 @@
     if (!card) return
     const printable = card.querySelector(".printable-content")
     const title = card.querySelector("h3")?.textContent || "Exam"
-    const printWindow = window.open("", "", "height=800,width=1000")
-    if (!printWindow || !printable) return
-    printWindow.document.write(`<html><head><title>${portal.escapeHtml(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px}li{margin-bottom:6px}</style></head><body><h1>${portal.escapeHtml(title)}</h1>${printable.innerHTML}</body></html>`)
-    printWindow.document.close()
-    printWindow.focus()
-    window.setTimeout(() => { printWindow.print(); printWindow.close() }, 250)
+    if (!printable) return
+    printMarkup(
+      title,
+      `<h1>${portal.escapeHtml(title)}</h1>${printable.innerHTML}`,
+      "body{font-family:Arial,sans-serif;padding:24px}li{margin-bottom:6px}",
+    )
   }
 
   async function loadResultsDashboard() {
@@ -231,12 +254,11 @@
     if (!modalBody) return
     const clone = modalBody.cloneNode(true)
     clone.querySelector(".print-btn")?.remove()
-    const printWindow = window.open("", "", "height=800,width=1000")
-    if (!printWindow) return
-    printWindow.document.write(`<html><head><title>${portal.escapeHtml(activeResults?.title || "Exam Results")}</title><style>body{font-family:Arial,sans-serif}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:8px;text-align:left}.results-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;padding:1rem}</style></head><body><h1>${portal.escapeHtml(activeResults?.title || "Exam Results")}</h1>${clone.innerHTML}</body></html>`)
-    printWindow.document.close()
-    printWindow.focus()
-    window.setTimeout(() => { printWindow.print(); printWindow.close() }, 250)
+    printMarkup(
+      activeResults?.title || "Exam Results",
+      `<h1>${portal.escapeHtml(activeResults?.title || "Exam Results")}</h1>${clone.innerHTML}`,
+      "body{font-family:Arial,sans-serif}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:8px;text-align:left}.results-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;padding:1rem}",
+    )
   }
 
   async function init() {

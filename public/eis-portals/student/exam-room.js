@@ -148,7 +148,7 @@
       currentAttemptId = attempt.attemptId
       answers = Array.isArray(attempt.answers) ? attempt.answers.map((answer) => ({ questionIndex: Number(answer.questionIndex), selectedOptionIndex: Number(answer.selectedOptionIndex) })) : []
       portal.setText("exam-title-display", examData.title)
-      portal.setText("student-id-tag", `ID: ${portal.shortId(member)}`)
+      portal.setText("student-id-tag", `ID: ${member.accessCode || portal.shortId(member)}`)
       if (loading) loading.style.display = "none"
       if ($("submit-exam-btn")) $("submit-exam-btn").style.display = "block"
       renderQuestions()
@@ -201,8 +201,8 @@
       if (!member) return
       portal.setText("s-name", member.fullName)
       portal.setText("s-class", member.designation || "Student")
-      portal.setText("student-id-tag", `ID: ${portal.shortId(member)}`)
-      portal.setText("student-id-tag-list", `ID: ${portal.shortId(member)}`)
+      portal.setText("student-id-tag", `ID: ${member.accessCode || portal.shortId(member)}`)
+      portal.setText("student-id-tag-list", `ID: ${member.accessCode || portal.shortId(member)}`)
       const photo = $("monitor-photo")
       if (photo) photo.src = member.passport || portal.avatarData(member.fullName, "d4af37", "0a192f")
       document.title = `Secure Examination Hall | ${member.school?.schoolName || "AceEdu"}`

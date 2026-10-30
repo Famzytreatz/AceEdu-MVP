@@ -141,7 +141,11 @@ export default function App() {
       <Suspense
         fallback={<PageLoader message="Loading your school workspace…" theme={theme} />}
       >
-        <AdminDashboard school={school} onLogout={handleLogout} />
+        <AdminDashboard
+          school={school}
+          onLogout={handleLogout}
+          onSchoolUpdated={setSchool}
+        />
       </Suspense>
     ) : (
       <SchoolSpacePage
@@ -158,7 +162,11 @@ export default function App() {
       <Suspense
         fallback={<PageLoader message="Loading your school workspace…" theme={theme} />}
       >
-        <AdminDashboard school={school} onLogout={handleLogout} />
+        <AdminDashboard
+          school={school}
+          onLogout={handleLogout}
+          onSchoolUpdated={setSchool}
+        />
       </Suspense>
   ) : (
     <HomePage

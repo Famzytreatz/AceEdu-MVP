@@ -326,8 +326,6 @@ function StudentPortalTools() {
                             <a
                               className="school-portal__resource-link"
                               href={post.meetingUrl}
-                              target="_blank"
-                              rel="noreferrer"
                             >
                               <Link2 size={15} /> Join live class
                             </a>
@@ -336,8 +334,6 @@ function StudentPortalTools() {
                             <a
                               className="school-portal__resource-link"
                               href={post.attachmentUrl}
-                              target="_blank"
-                              rel="noreferrer"
                             >
                               <Paperclip size={15} />{" "}
                               {post.attachmentName || "Open attachment"}
@@ -974,8 +970,6 @@ function TeacherClassroomTools({ member, schoolClass }) {
                           <a
                             className="school-portal__resource-link"
                             href={post.meetingUrl}
-                            target="_blank"
-                            rel="noreferrer"
                           >
                             <Link2 size={15} /> Join live class
                           </a>
@@ -984,8 +978,6 @@ function TeacherClassroomTools({ member, schoolClass }) {
                           <a
                             className="school-portal__resource-link"
                             href={post.attachmentUrl}
-                            target="_blank"
-                            rel="noreferrer"
                           >
                             <Paperclip size={15} />{" "}
                             {post.attachmentName || "Open attachment"}

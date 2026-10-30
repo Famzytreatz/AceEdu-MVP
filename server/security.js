@@ -75,8 +75,12 @@ export function createRequirePortalMember({
             role: member.role,
             fullName: member.full_name,
             designation: member.designation,
+            assignedClasses: member.assigned_classes,
+            subjects: member.subjects,
             passport: member.passport,
             accessPin: member.access_pin,
+            classLevelId: member.class_level_id ? String(member.class_level_id) : null,
+            hasPortalPassword: Boolean(member.password_hash),
           }
           req.school = school
           return next()

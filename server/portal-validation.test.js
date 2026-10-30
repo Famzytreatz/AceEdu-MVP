@@ -2,7 +2,10 @@ import assert from "node:assert/strict"
 
 import test from "node:test"
 
-import { validatePortalLogin } from "./portal-validation.js"
+import {
+  validatePortalLogin,
+  validateStudentPortalPassword,
+} from "./portal-validation.js"
 
 const validStudentLogin = {
   schoolSlug: "bright-future",
@@ -42,5 +45,27 @@ test("does not accept a client-supplied school ID", () => {
     () => validatePortalLogin({ ...validStudentLogin, schoolId: "2" }),
 
     /Unsupported sign-in field/,
+  )
+})
+
+test("validates a new student portal password without requiring an old password", () => {
+  assert.deepEqual(
+    validateStudentPortalPassword({ newPassword: "SecurePass123" }),
+    { currentPassword: "", newPassword: "SecurePass123" },
+  )
+})
+
+test("rejects short passwords and unrecognized password fields", () => {
+  assert.throws(
+    () => validateStudentPortalPassword({ newPassword: "short" }),
+    /between 8 and 128 characters/,
+  )
+  assert.throws(
+    () =>
+      validateStudentPortalPassword({
+        newPassword: "SecurePass123",
+        schoolId: "99",
+      }),
+    /Unsupported password field/,
   )
 })

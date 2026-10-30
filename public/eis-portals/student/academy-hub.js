@@ -24,7 +24,7 @@
     const posts = classroom?.posts || []
     if (!stream) return
     if (!posts.length) {
-      stream.innerHTML = '<div style="text-align:center;padding:50px;color:var(--text-secondary);opacity:0.75;"><i class="fa fa-cloud-sun" style="font-size:40px;"></i><p>The classroom is quiet. No posts found.</p></div>'
+      stream.innerHTML = '<div class="empty-state"><i class="fa fa-satellite-dish"></i><strong>It’s quiet in here… for now</strong>No announcements or learning materials have been posted yet. Check back soon for classroom updates.</div>'
       return
     }
     stream.innerHTML = posts.map((post) => {
@@ -35,12 +35,12 @@
       let attachmentHtml = ""
       if (attachmentUrl) {
         const name = portal.escapeHtml(post.attachmentName || "Download attached material")
-        attachmentHtml = `<div style="margin-top:12px;background:rgba(255,255,255,.05);padding:10px;border-radius:8px;"><a href="${portal.escapeHtml(attachmentUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;font-weight:bold;font-size:13px;"><i class="fa fa-file-download"></i> ${name}</a></div>`
+        attachmentHtml = `<a class="attachment" href="${portal.escapeHtml(attachmentUrl)}"><i class="fa fa-file-download"></i><span>${name}</span></a>`
       }
-      const meetingHtml = meetingUrl ? `<p><a href="${portal.escapeHtml(meetingUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);"><i class="fas fa-video"></i> Join online class</a></p>` : ""
+      const meetingHtml = meetingUrl ? `<p><a class="attachment" href="${portal.escapeHtml(meetingUrl)}"><i class="fas fa-video"></i><span>Join online class</span></a></p>` : ""
       const due = post.deadline ? ` · Due ${portal.escapeHtml(post.deadline)}` : ""
       return `<article class="post-card" id="post-${portal.escapeHtml(post.id)}">
-        <div class="post-header"><div class="post-meta"><div class="post-icon"><i class="fas ${type === "assignment" ? "fa-book-open" : type === "live_class" ? "fa-video" : "fa-bullhorn"}"></i></div><div class="post-info"><h3>${portal.escapeHtml(post.title)}</h3><span>${portal.escapeHtml(post.author || "Instructor")} · ${portal.escapeHtml(new Date(post.createdAt).toLocaleDateString())}${due}</span></div></div>${isOwner ? `<button type="button" data-delete-post="${portal.escapeHtml(post.id)}" aria-label="Delete your post" style="background:none;border:none;color:#ff4444;cursor:pointer;font-size:16px;"><i class="fa fa-trash-alt"></i></button>` : ""}</div>
+        <div class="post-header"><div class="post-meta"><div class="post-icon"><i class="fas ${type === "assignment" ? "fa-book-open" : type === "live_class" ? "fa-video" : type === "lesson" ? "fa-graduation-cap" : type === "material" ? "fa-file-alt" : "fa-bullhorn"}"></i></div><div class="post-info"><h3>${portal.escapeHtml(post.title)}</h3><span>${portal.escapeHtml(post.author || "Instructor")} · ${portal.escapeHtml(new Date(post.createdAt).toLocaleDateString())}${due}</span></div></div>${isOwner ? `<button type="button" data-delete-post="${portal.escapeHtml(post.id)}" aria-label="Delete your post" style="background:none;border:none;color:#ff4444;cursor:pointer;font-size:16px;"><i class="fa fa-trash-alt"></i></button>` : ""}</div>
         <div class="post-content" style="white-space:pre-wrap;">${portal.escapeHtml(post.contentBody || "")}</div>${attachmentHtml}${meetingHtml}
         <div class="post-footer"><span><i class="far fa-comment"></i> Comments disabled</span><span>${portal.escapeHtml(type.replaceAll("_", " ").toUpperCase())}</span></div>
       </article>`
@@ -205,7 +205,6 @@
     if (title) title.value = `Live class · ${className}`
     if (body) body.value = "Join the scheduled online class using the meeting link."
     openCreator()
-    window.open(meetingUrl, "_blank", "noopener,noreferrer")
   }
 
   function updateComposerFields() {

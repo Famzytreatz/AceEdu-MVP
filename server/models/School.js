@@ -81,6 +81,17 @@ export async function findSchoolById(id) {
   return data ? schoolFromRow(data) : null
 }
 
+export async function updateSchoolType(id, schoolType) {
+  const { data, error } = await supabase
+    .from("schools")
+    .update({ school_type: schoolType, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select(publicColumns)
+    .maybeSingle()
+  if (error) throw error
+  return data ? schoolFromRow(data) : null
+}
+
 export async function findSchoolBySlug(slug) {
   const { data, error } = await supabase
     .from("schools")

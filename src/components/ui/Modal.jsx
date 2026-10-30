@@ -53,7 +53,7 @@ const titles = {
   },
 }
 
-const schoolTypes = ["Nursery/Primary", "Secondary", "Combined", "Other"]
+const schoolTypes = ["Primary", "Secondary", "Combined"]
 const adminRoles = ["Proprietor", "Principal", "School Administrator", "Other"]
 const demoInterests = [
   "Student records",

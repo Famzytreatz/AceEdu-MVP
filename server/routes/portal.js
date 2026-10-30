@@ -6,6 +6,11 @@ import {
 } from "../models/AcademicOperations.js"
 
 import {
+  getStudentSubjectChoices,
+  submitStudentSubjectRequest,
+} from "../models/Curriculum.js"
+
+import {
   getStudentPortalDashboard,
   getTeacherPortalDashboard,
   teacherCanAccessClass,
@@ -58,6 +63,46 @@ studentRouter.use(
 teacherRouter.use(
   requirePortalMember("teacher"),
   requireEntitlement("teacherPortal"),
+)
+
+studentRouter.get(
+  "/subjects",
+  asyncRoute(async (req, res) => {
+    return res.json(
+      await getStudentSubjectChoices(
+        req.portalMember.schoolId,
+        req.portalMember.id,
+      ),
+    )
+  }),
+)
+
+studentRouter.post(
+  "/subjects",
+  asyncRoute(async (req, res) => {
+    const subjectIds = req.body?.subjectIds
+    if (
+      !Array.isArray(subjectIds) ||
+      subjectIds.length > 50 ||
+      subjectIds.some((id) => !isValidDatabaseId(id)) ||
+      new Set(subjectIds.map(String)).size !== subjectIds.length
+    ) {
+      return res.status(400).json({ error: "Select a valid set of subjects." })
+    }
+    try {
+      const request = await submitStudentSubjectRequest(
+        req.portalMember.schoolId,
+        req.portalMember.id,
+        subjectIds.map(Number),
+      )
+      return res.status(201).json(request)
+    } catch (error) {
+      if (error?.code === "22023") {
+        return res.status(400).json({ error: error.message })
+      }
+      throw error
+    }
+  }),
 )
 
 studentRouter.get(

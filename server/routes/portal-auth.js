@@ -2,7 +2,11 @@ import bcrypt from "bcryptjs"
 
 import express from "express"
 
-import { findPortalEnrollmentByCredentials } from "../models/Portal.js"
+import {
+  findActivePortalEnrollmentById,
+  findPortalEnrollmentByCredentials,
+  updatePortalPassword,
+} from "../models/Portal.js"
 
 import { findSchoolLoginIdentityBySlug } from "../models/School.js"
 
@@ -12,7 +16,10 @@ import { featureEntitlements, hasFeatureAccess } from "../entitlements.js"
 
 import { getSchoolEntitlement } from "../models/Entitlement.js"
 
-import { validatePortalLogin } from "../portal-validation.js"
+import {
+  validatePortalLogin,
+  validateStudentPortalPassword,
+} from "../portal-validation.js"
 import { removeAuthenticationSession, updateAuthenticationSession } from "../session-auth.js"
 
 const requirePortalMember = createRequirePortalMember()
@@ -35,7 +42,18 @@ function memberResponse(member, school, premiumAccess) {
 
     designation: member.designation,
 
+    assignedClasses: member.assigned_classes ?? member.assignedClasses ?? "",
+
+    subjects: member.subjects || "",
+
     passport: member.passport,
+
+    ...(member.role === "student"
+      ? { accessCode: member.access_pin }
+      : {}),
+
+    hasPortalPassword:
+      member.hasPortalPassword ?? Boolean(member.password_hash),
 
     school: {
       schoolName: school.schoolName,
@@ -54,9 +72,17 @@ export function createPortalAuthRouter({
 
   findEnrollment = findPortalEnrollmentByCredentials,
 
+  findActiveEnrollment = findActivePortalEnrollmentById,
+
   findEntitlement = getSchoolEntitlement,
 
   comparePassword = bcrypt.compare,
+
+  hashPassword = (password) => bcrypt.hash(password, 12),
+
+  setMemberPassword = updatePortalPassword,
+
+  requireMember = requirePortalMember,
 
   startSession = startPortalSession,
 } = {}) {
@@ -122,6 +148,67 @@ export function createPortalAuthRouter({
     }),
   )
 
+  router.patch(
+    "/password",
+
+    requireMember(),
+
+    asyncRoute(async (req, res) => {
+      let values
+
+      try {
+        values = validateStudentPortalPassword(req.body)
+      } catch (error) {
+        return res.status(400).json({ error: error.message })
+      }
+
+      const role = req.portalMember.role
+      if (!["student", "teacher"].includes(role)) {
+        return res.status(403).json({ error: "This account cannot change a portal password." })
+      }
+
+      if (req.portalMember.hasPortalPassword) {
+        if (!values.currentPassword) {
+          return res.status(400).json({ error: "Enter your current password." })
+        }
+
+        const member = await findActiveEnrollment(
+          req.portalMember.schoolId,
+          req.portalMember.id,
+        )
+
+        if (
+          !member ||
+          String(member.id) !== req.portalMember.id ||
+          !(await comparePassword(
+            values.currentPassword,
+            member.password_hash,
+          ))
+        ) {
+          return res
+            .status(401)
+            .json({ error: "Your current password is incorrect." })
+        }
+      }
+
+      const passwordHash = await hashPassword(values.newPassword)
+      const updated = await setMemberPassword(
+        req.portalMember.schoolId,
+        req.portalMember.id,
+        role,
+        passwordHash,
+      )
+
+      if (!updated) {
+        return res
+          .status(401)
+          .json({ error: "This student account is no longer active." })
+      }
+
+      return res.json({ hasPortalPassword: true })
+    }),
+  )
+
   router.get(
     "/me",
 
@@ -147,6 +234,8 @@ export function createPortalAuthRouter({
             designation: req.portalMember.designation,
 
             passport: req.portalMember.passport,
+            access_pin: req.portalMember.accessPin,
+            hasPortalPassword: req.portalMember.hasPortalPassword,
           },
 
           school,

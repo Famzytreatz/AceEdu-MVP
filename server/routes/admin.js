@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs"
 
-import { randomInt } from "node:crypto"
+import { randomBytes, randomInt } from "node:crypto"
 
 import express from "express"
 
@@ -11,14 +11,17 @@ import {
   getDashboardAnalytics,
   iterateEnrollments,
   listEnrollments,
+  resetStudentPortalPassword,
   verifyEnrollment,
 } from "../models/Enrollment.js"
+import { findSchoolClassLevel } from "../models/Curriculum.js"
 
 import { isValidDatabaseId } from "../ids.js"
 
 import { asyncRoute } from "../security.js"
 import entitlementRouter from "./entitlements.js"
 import academicRouter from "./academic.js"
+import curriculumRouter from "./curriculum.js"
 
 import { validateEnrollment } from "../validation.js"
 
@@ -28,6 +31,7 @@ const pageSize = 50
 
 router.use("/entitlements", entitlementRouter)
 router.use("/academic", academicRouter)
+router.use("/curriculum", curriculumRouter)
 
 function csvCell(value) {
   let text = String(value ?? "")
@@ -134,6 +138,20 @@ router.post(
 
     delete values.password
 
+    if (values.role === "student") {
+      const schoolClass = await findSchoolClassLevel(
+        req.session.schoolId,
+        values.classLevelId,
+        req.school.schoolType,
+      )
+      if (!schoolClass?.isActive) {
+        return res.status(400).json({
+          error: "Choose an active class offered by this school.",
+        })
+      }
+      values.designation = schoolClass.name
+    }
+
     values.passwordHash = passwordHash
 
     const schoolId = req.session.schoolId
@@ -179,6 +197,35 @@ router.patch(
       return res.status(404).json({ error: "Registry entry not found." })
 
     return res.json({ enrollment })
+  }),
+)
+
+router.post(
+  "/users/:userId/password/reset",
+
+  asyncRoute(async (req, res) => {
+    if (!isValidDatabaseId(req.params.userId)) {
+      return res
+        .status(400)
+        .json({ error: "The registry entry ID is invalid." })
+    }
+
+    const temporaryPassword = randomBytes(12).toString("base64url")
+    const passwordHash = await bcrypt.hash(temporaryPassword, 12)
+    const enrollment = await resetStudentPortalPassword(
+      req.session.schoolId,
+      req.params.userId,
+      passwordHash,
+    )
+
+    if (!enrollment || enrollment.role !== "student") {
+      return res.status(404).json({ error: "Student record not found." })
+    }
+
+    return res.json({
+      enrollment,
+      temporaryPassword,
+    })
   }),
 )
 
