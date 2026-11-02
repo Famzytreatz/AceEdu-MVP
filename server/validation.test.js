@@ -8,6 +8,7 @@ import {
   normalizeEmail,
   validateEnrollment,
   validateRegistration,
+  validateSchoolShortName,
 } from "./validation.js"
 
 const registration = {
@@ -62,7 +63,10 @@ test("registration keeps the submitted school and administrator profile", () => 
 
 test("registration rejects invalid email, unsupported roles, and weak passwords", () => {
   for (const schoolType of ["Primary", "Secondary", "Combined"]) {
-    assert.equal(validateRegistration({ ...registration, schoolType }).schoolType, schoolType)
+    assert.equal(
+      validateRegistration({ ...registration, schoolType }).schoolType,
+      schoolType,
+    )
   }
   assert.throws(
     () => validateRegistration({ ...registration, schoolType: "Other" }),
@@ -109,6 +113,22 @@ test("registration rejects invalid email, unsupported roles, and weak passwords"
   )
 
   assert.throws(() => validateRegistration(null), /JSON object/)
+})
+
+test("school short names normalize to three uppercase letters", () => {
+  assert.equal(validateSchoolShortName({ shortName: " eis " }), "EIS")
+  assert.throws(
+    () => validateSchoolShortName({ shortName: "EI" }),
+    /exactly three letters/,
+  )
+  assert.throws(
+    () => validateSchoolShortName({ shortName: "E1S" }),
+    /exactly three letters/,
+  )
+  assert.throws(
+    () => validateSchoolShortName({ shortName: "EIS", schoolId: "1" }),
+    /Unsupported school settings field/,
+  )
 })
 
 test("enrollment only accepts supported fields and valid registry roles", () => {

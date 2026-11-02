@@ -2,11 +2,7 @@ import { isValidDatabaseId } from "./ids.js"
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-const schoolTypes = new Set([
-  "Primary",
-  "Secondary",
-  "Combined",
-])
+const schoolTypes = new Set(["Primary", "Secondary", "Combined"])
 
 const adminRoles = new Set([
   "Proprietor",
@@ -58,10 +54,14 @@ const allowedEnrollmentKeys = new Set([
 ])
 
 function ensureSupportedKeys(body, allowedKeys, label) {
-  const unsupportedKeys = Object.keys(body).filter((key) => !allowedKeys.has(key))
+  const unsupportedKeys = Object.keys(body).filter(
+    (key) => !allowedKeys.has(key),
+  )
 
   if (unsupportedKeys.length > 0) {
-    throw new Error(`Unsupported ${label} field(s): ${unsupportedKeys.join(", ")}.`)
+    throw new Error(
+      `Unsupported ${label} field(s): ${unsupportedKeys.join(", ")}.`,
+    )
   }
 }
 
@@ -252,6 +252,25 @@ export function validateEnrollment(body = {}) {
 
     password,
   }
+}
+
+export function validateSchoolShortName(body = {}) {
+  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+    throw new Error("School short name must be a JSON object.")
+  }
+
+  ensureSupportedKeys(body, new Set(["shortName"]), "school settings")
+
+  if (typeof body.shortName !== "string") {
+    throw new Error("Enter a three-letter school short name.")
+  }
+
+  const shortName = body.shortName.trim().toUpperCase()
+  if (!/^[A-Z]{3}$/.test(shortName)) {
+    throw new Error("School short name must contain exactly three letters.")
+  }
+
+  return shortName
 }
 
 export function normalizeEmail(value) {

@@ -14,6 +14,7 @@ import {
   resetStudentPortalPassword,
   verifyEnrollment,
 } from "../models/Enrollment.js"
+import { updateSchoolShortName } from "../models/School.js"
 import { findSchoolClassLevel } from "../models/Curriculum.js"
 
 import { isValidDatabaseId } from "../ids.js"
@@ -23,7 +24,7 @@ import entitlementRouter from "./entitlements.js"
 import academicRouter from "./academic.js"
 import curriculumRouter from "./curriculum.js"
 
-import { validateEnrollment } from "../validation.js"
+import { validateEnrollment, validateSchoolShortName } from "../validation.js"
 
 const router = express.Router()
 
@@ -41,16 +42,16 @@ function csvCell(value) {
   return `"${text.replaceAll('"', '""')}"`
 }
 
-async function makeAccessPin(schoolId) {
+async function makeAccessPin(schoolId, shortName) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const accessPin = String(randomInt(100000, 1000000))
+    const accessPin = `${shortName}-${randomInt(10000, 100000)}`
 
     const exists = await enrollmentPinExists(schoolId, accessPin)
 
     if (!exists) return accessPin
   }
 
-  throw new Error("Could not generate an unused access PIN. Please try again.")
+  throw new Error("Could not generate an unused access code. Please try again.")
 }
 
 router.get(
@@ -60,16 +61,40 @@ router.get(
     const schoolId = req.session.schoolId
 
     const analytics = await getDashboardAnalytics(schoolId)
-    const {
-      _id: _internalSchoolId,
-      publicId,
-      ...schoolProfile
-    } = req.school
+    const { _id: _internalSchoolId, publicId, ...schoolProfile } = req.school
 
     return res.json({
       school: { ...schoolProfile, id: publicId },
       ...analytics,
     })
+  }),
+)
+
+router.patch(
+  "/school/short-name",
+  asyncRoute(async (req, res) => {
+    let shortName
+    try {
+      shortName = validateSchoolShortName(req.body)
+    } catch (error) {
+      return res.status(400).json({ error: error.message })
+    }
+
+    try {
+      const school = await updateSchoolShortName(req.school._id, shortName)
+      if (!school) {
+        return res.status(404).json({ error: "School account not found." })
+      }
+      return res.json({ school: { shortName: school.shortName } })
+    } catch (error) {
+      if (error?.code === "23505") {
+        return res.status(409).json({
+          error:
+            "That school short name is already in use. Choose another three-letter code.",
+        })
+      }
+      throw error
+    }
   }),
 )
 
@@ -83,17 +108,20 @@ router.get(
       typeof req.query.q === "string" ? req.query.q.trim().slice(0, 80) : ""
 
     const cursor = typeof req.query.cursor === "string" ? req.query.cursor : ""
-    const role =
-      typeof req.query.role === "string" ? req.query.role.trim() : ""
+    const role = typeof req.query.role === "string" ? req.query.role.trim() : ""
     const status =
       typeof req.query.status === "string" ? req.query.status.trim() : ""
 
     if (role && !["student", "staff"].includes(role)) {
-      return res.status(400).json({ error: "The registry role filter is invalid." })
+      return res
+        .status(400)
+        .json({ error: "The registry role filter is invalid." })
     }
 
     if (status && !["Active", "Pending"].includes(status)) {
-      return res.status(400).json({ error: "The registry status filter is invalid." })
+      return res
+        .status(400)
+        .json({ error: "The registry status filter is invalid." })
     }
 
     if (cursor && !isValidDatabaseId(cursor)) {
@@ -124,6 +152,13 @@ router.post(
   "/users",
 
   asyncRoute(async (req, res) => {
+    if (!req.school.shortName) {
+      return res.status(409).json({
+        error:
+          "Set your three-letter school short name before adding students or staff.",
+      })
+    }
+
     let values
 
     try {
@@ -163,7 +198,7 @@ router.post(
 
           values,
 
-          accessPin: await makeAccessPin(schoolId),
+          accessPin: await makeAccessPin(schoolId, req.school.shortName),
         })
 
         return res.status(201).json({ enrollment })
@@ -272,7 +307,7 @@ router.get(
       `attachment; filename="${filename}-registry.csv"`,
     )
 
-    res.write("Name,Role,Class or designation,Access PIN,Status,Created\n")
+    res.write("Name,Role,Class or designation,Access code,Status,Created\n")
 
     for await (const record of iterateEnrollments(schoolId)) {
       if (res.destroyed) break

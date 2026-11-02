@@ -1,0 +1,840 @@
+.school-settings-page {
+  display: grid;
+  gap: 1.35rem;
+  animation: school-settings-arrive .45s cubic-bezier(.2, .75, .25, 1) both;
+}
+
+.school-settings__hero {
+  position: relative;
+  display: flex;
+  min-height: 12.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 2rem 2.15rem;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 1.2rem;
+  background: linear-gradient(112deg, #102d58 0%, #126c96 58%, #2aa6a1 115%);
+  box-shadow: 0 16px 38px rgba(10, 81, 127, .16);
+  color: #fff;
+}
+
+.school-settings__hero::before {
+  position: absolute;
+  z-index: -1;
+  top: -8rem;
+  right: 12%;
+  width: 22rem;
+  height: 22rem;
+  border: 1px solid rgba(255, 255, 255, .15);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2.2rem rgba(255, 255, 255, .035), 0 0 0 4.4rem rgba(255, 255, 255, .025);
+  content: "";
+}
+
+.school-settings__hero-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.school-settings__hero-icon,
+.school-settings__hero-school-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: rgba(255, 255, 255, .12);
+  color: #d7fbff;
+}
+
+.school-settings__hero-icon {
+  width: 3.1rem;
+  height: 3.1rem;
+  border-radius: 1rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+
+.school-settings__eyebrow {
+  margin: 0 0 .4rem;
+  color: #0782a3;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+}
+
+.school-settings__hero .school-settings__eyebrow {
+  color: #a7e9ef;
+}
+
+.school-settings__hero h2 {
+  margin: 0;
+  color: #fff;
+  font-family: "Poppins:SemiBold", sans-serif;
+  font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+  font-weight: 600;
+  letter-spacing: -.045em;
+}
+
+.school-settings__hero-copy > div > p:last-child {
+  max-width: 32rem;
+  margin: .45rem 0 0;
+  color: rgba(240, 250, 255, .78);
+  font-size: .78rem;
+  line-height: 1.65;
+}
+
+.school-settings__hero-school {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: .7rem;
+  min-width: 12rem;
+  padding: .7rem .85rem;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: .85rem;
+  background: rgba(255, 255, 255, .1);
+  backdrop-filter: blur(10px);
+  transition: transform .22s ease, background .22s ease;
+}
+
+.school-settings__hero-school:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, .16);
+}
+
+.school-settings__hero-school-icon {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: .7rem;
+}
+
+.school-settings__hero-school > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: .12rem;
+}
+
+.school-settings__hero-school small,
+.school-settings__hero-school strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.school-settings__hero-school small {
+  max-width: 10rem;
+  color: rgba(240, 250, 255, .7);
+  font-size: .63rem;
+}
+
+.school-settings__hero-school strong {
+  color: #fff;
+  font-size: .76rem;
+  font-weight: 600;
+}
+
+.school-settings__hero-school > svg {
+  margin-left: auto;
+  color: #9ce8d6;
+}
+
+.school-settings__hero-orbit {
+  position: absolute;
+  z-index: -1;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.school-settings__hero-orbit--one {
+  right: 28%;
+  bottom: -7rem;
+  width: 13rem;
+  height: 13rem;
+}
+
+.school-settings__hero-orbit--two {
+  right: 32%;
+  bottom: -5rem;
+  width: 9rem;
+  height: 9rem;
+  border-color: rgba(255, 255, 255, .1);
+}
+
+.school-settings__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(17rem, .85fr);
+  align-items: stretch;
+  gap: 1.1rem;
+}
+
+.school-settings__card {
+  min-width: 0;
+  padding: 1.5rem;
+  border: 1px solid var(--admin-line);
+  border-radius: 1rem;
+  background: var(--admin-surface, #fff);
+  box-shadow: var(--admin-elevation, 0 8px 26px rgba(28, 54, 84, .045));
+  transition: transform .25s cubic-bezier(.2, .75, .25, 1), border-color .25s ease, box-shadow .25s ease;
+}
+
+.school-settings__card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--admin-blue) 30%, var(--admin-line));
+  box-shadow: 0 16px 34px rgba(25, 57, 105, .09);
+}
+
+.school-settings__card-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: .85rem;
+  padding-bottom: 1.15rem;
+  border-bottom: 1px solid var(--admin-line);
+}
+
+.school-settings__card-icon,
+.school-settings__info-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  background: color-mix(in srgb, var(--admin-blue) 10%, var(--admin-surface, #fff));
+  color: var(--admin-blue);
+}
+
+.school-settings__card-icon {
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: .82rem;
+}
+
+.school-settings__card-heading .school-settings__eyebrow {
+  margin: .05rem 0 .23rem;
+}
+
+.school-settings__card h3 {
+  margin: 0;
+  color: var(--admin-ink);
+  font-family: "Poppins:SemiBold", sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -.025em;
+}
+
+.school-settings__card-heading > div > p:last-child,
+.school-settings__guidance > p {
+  margin: .3rem 0 0;
+  color: var(--admin-muted);
+  font-size: .72rem;
+  line-height: 1.65;
+}
+
+.school-settings__form {
+  display: grid;
+  justify-items: start;
+  gap: .65rem;
+  padding-top: 1.2rem;
+}
+
+.school-settings__form > label {
+  color: var(--admin-ink);
+  font-size: .74rem;
+  font-weight: 600;
+}
+
+.school-settings__form select {
+  width: min(100%, 28rem);
+  min-height: 2.9rem;
+  padding: .65rem .85rem;
+  border: 1px solid var(--admin-line);
+  border-radius: .65rem;
+  background-color: var(--admin-surface, #fff);
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: .78rem;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.school-settings__form select:hover {
+  border-color: color-mix(in srgb, var(--admin-blue) 42%, var(--admin-line));
+}
+
+.school-settings__form select:focus-visible {
+  outline: 0;
+  border-color: var(--admin-blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-blue) 16%, transparent);
+}
+
+.school-settings__form select:disabled {
+  opacity: .7;
+  cursor: wait;
+}
+
+.school-settings__calendar {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.school-settings__calendar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.school-settings__calendar-heading .school-settings__card-heading {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.school-settings__calendar-heading .school-settings__card-heading > div {
+  min-width: 0;
+}
+
+.school-settings__card-icon.is-calendar {
+  background: linear-gradient(145deg, #e8f5ff, #e7f8f4);
+  color: #167c98;
+}
+
+.school-settings__calendar-toggle {
+  flex: 0 0 auto;
+}
+
+.school-settings__calendar-toggle svg {
+  transition: transform .2s ease;
+}
+
+.school-settings__calendar-toggle svg.is-open {
+  transform: rotate(180deg);
+}
+
+.school-settings__calendar-state,
+.school-settings__calendar-empty {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: .73rem;
+  line-height: 1.6;
+}
+
+.school-settings__calendar-empty {
+  padding: 1rem;
+  border: 1px dashed var(--admin-line);
+  border-radius: .75rem;
+  background: color-mix(in srgb, var(--admin-blue) 3%, var(--admin-surface, #fff));
+}
+
+.school-settings__calendar-locked {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .85rem 1rem;
+  border: 1px solid var(--admin-line);
+  border-radius: .75rem;
+  background: color-mix(in srgb, var(--admin-blue) 3%, var(--admin-surface, #fff));
+}
+
+.school-settings__calendar-locked > span {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: .65rem;
+  background: color-mix(in srgb, var(--admin-blue) 10%, var(--admin-surface, #fff));
+  color: var(--admin-blue);
+}
+
+.school-settings__calendar-locked p {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: .7rem;
+  line-height: 1.65;
+}
+
+.school-settings__years {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: .85rem;
+}
+
+.school-settings__year {
+  display: grid;
+  align-content: start;
+  gap: .85rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--admin-line);
+  border-radius: .85rem;
+  background: var(--admin-surface, #fff);
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.school-settings__year:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--admin-blue) 28%, var(--admin-line));
+  box-shadow: 0 10px 24px rgba(25, 57, 105, .07);
+}
+
+.school-settings__year.is-current {
+  border-color: color-mix(in srgb, #26a47d 42%, var(--admin-line));
+  background:
+    linear-gradient(145deg, rgba(38, 164, 125, .045), transparent 68%),
+    var(--admin-surface, #fff);
+}
+
+.school-settings__year-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.school-settings__year-heading > div {
+  min-width: 0;
+}
+
+.school-settings__year-label {
+  color: var(--admin-muted);
+  font-size: .56rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
+.school-settings__year h4,
+.school-settings__calendar-form h4 {
+  margin: .2rem 0 0;
+  color: var(--admin-ink);
+  font-family: "Poppins:SemiBold", sans-serif;
+  font-size: .94rem;
+  font-weight: 600;
+}
+
+.school-settings__year-heading p {
+  margin: .22rem 0 0;
+  color: var(--admin-muted);
+  font-size: .66rem;
+}
+
+.school-settings__current-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: .3rem;
+  padding: .3rem .5rem;
+  border: 1px solid rgba(38, 164, 125, .2);
+  border-radius: 999px;
+  background: rgba(38, 164, 125, .09);
+  color: #218662;
+  font-size: .6rem;
+  font-weight: 650;
+}
+
+.school-settings__make-current {
+  min-height: 2rem;
+  padding: .32rem .55rem;
+  font-size: .62rem;
+}
+
+.school-settings__terms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 125px), 1fr));
+  gap: .5rem;
+}
+
+.school-settings__term {
+  display: grid;
+  gap: .16rem;
+  min-width: 0;
+  padding: .6rem .65rem;
+  border: 1px solid var(--admin-line);
+  border-radius: .62rem;
+  background: color-mix(in srgb, var(--admin-blue) 3%, var(--admin-surface, #fff));
+}
+
+.school-settings__term > span {
+  color: var(--admin-blue);
+  font-size: .52rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+}
+
+.school-settings__term strong {
+  color: var(--admin-ink);
+  font-size: .66rem;
+}
+
+.school-settings__term small {
+  color: var(--admin-muted);
+  font-size: .56rem;
+  line-height: 1.5;
+}
+
+.school-settings__calendar-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+  gap: .75rem;
+  padding: 1rem;
+  border: 1px solid var(--admin-line);
+  border-radius: .85rem;
+  background: color-mix(in srgb, var(--admin-blue) 2.5%, var(--admin-surface, #fff));
+  animation: school-settings-arrive .25s ease both;
+}
+
+.school-settings__calendar-form-heading {
+  grid-column: 1 / -1;
+}
+
+.school-settings__calendar-form h4 {
+  margin: 0;
+  font-size: .82rem;
+}
+
+.school-settings__calendar-form-heading p,
+.school-settings__calendar-hint {
+  margin: .18rem 0 0;
+  color: var(--admin-muted);
+  font-size: .63rem;
+  line-height: 1.55;
+}
+
+.school-settings__calendar-form > label {
+  display: grid;
+  gap: .35rem;
+  min-width: 0;
+  color: var(--admin-ink);
+  font-size: .63rem;
+  font-weight: 600;
+}
+
+.school-settings__calendar-form input,
+.school-settings__calendar-form select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.6rem;
+  padding: .55rem .65rem;
+  border: 1px solid var(--admin-line);
+  border-radius: .6rem;
+  background: var(--admin-surface, #fff);
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: .68rem;
+}
+
+.school-settings__calendar-hint {
+  grid-column: 1 / 4;
+  margin: 0;
+}
+
+.school-settings__calendar-form > .admin-primary-button {
+  justify-self: end;
+  min-height: 2.45rem;
+  font-size: .68rem;
+}
+
+.admin-app[data-theme="dark"] .school-settings__card-icon.is-calendar {
+  background: rgba(37, 132, 255, .14);
+  color: #77bdff;
+}
+
+.admin-app[data-theme="dark"] .school-settings__calendar-locked,
+.admin-app[data-theme="dark"] .school-settings__calendar-empty,
+.admin-app[data-theme="dark"] .school-settings__calendar-form,
+.admin-app[data-theme="dark"] .school-settings__term {
+  border-color: var(--admin-line);
+  background: #0c1c35;
+}
+
+.admin-app[data-theme="dark"] .school-settings__year {
+  border-color: var(--admin-line);
+  background: #0d1d36;
+}
+
+.admin-app[data-theme="dark"] .school-settings__year.is-current {
+  border-color: #24644e;
+  background: linear-gradient(145deg, rgba(38, 164, 125, .09), transparent 70%), #0d1d36;
+}
+
+.admin-app[data-theme="dark"] .school-settings__current-badge {
+  border-color: rgba(77, 194, 147, .25);
+  background: rgba(38, 164, 125, .14);
+  color: #81ddb5;
+}
+
+.admin-app[data-theme="dark"] .school-settings__calendar-form input,
+.admin-app[data-theme="dark"] .school-settings__calendar-form select {
+  border-color: var(--admin-line);
+  background: #06152e;
+  color: var(--admin-ink);
+}
+
+.school-settings__field-hint {
+  max-width: 38rem;
+  margin: .1rem 0 0;
+  color: var(--admin-muted);
+  font-size: .68rem;
+  line-height: 1.75;
+}
+
+.school-settings__form-footer {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: .55rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--admin-line);
+}
+
+.school-settings__form-footer > span {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  color: var(--admin-muted);
+  font-size: .65rem;
+}
+
+.school-settings__form-footer > span svg {
+  flex: 0 0 auto;
+  color: #2a9c79;
+}
+
+.school-settings__save {
+  min-height: 2.55rem;
+}
+
+.school-settings__save:not(:disabled) svg {
+  transition: transform .2s ease;
+}
+
+.school-settings__save:not(:disabled):hover svg {
+  transform: translateX(3px);
+}
+
+.school-settings__guidance {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.school-settings__guidance-title {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+}
+
+.school-settings__info-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: .65rem;
+}
+
+.school-settings__guidance h3 {
+  font-size: .85rem;
+}
+
+.school-settings__guidance > p {
+  margin-top: .7rem;
+}
+
+.school-settings__guidance ul {
+  display: grid;
+  gap: .8rem;
+  width: 100%;
+  margin: 1.2rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.school-settings__guidance li {
+  display: flex;
+  align-items: flex-start;
+  gap: .55rem;
+  color: var(--admin-ink);
+  font-size: .68rem;
+  line-height: 1.5;
+}
+
+.school-settings__guidance li > span {
+  display: grid;
+  flex: 0 0 auto;
+  width: 1.1rem;
+  height: 1.1rem;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(39, 162, 119, .12);
+  color: #218662;
+}
+
+.school-settings__tip {
+  display: flex;
+  align-items: flex-start;
+  gap: .55rem;
+  margin-top: auto;
+  padding: .8rem;
+  border: 1px solid color-mix(in srgb, var(--admin-blue) 18%, var(--admin-line));
+  border-radius: .72rem;
+  background: color-mix(in srgb, var(--admin-blue) 5%, var(--admin-surface, #fff));
+  color: var(--admin-muted);
+  font-size: .64rem;
+  line-height: 1.6;
+}
+
+.school-settings__tip svg {
+  flex: 0 0 auto;
+  margin-top: .05rem;
+  color: var(--admin-blue);
+}
+
+.school-settings__notice {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  margin: 0;
+  padding: .8rem 1rem;
+  border: 1px solid #bee8d5;
+  border-radius: .7rem;
+  background: #f0fbf5;
+  color: #24774f;
+  font-size: .75rem;
+  animation: school-settings-arrive .25s ease both;
+}
+
+.school-settings__notice svg {
+  flex: 0 0 auto;
+}
+
+.school-settings-page > .admin-alert {
+  margin: 0;
+}
+
+.admin-app[data-theme="dark"] .school-settings__hero {
+  background: linear-gradient(112deg, #082552 0%, #075877 58%, #147d78 115%);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .2);
+}
+
+.admin-app[data-theme="dark"] .school-settings__card:hover {
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .27), 0 0 0 1px rgba(37, 132, 255, .07);
+}
+
+.admin-app[data-theme="dark"] .school-settings__notice {
+  border-color: #245c4a;
+  background: #102c26;
+  color: #baf0d0;
+}
+
+@keyframes school-settings-arrive {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+  .school-settings__layout {
+    grid-template-columns: minmax(0, 1.25fr) minmax(15rem, .85fr);
+    gap: .85rem;
+  }
+
+  .school-settings__hero {
+    padding: 1.6rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .school-settings__hero {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .school-settings__hero-school {
+    align-self: stretch;
+  }
+
+  .school-settings__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .school-settings__calendar-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .school-settings__calendar-hint {
+    grid-column: 1 / -1;
+  }
+
+  .school-settings__calendar-form > .admin-primary-button {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+  }
+
+  .school-settings__guidance {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .school-settings-page {
+    gap: .9rem;
+  }
+
+  .school-settings__hero,
+  .school-settings__card {
+    padding: 1.15rem;
+    border-radius: .9rem;
+  }
+
+  .school-settings__hero-copy {
+    gap: .75rem;
+  }
+
+  .school-settings__hero-icon {
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: .8rem;
+  }
+
+  .school-settings__form-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .school-settings__calendar-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .school-settings__calendar-heading .school-settings__card-heading {
+    align-items: flex-start;
+  }
+
+  .school-settings__calendar-toggle {
+    align-self: flex-start;
+  }
+
+  .school-settings__calendar-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .school-settings__calendar-form-heading,
+  .school-settings__calendar-hint,
+  .school-settings__calendar-form > .admin-primary-button {
+    grid-column: auto;
+  }
+}
+
+@media (hover: none) {
+  .school-settings__card:hover,
+  .school-settings__hero-school:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .school-settings-page {
+    animation: none;
+  }
+}

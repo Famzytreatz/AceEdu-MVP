@@ -13,11 +13,16 @@ import "./PremiumAcademicSetup.css"
 
 const emptyYear = { name: "", startsOn: "", endsOn: "", termCount: "3" }
 
-export default function PremiumAcademicSetup() {
+export default function PremiumAcademicSetup({
+  classOnly = false,
+  academicYearId = "",
+  onSaved,
+}) {
   const [data, setData] = useState({
     academicYears: [],
     terms: [],
     classes: [],
+    classRosters: [],
     subjects: [],
     students: [],
     teachers: [],
@@ -28,7 +33,7 @@ export default function PremiumAcademicSetup() {
   const [notice, setNotice] = useState("")
   const [yearForm, setYearForm] = useState(emptyYear)
   const [classForm, setClassForm] = useState({
-    academicYearId: "",
+    academicYearId,
     name: "",
     classTeacherId: "",
   })
@@ -39,6 +44,14 @@ export default function PremiumAcademicSetup() {
   })
   const [rosterClassId, setRosterClassId] = useState("")
   const [studentIds, setStudentIds] = useState([])
+  const availableYears = classOnly
+    ? data.academicYears.filter((year) => year.id === academicYearId)
+    : data.academicYears
+  const availableClasses = classOnly
+    ? data.classes.filter(
+        (schoolClass) => schoolClass.academicYearId === academicYearId,
+      )
+    : data.classes
 
   async function refresh() {
     setLoading(true)
@@ -49,6 +62,7 @@ export default function PremiumAcademicSetup() {
       setClassForm((current) => ({
         ...current,
         academicYearId:
+          academicYearId ||
           current.academicYearId ||
           result.academicYears.find((year) => year.isCurrent)?.id ||
           result.academicYears[0]?.id ||
@@ -56,9 +70,23 @@ export default function PremiumAcademicSetup() {
       }))
       setSubjectForm((current) => ({
         ...current,
-        classId: current.classId || result.classes[0]?.id || "",
+        classId:
+          current.classId ||
+          result.classes.find(
+            (schoolClass) => schoolClass.academicYearId === academicYearId,
+          )?.id ||
+          result.classes[0]?.id ||
+          "",
       }))
-      setRosterClassId((current) => current || result.classes[0]?.id || "")
+      setRosterClassId(
+        (current) =>
+          current ||
+          result.classes.find(
+            (schoolClass) => schoolClass.academicYearId === academicYearId,
+          )?.id ||
+          result.classes[0]?.id ||
+          "",
+      )
     } catch (loadError) {
       setError(loadError.message)
     } finally {
@@ -71,11 +99,30 @@ export default function PremiumAcademicSetup() {
   }, [])
 
   useEffect(() => {
-    const roster = data.students
-      .filter((student) => student.classId === rosterClassId && student.status === "Active")
-      .map((student) => student.id)
+    const roster = data.classRosters
+      .filter((entry) => entry.classId === rosterClassId)
+      .map((entry) => entry.studentId)
     setStudentIds(roster)
-  }, [rosterClassId, data.students])
+  }, [rosterClassId, data.classRosters])
+
+  useEffect(() => {
+    if (!classOnly || !academicYearId) return
+    const firstClass = availableClasses[0]?.id || ""
+    setClassForm((current) => ({ ...current, academicYearId }))
+    setSubjectForm((current) => ({
+      ...current,
+      classId: availableClasses.some(
+        (schoolClass) => schoolClass.id === current.classId,
+      )
+        ? current.classId
+        : firstClass,
+    }))
+    setRosterClassId((current) =>
+      availableClasses.some((schoolClass) => schoolClass.id === current)
+        ? current
+        : firstClass,
+    )
+  }, [classOnly, academicYearId, data.classes])
 
   async function submit(action, successMessage) {
     setPending(true)
@@ -85,6 +132,7 @@ export default function PremiumAcademicSetup() {
       await action()
       setNotice(successMessage)
       await refresh()
+      onSaved?.()
     } catch (submitError) {
       setError(submitError.message)
     } finally {
@@ -107,8 +155,14 @@ export default function PremiumAcademicSetup() {
       <header className="premium-academic__heading">
         <div>
           <p className="admin-eyebrow">PREMIUM · ACADEMIC FOUNDATION</p>
-          <h2 id="premium-academic-title">Academic setup</h2>
-          <p>Configure your school year, terms, classes, subjects, and student rosters.</p>
+          <h2 id="premium-academic-title">
+            {classOnly ? "Session classes and rosters" : "Academic setup"}
+          </h2>
+          <p>
+            {classOnly
+              ? "Create classes, add subjects, and assign students for this session."
+              : "Configure your school year, terms, classes, subjects, and student rosters."}
+          </p>
         </div>
         <button
           type="button"
@@ -125,6 +179,7 @@ export default function PremiumAcademicSetup() {
       {loading && <p className="premium-academic__updating" role="status">Refreshing saved setup…</p>}
 
       <div className="premium-academic__grid">
+        {!classOnly && (
         <form
           className="admin-panel premium-academic__panel"
           onSubmit={(event) => {
@@ -186,6 +241,7 @@ export default function PremiumAcademicSetup() {
             Create school year
           </button>
         </form>
+        )}
 
         <form
           className="admin-panel premium-academic__panel"
@@ -209,7 +265,7 @@ export default function PremiumAcademicSetup() {
             onChange={(event) => setClassForm({ ...classForm, academicYearId: event.target.value })}
           >
             <option value="">Select a year</option>
-            {data.academicYears.map((year) => (
+            {availableYears.map((year) => (
               <option value={year.id} key={year.id}>{year.name}{year.isCurrent ? " · Current" : ""}</option>
             ))}
           </select>
@@ -260,7 +316,7 @@ export default function PremiumAcademicSetup() {
             onChange={(event) => setSubjectForm({ ...subjectForm, classId: event.target.value })}
           >
             <option value="">Select a class</option>
-            {data.classes.map((schoolClass) => (
+            {availableClasses.map((schoolClass) => (
               <option value={schoolClass.id} key={schoolClass.id}>{schoolClass.name}</option>
             ))}
           </select>
@@ -284,7 +340,7 @@ export default function PremiumAcademicSetup() {
               <option value={teacher.id} key={teacher.id}>{teacher.fullName}</option>
             ))}
           </select>
-          <button className="admin-primary-button" type="submit" disabled={pending || !data.classes.length}>
+          <button className="admin-primary-button" type="submit" disabled={pending || !availableClasses.length}>
             Add subject
           </button>
         </form>
@@ -307,7 +363,7 @@ export default function PremiumAcademicSetup() {
             onChange={(event) => setRosterClassId(event.target.value)}
           >
             <option value="">Select a class</option>
-            {data.classes.map((schoolClass) => (
+            {availableClasses.map((schoolClass) => (
               <option value={schoolClass.id} key={schoolClass.id}>{schoolClass.name}</option>
             ))}
           </select>
@@ -333,7 +389,7 @@ export default function PremiumAcademicSetup() {
               </label>
             ))}
           </div>
-          <p className="premium-academic__hint">Saving replaces this class roster. Students moved here are removed from their previous class.</p>
+          <p className="premium-academic__hint">Saving updates this session's roster. A student's past session membership is kept for historical records.</p>
           <button className="admin-primary-button" type="submit" disabled={pending || !rosterClassId}>
             Save roster ({studentIds.length})
           </button>
@@ -343,11 +399,15 @@ export default function PremiumAcademicSetup() {
       <section className="admin-panel premium-academic__saved">
         <div className="premium-academic__saved-heading">
           <div>
-            <h3>Saved academic structure</h3>
-            <p>{data.academicYears.length} years · {data.classes.length} classes · {data.subjects.length} subjects</p>
+            <h3>{classOnly ? "Classes in this session" : "Saved academic structure"}</h3>
+            <p>
+              {classOnly
+                ? `${availableClasses.length} classes · ${data.subjects.filter((subject) => availableClasses.some((schoolClass) => schoolClass.id === subject.classId)).length} subjects`
+                : `${data.academicYears.length} years · ${data.classes.length} classes · ${data.subjects.length} subjects`}
+            </p>
           </div>
         </div>
-        {data.academicYears.map((year) => (
+        {!classOnly && data.academicYears.map((year) => (
           <article className="premium-academic__year" key={year.id}>
             <div>
               <strong>{year.name}</strong>
@@ -374,15 +434,15 @@ export default function PremiumAcademicSetup() {
             </div>
           </article>
         ))}
-        {data.classes.map((schoolClass) => (
+        {availableClasses.map((schoolClass) => (
           <article className="premium-academic__class" key={schoolClass.id}>
             <strong>{schoolClass.name}</strong>
             <span>{data.academicYears.find((year) => year.id === schoolClass.academicYearId)?.name}</span>
             <span>{data.subjects.filter((subject) => subject.classId === schoolClass.id).map((subject) => subject.name).join(", ") || "No subjects yet"}</span>
-            <span>{data.students.filter((student) => student.classId === schoolClass.id).length} students</span>
+            <span>{data.classRosters.filter((entry) => entry.classId === schoolClass.id).length} students</span>
           </article>
         ))}
-        {!data.academicYears.length && !data.classes.length && (
+        {!availableYears.length && !availableClasses.length && (
           <p className="premium-academic__empty">No academic years or classes have been created yet.</p>
         )}
       </section>

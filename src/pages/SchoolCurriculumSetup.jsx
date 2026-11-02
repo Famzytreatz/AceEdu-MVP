@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { BookOpen, ClipboardCheck, GraduationCap } from "lucide-react"
 
 import {
   createClassSubject,
@@ -9,8 +10,6 @@ import {
   updateClassLevel,
   updateClassSubject,
 } from "../data/api"
-
-import PremiumAcademicSetup from "./PremiumAcademicSetup"
 
 import "./SchoolCurriculumSetup.css"
 
@@ -33,8 +32,6 @@ export default function SchoolCurriculumSetup({
   const [newSubjects, setNewSubjects] = useState({})
 
   const [selectedClassId, setSelectedClassId] = useState("")
-
-  const [showLegacyAcademic, setShowLegacyAcademic] = useState(false)
 
   async function refresh() {
     setLoading(true)
@@ -108,7 +105,7 @@ export default function SchoolCurriculumSetup({
       <header className="school-curriculum__heading">
         <div>
           <p className="admin-eyebrow">SCHOOL SETUP</p>
-          <h2 id="school-curriculum-title">Classes and subjects</h2>
+          <h2 id="school-curriculum-title">Class and subject setup</h2>
           <p>
             Set the class names students see, define subject choices, and review
             each student's selection.
@@ -138,9 +135,53 @@ export default function SchoolCurriculumSetup({
 
       {!loading && (
         <>
+          <div
+            className="school-curriculum__summary"
+            aria-label="Curriculum overview"
+          >
+            <div className="school-curriculum__summary-item">
+              <span className="school-curriculum__summary-icon is-blue">
+                <GraduationCap size={18} aria-hidden="true" />
+              </span>
+              <span>
+                <strong>{classLevels.length}</strong>
+                <small>Class levels</small>
+              </span>
+            </div>
+            <div className="school-curriculum__summary-item">
+              <span className="school-curriculum__summary-icon is-teal">
+                <BookOpen size={17} aria-hidden="true" />
+              </span>
+              <span>
+                <strong>
+                  {classLevels.reduce(
+                    (total, level) =>
+                      total +
+                      (level.isActive
+                        ? level.subjects.filter((subject) => subject.isActive)
+                            .length
+                        : 0),
+                    0,
+                  )}
+                </strong>
+                <small>Available subjects</small>
+              </span>
+            </div>
+            <div className="school-curriculum__summary-item">
+              <span className="school-curriculum__summary-icon is-violet">
+                <ClipboardCheck size={17} aria-hidden="true" />
+              </span>
+              <span>
+                <strong>{requests.length}</strong>
+                <small>Approvals to review</small>
+              </span>
+            </div>
+          </div>
+
           <section className="admin-panel school-curriculum__panel">
             <header>
               <div>
+                <p className="admin-eyebrow">YOUR CURRICULUM</p>
                 <h3>Choose a class to manage</h3>
                 <p>
                   Select a class to edit its display name, subject requirements,
@@ -574,25 +615,6 @@ export default function SchoolCurriculumSetup({
           </button>
         </p>
       )}
-      <section className="school-curriculum__legacy">
-        <button
-          type="button"
-          className="admin-outline-button"
-          aria-expanded={showLegacyAcademic}
-          onClick={() => setShowLegacyAcademic((current) => !current)}
-        >
-          {showLegacyAcademic ? "Hide" : "Show"} advanced academic-year tools
-        </button>
-        {showLegacyAcademic && (
-          <>
-            <p>
-              Existing tools for academic years, terms, and historical academic
-              records.
-            </p>
-            <PremiumAcademicSetup />
-          </>
-        )}
-      </section>
     </section>
   )
 }

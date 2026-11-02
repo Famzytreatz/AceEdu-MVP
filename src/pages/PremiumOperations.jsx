@@ -5,13 +5,26 @@ import {
   getAcademicSetup,
   getAttendance,
   getClassAssessments,
+  getClassPerformance,
+  getClassStudentRecords,
   saveAssessmentResults,
   saveAttendance,
 } from "../data/api"
 
-import { BookOpen, ClipboardList, Save } from "lucide-react"
+import {
+  ArrowLeft,
+  Award,
+  BookOpen,
+  CalendarDays,
+  ChevronRight,
+  ClipboardList,
+  GraduationCap,
+  Save,
+  Users,
+} from "lucide-react"
 
 import LoadingSpinner from "../components/ui/LoadingSpinner"
+import PremiumAcademicSetup from "./PremiumAcademicSetup"
 
 import "./PremiumOperations.css"
 
@@ -53,7 +66,7 @@ function initialTerm(setup, classId, date = localDateValue()) {
   )
 }
 
-function useAcademicSetup() {
+function useAcademicSetup(refreshKey = 0) {
   const [setup, setSetup] = useState(null)
 
   const [loading, setLoading] = useState(true)
@@ -62,6 +75,8 @@ function useAcademicSetup() {
 
   useEffect(() => {
     let active = true
+
+    setError("")
 
     getAcademicSetup()
 
@@ -80,7 +95,7 @@ function useAcademicSetup() {
     return () => {
       active = false
     }
-  }, [])
+  }, [refreshKey])
 
   return { setup, loading, error }
 }
@@ -429,7 +444,600 @@ function AttendanceView() {
   )
 }
 
-function AcademicRecordsView() {
+function formatRecordDate(value) {
+  if (!value) return "—"
+  return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
+}
+
+function AcademicRecordsView({ onOpenSettings }) {
+  const [setupRefreshKey, setSetupRefreshKey] = useState(0)
+  const [classSetupOpen, setClassSetupOpen] = useState(false)
+  const { setup, loading, error: setupError } =
+    useAcademicSetup(setupRefreshKey)
+  const [yearId, setYearId] = useState("")
+  const [classId, setClassId] = useState("")
+  const [classRecords, setClassRecords] = useState(null)
+  const [studentId, setStudentId] = useState("")
+  const [studentRecords, setStudentRecords] = useState(null)
+  const [loadingClass, setLoadingClass] = useState(false)
+  const [loadingStudent, setLoadingStudent] = useState(false)
+  const [error, setError] = useState("")
+  const [assessmentToolsOpen, setAssessmentToolsOpen] = useState(false)
+
+  useEffect(() => {
+    if (!setup || yearId) return
+    setYearId(
+      setup.academicYears.find((year) => year.isCurrent)?.id ||
+        setup.academicYears[0]?.id ||
+        "",
+    )
+  }, [setup, yearId])
+
+  const selectedYear = setup?.academicYears.find((year) => year.id === yearId)
+  const yearClasses =
+    setup?.classes.filter((schoolClass) => schoolClass.academicYearId === yearId) ||
+    []
+  useEffect(() => {
+    if (!classId) {
+      setClassRecords(null)
+      return undefined
+    }
+
+    let active = true
+    setLoadingClass(true)
+    setError("")
+    getClassPerformance(classId)
+      .then((result) => {
+        if (active) setClassRecords(result)
+      })
+      .catch((loadError) => {
+        if (active) setError(loadError.message)
+      })
+      .finally(() => {
+        if (active) setLoadingClass(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [classId, setupRefreshKey])
+
+  useEffect(() => {
+    if (!classId || !studentId) {
+      setStudentRecords(null)
+      return undefined
+    }
+
+    let active = true
+    setLoadingStudent(true)
+    setError("")
+    getClassStudentRecords(classId, studentId)
+      .then((result) => {
+        if (active) setStudentRecords(result)
+      })
+      .catch((loadError) => {
+        if (active) setError(loadError.message)
+      })
+      .finally(() => {
+        if (active) setLoadingStudent(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [classId, studentId, setupRefreshKey])
+
+  function chooseYear(nextYearId) {
+    setYearId(nextYearId)
+    setClassId("")
+    setClassRecords(null)
+    setStudentId("")
+    setStudentRecords(null)
+  }
+
+  function chooseClass(nextClassId) {
+    setClassId(nextClassId)
+    setClassRecords(null)
+    setStudentId("")
+    setStudentRecords(null)
+    setError("")
+  }
+
+  if (loading) return <LoadingState />
+  if (!setup) {
+    return (
+      <ErrorMessage>
+        {setupError || "Academic setup could not be loaded."}
+      </ErrorMessage>
+    )
+  }
+
+  const rankedStudents =
+    classRecords?.students.filter(
+      (student) => student.rank && student.rank <= 3,
+    ) || []
+
+  return (
+    <section
+      className="premium-operations premium-records"
+      aria-labelledby="premium-records-title"
+    >
+      <header className="premium-operations__heading">
+        <div>
+          <p className="admin-eyebrow">PREMIUM · SCHOOL OPERATIONS</p>
+          <h2 id="premium-records-title">Academic records</h2>
+          <p>
+            Choose a school session to explore class performance, attendance,
+            and each student’s history.
+          </p>
+        </div>
+      </header>
+
+      {setupError && <ErrorMessage>{setupError}</ErrorMessage>}
+      <ErrorMessage>{error}</ErrorMessage>
+
+      {!setup.academicYears.length ? (
+        <div className="admin-panel premium-records__empty-state">
+          <CalendarDays size={26} aria-hidden="true" />
+          <h3>Create your first academic session</h3>
+          <p>
+            Academic sessions and term dates are managed in Settings. Once a
+            session is created, its classes and records will appear here.
+          </p>
+          {onOpenSettings && (
+            <button
+              type="button"
+              className="admin-primary-button"
+              onClick={onOpenSettings}
+            >
+              Open Settings
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="premium-records__session">
+            <div className="premium-records__session-copy">
+              <span className="premium-records__session-icon">
+                <CalendarDays size={19} aria-hidden="true" />
+              </span>
+              <div>
+                <strong>Academic session</strong>
+                <span>
+                  {selectedYear?.isCurrent
+                    ? "Current session"
+                    : "Past session records"}
+                </span>
+              </div>
+            </div>
+            <select
+              aria-label="Choose academic session"
+              value={yearId}
+              onChange={(event) => chooseYear(event.target.value)}
+            >
+              {setup.academicYears.map((year) => (
+                <option value={year.id} key={year.id}>
+                  {year.name}
+                  {year.isCurrent ? " · Current" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {!classId ? (
+            <section className="premium-records__section">
+              <div className="premium-records__section-heading">
+                <div>
+                  <h3>Classes</h3>
+                  <p>
+                    {selectedYear
+                      ? `${selectedYear.name} · ${yearClasses.length} ${
+                          yearClasses.length === 1 ? "class" : "classes"
+                        }`
+                      : "Select a session to browse its classes."}
+                  </p>
+                </div>
+                <GraduationCap size={21} aria-hidden="true" />
+              </div>
+              {yearClasses.length ? (
+                <div className="premium-records__class-grid">
+                  {yearClasses.map((schoolClass) => {
+                    const rosterCount = setup.classRosters.filter(
+                      (entry) => entry.classId === schoolClass.id,
+                    ).length
+                    const subjectCount = setup.subjects.filter(
+                      (subject) => subject.classId === schoolClass.id,
+                    ).length
+                    return (
+                      <button
+                        type="button"
+                        className="premium-records__class-card"
+                        key={schoolClass.id}
+                        onClick={() => chooseClass(schoolClass.id)}
+                      >
+                        <span className="premium-records__class-icon">
+                          <GraduationCap size={20} aria-hidden="true" />
+                        </span>
+                        <span className="premium-records__class-info">
+                          <strong>{schoolClass.name}</strong>
+                          <small>
+                            <Users size={13} aria-hidden="true" />
+                            {rosterCount} students
+                            <span aria-hidden="true">·</span>
+                            {subjectCount} subjects
+                          </small>
+                        </span>
+                        <ChevronRight size={18} aria-hidden="true" />
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="premium-records__empty-state is-compact">
+                  <GraduationCap size={24} aria-hidden="true" />
+                  <h3>No classes in this session yet</h3>
+                  <p>
+                    Add a class and assign its roster below to start tracking
+                    records for this session.
+                  </p>
+                </div>
+              )}
+            </section>
+          ) : (
+            <section className="premium-records__section">
+              <button
+                type="button"
+                className="premium-records__back"
+                onClick={() => {
+                  setClassId("")
+                  setClassRecords(null)
+                  setStudentId("")
+                  setStudentRecords(null)
+                }}
+              >
+                <ArrowLeft size={16} aria-hidden="true" />
+                All classes
+              </button>
+
+              {loadingClass ? (
+                <LoadingState>Loading class records…</LoadingState>
+              ) : classRecords ? (
+                studentId ? (
+                  <div className="premium-records__student-detail">
+                    <button
+                      type="button"
+                      className="premium-records__back"
+                      onClick={() => {
+                        setStudentId("")
+                        setStudentRecords(null)
+                      }}
+                    >
+                      <ArrowLeft size={16} aria-hidden="true" />
+                      {classRecords.schoolClass.name} students
+                    </button>
+                    {loadingStudent ? (
+                      <LoadingState>Loading student history…</LoadingState>
+                    ) : studentRecords ? (
+                      <>
+                        <div className="premium-records__student-heading">
+                          <span className="premium-records__student-avatar">
+                            {studentRecords.student.fullName
+                              .split(/\s+/)
+                              .slice(0, 2)
+                              .map((part) => part[0])
+                              .join("")
+                              .toUpperCase()}
+                          </span>
+                          <div>
+                            <p>{classRecords.academicYear.name} · {classRecords.schoolClass.name}</p>
+                            <h3>{studentRecords.student.fullName}</h3>
+                            <span>{studentRecords.student.designation || "Student record"}</span>
+                          </div>
+                        </div>
+                        <div className="premium-records__metrics">
+                          <article>
+                            <span>Overall average</span>
+                            <strong>
+                              {studentRecords.student.averagePercentage === null
+                                ? "—"
+                                : `${studentRecords.student.averagePercentage}%`}
+                            </strong>
+                            <small>
+                              {studentRecords.student.assessmentCount} graded
+                              assessments
+                            </small>
+                          </article>
+                          <article>
+                            <span>Attendance rate</span>
+                            <strong>
+                              {studentRecords.student.attendance.rate === null
+                                ? "—"
+                                : `${studentRecords.student.attendance.rate}%`}
+                            </strong>
+                            <small>
+                              {studentRecords.student.attendance.marked} marked
+                              sessions · {studentRecords.student.attendance.excused} excused
+                            </small>
+                          </article>
+                          <article>
+                            <span>Class rank</span>
+                            <strong>
+                              {studentRecords.student.rank
+                                ? `#${studentRecords.student.rank}`
+                                : "—"}
+                            </strong>
+                            <small>Based on graded results</small>
+                          </article>
+                        </div>
+
+                        <div className="premium-records__history-grid">
+                          <section className="admin-panel premium-records__history">
+                            <h4><BookOpen size={16} /> Assessment history</h4>
+                            {studentRecords.student.assessmentHistory.length ? (
+                              <div className="premium-records__history-list">
+                                {studentRecords.student.assessmentHistory.map(
+                                  (item, index) => (
+                                    <article key={`${item.assessmentId}-${index}`}>
+                                      <div>
+                                        <strong>{item.title}</strong>
+                                        <span>{item.subject} · {item.termName}</span>
+                                      </div>
+                                      <b>{item.score} / {item.maximumScore}</b>
+                                    </article>
+                                  ),
+                                )}
+                              </div>
+                            ) : (
+                              <p className="premium-operations__empty">
+                                No graded assessments recorded for this student
+                                in this session.
+                              </p>
+                            )}
+                          </section>
+                          <section className="admin-panel premium-records__history">
+                            <h4><CalendarDays size={16} /> Attendance history</h4>
+                            {studentRecords.student.attendanceHistory.length ? (
+                              <div className="premium-records__history-list">
+                                {studentRecords.student.attendanceHistory.map(
+                                  (item, index) => (
+                                    <article key={`${item.date}-${index}`}>
+                                      <div>
+                                        <strong>{formatRecordDate(item.date)}</strong>
+                                        <span>{item.termName}</span>
+                                      </div>
+                                      <b className={`premium-records__status is-${item.status}`}>
+                                        {item.status}
+                                      </b>
+                                    </article>
+                                  ),
+                                )}
+                              </div>
+                            ) : (
+                              <p className="premium-operations__empty">
+                                No attendance records recorded for this student
+                                in this session.
+                              </p>
+                            )}
+                          </section>
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+                ) : (
+                  <>
+                    <div className="premium-records__class-heading">
+                      <div>
+                        <p>{classRecords.academicYear.name}</p>
+                        <h3>{classRecords.schoolClass.name}</h3>
+                      </div>
+                      <span>
+                        <Users size={15} aria-hidden="true" />
+                        {classRecords.metrics.studentCount} students
+                      </span>
+                    </div>
+                    <div className="premium-records__metrics">
+                      <article>
+                        <span>Class average</span>
+                        <strong>
+                          {classRecords.metrics.classAverage === null
+                            ? "—"
+                            : `${classRecords.metrics.classAverage}%`}
+                        </strong>
+                        <small>
+                          {classRecords.metrics.assessedStudentCount} students
+                          with graded results
+                        </small>
+                      </article>
+                      <article>
+                        <span>Attendance rate</span>
+                        <strong>
+                          {classRecords.metrics.attendance.rate === null
+                            ? "—"
+                            : `${classRecords.metrics.attendance.rate}%`}
+                        </strong>
+                        <small>
+                          {classRecords.metrics.attendance.marked} marked
+                          sessions · {classRecords.metrics.attendance.excused} excused
+                        </small>
+                      </article>
+                      <article>
+                        <span>Assessments</span>
+                        <strong>{classRecords.metrics.assessmentCount}</strong>
+                        <small>Created in this session</small>
+                      </article>
+                    </div>
+                    <p className="premium-records__method">
+                      Student averages use total points earned divided by
+                      possible points across graded assessments; the class
+                      average is the mean of those student averages.
+                      Attendance counts present and late marks as attended;
+                      excused marks are excluded. Tied scores share a rank.
+                    </p>
+
+                    <section className="premium-records__top">
+                      <div className="premium-records__section-heading">
+                        <div>
+                          <h4><Award size={17} /> Top performers</h4>
+                          <p>Highest overall results in this class session</p>
+                        </div>
+                      </div>
+                      {rankedStudents.length ? (
+                        <div className="premium-records__podium">
+                          {rankedStudents.map((student) => (
+                            <button
+                              type="button"
+                              className={`premium-records__podium-card rank-${student.rank}`}
+                              key={student.id}
+                              onClick={() => setStudentId(student.id)}
+                            >
+                              <span className="premium-records__rank">
+                                #{student.rank}
+                              </span>
+                              <strong>{student.fullName}</strong>
+                              <span>{student.averagePercentage}% average</span>
+                              <small>
+                                {student.assessmentCount} graded assessments
+                              </small>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="premium-operations__empty">
+                          Top performers will appear when assessment results
+                          have been recorded.
+                        </p>
+                      )}
+                    </section>
+
+                    <section className="premium-records__student-list">
+                      <div className="premium-records__section-heading">
+                        <div>
+                          <h4>Student records</h4>
+                          <p>Open a student to review their session history.</p>
+                        </div>
+                      </div>
+                      {classRecords.students.length ? (
+                        <div className="premium-records__table-wrap">
+                          <table className="premium-records__table">
+                            <thead>
+                              <tr>
+                                <th>Rank</th>
+                                <th>Student</th>
+                                <th>Average</th>
+                                <th>Attendance</th>
+                                <th>Assessments</th>
+                                <th></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {classRecords.students.map((student) => (
+                                <tr key={student.id}>
+                                  <td>
+                                    {student.rank ? (
+                                      <span
+                                        className={`premium-records__rank-badge ${
+                                          student.rank <= 3 ? "is-top" : ""
+                                        }`}
+                                      >
+                                        {student.rank <= 3 && (
+                                          <Award size={13} aria-hidden="true" />
+                                        )}
+                                        #{student.rank}
+                                      </span>
+                                    ) : "—"}
+                                  </td>
+                                  <th scope="row">
+                                    <button
+                                      type="button"
+                                      className="premium-records__student-link"
+                                      onClick={() => setStudentId(student.id)}
+                                    >
+                                      {student.fullName}
+                                    </button>
+                                    <small>{student.designation || "Student"}</small>
+                                  </th>
+                                  <td>
+                                    {student.averagePercentage === null
+                                      ? "Not graded"
+                                      : `${student.averagePercentage}%`}
+                                  </td>
+                                  <td>
+                                    {student.attendance.rate === null
+                                      ? "No marks"
+                                      : `${student.attendance.rate}%`}
+                                  </td>
+                                  <td>{student.assessmentCount}</td>
+                                  <td>
+                                    <button
+                                      type="button"
+                                      className="premium-records__view"
+                                      onClick={() => setStudentId(student.id)}
+                                    >
+                                      View <ChevronRight size={15} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="premium-operations__empty">
+                          This class has no saved roster or historical student
+                          records yet.
+                        </p>
+                      )}
+                    </section>
+                  </>
+                )
+              ) : null}
+            </section>
+          )}
+
+          <details
+            className="premium-records__tools"
+            open={classSetupOpen}
+            onToggle={(event) => setClassSetupOpen(event.currentTarget.open)}
+          >
+            <summary>
+              <Users size={17} aria-hidden="true" />
+              Manage classes, subjects, and student rosters
+              <ChevronRight size={16} aria-hidden="true" />
+            </summary>
+            {classSetupOpen && (
+              <PremiumAcademicSetup
+                classOnly
+                academicYearId={yearId}
+                onSaved={() => setSetupRefreshKey((current) => current + 1)}
+              />
+            )}
+          </details>
+
+          <details
+            className="premium-records__tools"
+            open={assessmentToolsOpen}
+            onToggle={(event) =>
+              setAssessmentToolsOpen(event.currentTarget.open)
+            }
+          >
+            <summary>
+              <ClipboardList size={17} aria-hidden="true" />
+              Manage assessments and enter scores
+              <ChevronRight size={16} aria-hidden="true" />
+            </summary>
+            {assessmentToolsOpen && <AssessmentEntryView />}
+          </details>
+        </>
+      )}
+    </section>
+  )
+}
+
+function AssessmentEntryView() {
   const { setup, loading, error: setupError } = useAcademicSetup()
 
   const [classId, setClassId] = useState("")
@@ -675,7 +1283,7 @@ function AcademicRecordsView() {
       <header className="premium-operations__heading">
         <div>
           <p className="admin-eyebrow">PREMIUM · SCHOOL OPERATIONS</p>
-          <h2 id="premium-records-title">Academic records</h2>
+          <h2 id="premium-records-title">Assessment entry</h2>
           <p>Create class assessments and save student scores with feedback.</p>
         </div>
       </header>
@@ -905,6 +1513,10 @@ function AcademicRecordsView() {
   )
 }
 
-export default function PremiumOperations({ mode }) {
-  return mode === "attendance" ? <AttendanceView /> : <AcademicRecordsView />
+export default function PremiumOperations({ mode, onOpenSettings }) {
+  return mode === "attendance" ? (
+    <AttendanceView />
+  ) : (
+    <AcademicRecordsView onOpenSettings={onOpenSettings} />
+  )
 }

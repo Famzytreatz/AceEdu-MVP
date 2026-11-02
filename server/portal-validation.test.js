@@ -19,6 +19,17 @@ test("validates shared school-scoped sign-in details", () => {
   })
 })
 
+test("accepts new school-prefixed access codes and normalizes their case", () => {
+  assert.deepEqual(
+    validatePortalLogin({ ...validStudentLogin, accessPin: "eis-23456" }),
+    {
+      ...validStudentLogin,
+      accessPin: "EIS-23456",
+      password: "",
+    },
+  )
+})
+
 test("allows the server to resolve account role instead of trusting a client role", () => {
   assert.throws(
     () => validatePortalLogin({ ...validStudentLogin, role: "teacher" }),
@@ -36,7 +47,13 @@ test("rejects malformed or reserved school slugs and invalid PINs", () => {
   assert.throws(
     () => validatePortalLogin({ ...validStudentLogin, accessPin: "123" }),
 
-    /six-digit access PIN/,
+    /access code/,
+  )
+
+  assert.throws(
+    () =>
+      validatePortalLogin({ ...validStudentLogin, accessPin: "EIS-123456" }),
+    /access code/,
   )
 })
 

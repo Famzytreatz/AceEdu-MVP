@@ -1804,7 +1804,9 @@ export default function SchoolPortalPage({
     return (
       <iframe
         key={`${member.school.slug}:${member.role}`}
-        title={`${isStudent ? "Student" : "Teacher"} portal for ${school.schoolName}`}
+        title={`${
+          isStudent ? "Student" : "Teacher"
+        } portal for ${school.schoolName}`}
         src={portalUrl}
         style={{
           position: "fixed",
@@ -1965,18 +1967,17 @@ export default function SchoolPortalPage({
             )}
             <form onSubmit={handleLogin} className="school-portal__login-form">
               <label>
-                Personal access PIN
+                School access code
                 <input
                   type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
+                  inputMode="text"
+                  pattern="([A-Za-z]{3}-[0-9]{5}|[0-9]{6})"
+                  maxLength={9}
+                  autoCapitalize="characters"
                   autoComplete="username"
                   value={accessPin}
                   onChange={(event) =>
-                    setAccessPin(
-                      event.target.value.replace(/\D/g, "").slice(0, 6),
-                    )
+                    setAccessPin(event.target.value.toUpperCase().slice(0, 9))
                   }
                   required
                   aria-describedby="portal-pin-help"
@@ -1993,8 +1994,9 @@ export default function SchoolPortalPage({
                 />
               </label>
               <small id="portal-pin-help">
-                Enter a password if your school issued one. Teacher accounts
-                require a password.
+                Use the code issued by your school, for example EIS-23456.
+                Existing six-digit PINs remain valid. Enter a password if your
+                school issued one; teacher accounts require a password.
               </small>
               <Button
                 type="submit"

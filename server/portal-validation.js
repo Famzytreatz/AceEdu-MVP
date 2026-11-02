@@ -53,8 +53,11 @@ export function validatePortalLogin(body = {}) {
 
   const schoolSlug = validateSchoolSlug(body.schoolSlug)
 
-  if (typeof body.accessPin !== "string" || !/^\d{6}$/.test(body.accessPin)) {
-    throw new Error("Enter the six-digit access PIN issued by your school.")
+  if (
+    typeof body.accessPin !== "string" ||
+    !/^(?:[A-Z]{3}-\d{5}|\d{6})$/i.test(body.accessPin.trim())
+  ) {
+    throw new Error("Enter the access code issued by your school.")
   }
 
   if (
@@ -67,7 +70,7 @@ export function validatePortalLogin(body = {}) {
   return {
     schoolSlug,
 
-    accessPin: body.accessPin,
+    accessPin: body.accessPin.trim().toUpperCase(),
 
     password: body.password || "",
   }

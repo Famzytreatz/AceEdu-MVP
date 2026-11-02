@@ -43,6 +43,7 @@ import {
   getSchoolEntitlement,
   requestSchoolVerification,
   resetStudentPortalPassword,
+  saveSchoolShortName,
   verifyEnrollment,
 } from "../data/api"
 import LoadingSpinner from "../components/ui/LoadingSpinner"
@@ -66,8 +67,16 @@ const premiumNavigation = [
   { id: "academicRecords", label: "Academic records", Icon: ClipboardList },
   { id: "attendance", label: "Attendance", Icon: CalendarDays },
   { id: "examinations", label: "Exams & results", Icon: ChartNoAxesCombined },
-  { id: "financialManagement", label: "Financial management", Icon: CircleDollarSign },
-  { id: "advancedReports", label: "Reports & analytics", Icon: ChartNoAxesCombined },
+  {
+    id: "financialManagement",
+    label: "Financial management",
+    Icon: CircleDollarSign,
+  },
+  {
+    id: "advancedReports",
+    label: "Reports & analytics",
+    Icon: ChartNoAxesCombined,
+  },
   { id: "parentPortal", label: "Parent portal", Icon: UserRound },
   { id: "studentPortal", label: "Student portal", Icon: GraduationCap },
   { id: "teacherPortal", label: "Teacher portal", Icon: Users },
@@ -126,6 +135,19 @@ function formatActivityDate(value) {
         month: "short",
         day: "numeric",
       }).format(date)
+}
+
+function suggestedSchoolShortName(schoolName) {
+  const words = schoolName.trim().split(/\s+/).filter(Boolean)
+  const initials = words
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase()
+  if (initials.length >= 3) return initials.slice(0, 3)
+  return schoolName
+    .replace(/[^a-z]/gi, "")
+    .slice(0, 3)
+    .toUpperCase()
 }
 
 async function optimizePassport(file) {
@@ -189,7 +211,9 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
   const [curriculumError, setCurriculumError] = useState("")
   const [theme, setTheme] = useState(() => {
     try {
-      return window.localStorage.getItem("aceedu-admin-theme") === "dark" ? "dark" : "light"
+      return window.localStorage.getItem("aceedu-admin-theme") === "dark"
+        ? "dark"
+        : "light"
     } catch {
       return "light"
     }
@@ -290,6 +314,14 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
 
   const [profileOpen, setProfileOpen] = useState(false)
 
+  const [shortNamePromptRole, setShortNamePromptRole] = useState("")
+
+  const [shortNameDraft, setShortNameDraft] = useState("")
+
+  const [shortNamePending, setShortNamePending] = useState(false)
+
+  const [shortNameError, setShortNameError] = useState("")
+
   useEffect(() => {
     if (!createdEnrollment?.accessPin) {
       setQrCode("")
@@ -325,21 +357,22 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
   }, [createdEnrollment])
 
   useEffect(() => {
-    if (!selectedRecord && !profileOpen) return undefined
+    if (!selectedRecord && !profileOpen && !shortNamePromptRole)
+      return undefined
 
     function closeOnEscape(event) {
       if (event.key === "Escape") {
         setSelectedRecord(null)
-      setPasswordResetResult(null)
-
-      setProfileOpen(false)
+        setPasswordResetResult(null)
+        setProfileOpen(false)
+        cancelSchoolShortNamePrompt()
       }
     }
 
     window.addEventListener("keydown", closeOnEscape)
 
     return () => window.removeEventListener("keydown", closeOnEscape)
-  }, [profileOpen, selectedRecord])
+  }, [profileOpen, selectedRecord, shortNamePending, shortNamePromptRole])
 
   const loadDashboard = useCallback(async () => {
     setDashboardLoading(true)
@@ -386,7 +419,12 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
 
           cursor: append ? cursor : null,
 
-          role: activeView === "students" ? "student" : activeView === "staff" ? "staff" : "",
+          role:
+            activeView === "students"
+              ? "student"
+              : activeView === "staff"
+                ? "staff"
+                : "",
           status: registryStatus,
         })
 
@@ -485,7 +523,7 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
       setCreatedEnrollment(result.enrollment)
 
       setSuccess(
-        `${result.enrollment.fullName} was added to ${school.schoolName}'s registry. Access PIN: ${result.enrollment.accessPin}`,
+        `${result.enrollment.fullName} was added to ${school.schoolName}'s registry. Access code: ${result.enrollment.accessPin}`,
       )
 
       setForm(emptyForm)
@@ -565,12 +603,47 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
     })
   }
 
-  function startEnrollment(role) {
+  function openEnrollment(role) {
     setForm({ ...emptyForm, role })
     setCreatedEnrollment(null)
     setActiveView("enrollment")
     setError("")
     setSuccess("")
+  }
+
+  function startEnrollment(role) {
+    if (!school.shortName) {
+      setShortNamePromptRole(role)
+      setShortNameDraft(suggestedSchoolShortName(school.schoolName))
+      setShortNameError("")
+      return
+    }
+
+    openEnrollment(role)
+  }
+
+  async function handleSchoolShortNameSubmit(event) {
+    event.preventDefault()
+    if (shortNamePending) return
+
+    setShortNamePending(true)
+    setShortNameError("")
+    try {
+      const result = await saveSchoolShortName(shortNameDraft)
+      onSchoolUpdated({ ...school, ...result.school })
+      setShortNamePromptRole("")
+      openEnrollment(shortNamePromptRole)
+    } catch (saveError) {
+      setShortNameError(saveError.message)
+    } finally {
+      setShortNamePending(false)
+    }
+  }
+
+  function cancelSchoolShortNamePrompt() {
+    if (shortNamePending) return
+    setShortNamePromptRole("")
+    setShortNameError("")
   }
 
   async function handleVerify(record) {
@@ -668,7 +741,9 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
         recordId: record._id,
         temporaryPassword: result.temporaryPassword,
       })
-      setSuccess(`A temporary portal password was generated for ${record.fullName}.`)
+      setSuccess(
+        `A temporary portal password was generated for ${record.fullName}.`,
+      )
     } catch (resetError) {
       setError(resetError.message)
     } finally {
@@ -712,12 +787,17 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
     navigation.find((item) => item.id === activeView)?.label ||
     premiumNavigation.find((item) => item.id === activeView)?.label
   const selectedTeacherClasses = new Set(
-    form.assignedClasses.split(",").map((item) => item.trim()).filter(Boolean),
+    form.assignedClasses
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean),
   )
   const teacherSubjectOptions = [
     ...new Set(
       classLevels
-        .filter((level) => level.isActive && selectedTeacherClasses.has(level.name))
+        .filter(
+          (level) => level.isActive && selectedTeacherClasses.has(level.name),
+        )
         .flatMap((level) =>
           level.subjects
             .filter((subject) => subject.isActive)
@@ -753,8 +833,18 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
               key={id}
               type="button"
               title={label}
-              aria-label={label === "Students" ? "Student management" : label === "Staff" ? "Staff management" : label}
+              aria-label={
+                label === "Students"
+                  ? "Student management"
+                  : label === "Staff"
+                    ? "Staff management"
+                    : label
+              }
               onClick={() => {
+                if (id === "enrollment") {
+                  startEnrollment("student")
+                  return
+                }
                 setActiveView(id)
                 if (id === "students" || id === "staff") {
                   setQuery("")
@@ -777,7 +867,10 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
         <div className="admin-sidebar__label admin-sidebar__label--premium">
           {premiumAccessActive ? "Premium access active" : "Premium roadmap"}
         </div>
-        <nav className="admin-nav admin-nav--premium" aria-label="Premium features">
+        <nav
+          className="admin-nav admin-nav--premium"
+          aria-label="Premium features"
+        >
           {premiumNavigation.map(({ id, label, Icon }) => {
             const featureImplemented = implementedPremiumViews.has(id)
             const featureEnabled = premiumAccessActive && featureImplemented
@@ -803,9 +896,17 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                 <Icon size={17} aria-hidden="true" />
                 <span>{label}</span>
                 {featureEnabled ? (
-                  <Check className="admin-nav__lock" size={14} aria-hidden="true" />
+                  <Check
+                    className="admin-nav__lock"
+                    size={14}
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <LockKeyhole className="admin-nav__lock" size={13} aria-hidden="true" />
+                  <LockKeyhole
+                    className="admin-nav__lock"
+                    size={13}
+                    aria-hidden="true"
+                  />
                 )}
               </button>
             )
@@ -826,7 +927,11 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
           <span className="admin-sidebar-premium__icon" aria-hidden="true">
             <ArrowUpRight size={16} />
           </span>
-          <strong>{premiumAccessActive ? "Premium access is active" : "Unlock more for your school"}</strong>
+          <strong>
+            {premiumAccessActive
+              ? "Premium access is active"
+              : "Unlock more for your school"}
+          </strong>
           <p>
             {premiumAccessActive
               ? "Academic setup, attendance, and academic records are ready. More Premium workflows are being built."
@@ -835,13 +940,12 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
           <button
             type="button"
             onClick={() =>
-              document
-                .getElementById("premium-preview")
-                ?.scrollIntoView({
-                  behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-                    ? "auto"
-                    : "smooth",
-                })
+              document.getElementById("premium-preview")?.scrollIntoView({
+                behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+                  .matches
+                  ? "auto"
+                  : "smooth",
+              })
             }
           >
             Explore Premium <ArrowUpRight size={14} aria-hidden="true" />
@@ -911,11 +1015,19 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
           <button
             className="admin-theme-toggle"
             type="button"
-            onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+            onClick={() =>
+              setTheme((current) => (current === "dark" ? "light" : "dark"))
+            }
+            aria-label={`Switch to ${
+              theme === "dark" ? "light" : "dark"
+            } theme`}
             title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
           >
-            {theme === "dark" ? <Sun size={17} aria-hidden="true" /> : <Moon size={17} aria-hidden="true" />}
+            {theme === "dark" ? (
+              <Sun size={17} aria-hidden="true" />
+            ) : (
+              <Moon size={17} aria-hidden="true" />
+            )}
             <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
           </button>
           <div className="admin-topbar__account">
@@ -929,7 +1041,12 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
             aria-label={`View profile for ${school.adminName}`}
           >
             <span className="admin-topbar__avatar" aria-hidden="true">
-              {school.adminName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
+              {school.adminName
+                .split(/\s+/)
+                .map((part) => part[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase()}
             </span>
             <span>{school.adminName.split(/\s+/)[0]}</span>
             <ChevronDown size={14} aria-hidden="true" />
@@ -941,7 +1058,11 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
             disabled={logoutPending}
           >
             {logoutPending ? (
-              <LoaderCircle size={17} className="admin-spin" aria-hidden="true" />
+              <LoaderCircle
+                size={17}
+                className="admin-spin"
+                aria-hidden="true"
+              />
             ) : (
               <LogOut size={17} aria-hidden="true" />
             )}
@@ -952,14 +1073,28 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
         <div className="admin-content">
           <div className="admin-page-heading">
             <div>
-              <p className="admin-eyebrow">{activeView === "dashboard" ? "SCHOOL OVERVIEW" : school.schoolName}</p>
-              <h1>{activeView === "dashboard" ? `Welcome back, ${school.adminName.split(/\s+/)[0]}` : title}</h1>
+              <p className="admin-eyebrow">
+                {activeView === "dashboard"
+                  ? "SCHOOL OVERVIEW"
+                  : school.schoolName}
+              </p>
+              <h1>
+                {activeView === "dashboard"
+                  ? `Welcome back, ${school.adminName.split(/\s+/)[0]}`
+                  : title}
+              </h1>
               <p className="admin-page-heading__description">
                 {activeView === "dashboard" &&
                   `Your ${school.schoolName} workspace, at a glance.`}
                 {activeView === "enrollment" &&
                   "Create and manage student and staff registry entries."}
-                {(activeView === "registry" || activeView === "students" || activeView === "staff") &&
+                {activeView === "settings" &&
+                  "Manage the school structure and preferences for your workspace."}
+                {activeView === "classes" &&
+                  "Organize class levels, subject options, and student approvals."}
+                {(activeView === "registry" ||
+                  activeView === "students" ||
+                  activeView === "staff") &&
                   (activeView === "students"
                     ? "Manage student identities and enrollment records for your school."
                     : activeView === "staff"
@@ -967,20 +1102,22 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                       : "Search, verify, and manage records belonging to your school.")}
               </p>
             </div>
-            {activeView !== "enrollment" && (
-              <button
-                className="admin-primary-button"
-                type="button"
-                onClick={() => {
-                  if (activeView === "students") startEnrollment("student")
-                  else if (activeView === "staff") startEnrollment("teacher")
-                  else startEnrollment("student")
-                }}
-              >
-                <Plus size={18} aria-hidden="true" />
-                {activeView === "staff" ? "Add staff" : "Add student"}
-              </button>
-            )}
+            {activeView !== "enrollment" &&
+              activeView !== "settings" &&
+              activeView !== "classes" && (
+                <button
+                  className="admin-primary-button"
+                  type="button"
+                  onClick={() => {
+                    if (activeView === "students") startEnrollment("student")
+                    else if (activeView === "staff") startEnrollment("teacher")
+                    else startEnrollment("student")
+                  }}
+                >
+                  <Plus size={18} aria-hidden="true" />
+                  {activeView === "staff" ? "Add staff" : "Add student"}
+                </button>
+              )}
           </div>
 
           {error && (
@@ -1011,10 +1148,16 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
           )}
 
           {activeView === "dashboard" && (
-            <section className="admin-dashboard" aria-label="School dashboard" aria-busy={dashboardLoading}>
+            <section
+              className="admin-dashboard"
+              aria-label="School dashboard"
+              aria-busy={dashboardLoading}
+            >
               {dashboardError && (
                 <div className="admin-dashboard-error" role="alert">
-                  <span>Dashboard data could not be loaded: {dashboardError}</span>
+                  <span>
+                    Dashboard data could not be loaded: {dashboardError}
+                  </span>
                   <button
                     className="admin-outline-button"
                     type="button"
@@ -1033,36 +1176,94 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                   </span>
                   <h2>{school.schoolName}</h2>
                   <p>
-                    A clear view of your people and the school records managed in AceEdu.
+                    A clear view of your people and the school records managed
+                    in AceEdu.
                   </p>
                   <div className="admin-welcome__meta">
-                    <span><GraduationCap size={15} /> {school.schoolType}</span>
-                    <span><UserRound size={15} /> {school.adminName}</span>
-                    <span className="admin-welcome__school-id"><IdCard size={15} /> AceEdu school ID: {school.id || "Unavailable"}</span>
-                    <span><CalendarDays size={15} /> Academic session not configured</span>
+                    <span>
+                      <GraduationCap size={15} /> {school.schoolType}
+                    </span>
+                    <span>
+                      <UserRound size={15} /> {school.adminName}
+                    </span>
+                    <span className="admin-welcome__school-id">
+                      <IdCard size={15} /> AceEdu school ID:{" "}
+                      {school.id || "Unavailable"}
+                    </span>
+                    <span>
+                      <CalendarDays size={15} /> Academic session not configured
+                    </span>
                   </div>
                 </div>
                 <div className="admin-welcome__visual" aria-hidden="true">
                   <svg viewBox="0 0 260 210" fill="none">
                     <defs>
-                      <linearGradient id="ace-orbit" x1="58" y1="35" x2="208" y2="174" gradientUnits="userSpaceOnUse">
+                      <linearGradient
+                        id="ace-orbit"
+                        x1="58"
+                        y1="35"
+                        x2="208"
+                        y2="174"
+                        gradientUnits="userSpaceOnUse"
+                      >
                         <stop stopColor="#8CB9FF" />
                         <stop offset="1" stopColor="#9A8CFF" />
                       </linearGradient>
-                      <linearGradient id="ace-book" x1="83" y1="78" x2="179" y2="153" gradientUnits="userSpaceOnUse">
+                      <linearGradient
+                        id="ace-book"
+                        x1="83"
+                        y1="78"
+                        x2="179"
+                        y2="153"
+                        gradientUnits="userSpaceOnUse"
+                      >
                         <stop stopColor="#F8FBFF" />
                         <stop offset="1" stopColor="#C9D9FF" />
                       </linearGradient>
                     </defs>
-                    <ellipse cx="130" cy="108" rx="92" ry="38" transform="rotate(-27 130 108)" stroke="url(#ace-orbit)" strokeOpacity=".48" />
-                    <ellipse cx="130" cy="108" rx="69" ry="70" transform="rotate(34 130 108)" stroke="url(#ace-orbit)" strokeOpacity=".3" />
+                    <ellipse
+                      cx="130"
+                      cy="108"
+                      rx="92"
+                      ry="38"
+                      transform="rotate(-27 130 108)"
+                      stroke="url(#ace-orbit)"
+                      strokeOpacity=".48"
+                    />
+                    <ellipse
+                      cx="130"
+                      cy="108"
+                      rx="69"
+                      ry="70"
+                      transform="rotate(34 130 108)"
+                      stroke="url(#ace-orbit)"
+                      strokeOpacity=".3"
+                    />
                     <circle cx="210" cy="62" r="5" fill="#96B7FF" />
                     <circle cx="54" cy="142" r="4" fill="#A699FF" />
-                    <path d="M130 77 178 96 130 116 82 96l48-19Z" fill="url(#ace-orbit)" fillOpacity=".92" />
-                    <path d="m98 103 32 14 32-14v37c-18-9-46-9-64 0v-37Z" fill="url(#ace-book)" />
+                    <path
+                      d="M130 77 178 96 130 116 82 96l48-19Z"
+                      fill="url(#ace-orbit)"
+                      fillOpacity=".92"
+                    />
+                    <path
+                      d="m98 103 32 14 32-14v37c-18-9-46-9-64 0v-37Z"
+                      fill="url(#ace-book)"
+                    />
                     <path d="M130 117v23" stroke="#829DE0" strokeWidth="2" />
-                    <path d="m90 128-8-25 13-5" stroke="#B7C9FF" strokeWidth="2" strokeLinecap="round" />
-                    <circle cx="130" cy="108" r="61" fill="#AEC8FF" fillOpacity=".08" />
+                    <path
+                      d="m90 128-8-25 13-5"
+                      stroke="#B7C9FF"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                    <circle
+                      cx="130"
+                      cy="108"
+                      r="61"
+                      fill="#AEC8FF"
+                      fillOpacity=".08"
+                    />
                   </svg>
                   <span>LEARNING, IN SYNC</span>
                 </div>
@@ -1070,15 +1271,23 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
 
               <section className="admin-panel admin-school-space">
                 <div>
-                  <span className="admin-panel__icon"><ArrowUpRight size={18} /></span>
+                  <span className="admin-panel__icon">
+                    <ArrowUpRight size={18} />
+                  </span>
                   <div>
                     <h2>School sign-in link</h2>
-                    <p>Share your permanent AceEdu school entry point with staff and families.</p>
+                    <p>
+                      Share your permanent AceEdu school entry point with staff
+                      and families.
+                    </p>
                   </div>
                 </div>
                 {school.slug ? (
                   <>
-                    <code>{window.location.origin}/s/{encodeURIComponent(school.slug)}</code>
+                    <code>
+                      {window.location.origin}/s/
+                      {encodeURIComponent(school.slug)}
+                    </code>
                     <a
                       className="admin-outline-button"
                       href={`/s/${encodeURIComponent(school.slug)}`}
@@ -1087,7 +1296,10 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                     </a>
                   </>
                 ) : (
-                  <p role="status">School URL is unavailable until a school identity is configured.</p>
+                  <p role="status">
+                    School URL is unavailable until a school identity is
+                    configured.
+                  </p>
                 )}
               </section>
 
@@ -1130,10 +1342,15 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                 />
               </div>
               <div className="admin-analytics-grid">
-                <section className="admin-panel admin-chart-panel" aria-busy={dashboardLoading}>
+                <section
+                  className="admin-panel admin-chart-panel"
+                  aria-busy={dashboardLoading}
+                >
                   <div className="admin-panel__heading">
                     <div>
-                      <span className="admin-panel__icon"><Activity size={18} /></span>
+                      <span className="admin-panel__icon">
+                        <Activity size={18} />
+                      </span>
                       <div>
                         <h2>Student enrollment</h2>
                         <p>New student records by month · last 6 months</p>
@@ -1142,10 +1359,17 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                     <span className="admin-chart-period">6 MONTHS</span>
                   </div>
                   {dashboardLoading ? (
-                    <div className="admin-chart-skeleton" role="status">Loading enrollment history…</div>
+                    <div className="admin-chart-skeleton" role="status">
+                      Loading enrollment history…
+                    </div>
                   ) : dashboardError ? (
-                    <DashboardSectionError error={dashboardError} onRetry={() => void loadDashboard()} />
-                  ) : dashboard?.studentTrend?.some((item) => item.total > 0) ? (
+                    <DashboardSectionError
+                      error={dashboardError}
+                      onRetry={() => void loadDashboard()}
+                    />
+                  ) : dashboard?.studentTrend?.some(
+                      (item) => item.total > 0,
+                    ) ? (
                     <StudentTrendChart points={dashboard.studentTrend} />
                   ) : (
                     <DashboardEmpty
@@ -1154,10 +1378,15 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                     />
                   )}
                 </section>
-                <section className="admin-panel admin-chart-panel" aria-busy={dashboardLoading}>
+                <section
+                  className="admin-panel admin-chart-panel"
+                  aria-busy={dashboardLoading}
+                >
                   <div className="admin-panel__heading">
                     <div>
-                      <span className="admin-panel__icon"><BookOpen size={18} /></span>
+                      <span className="admin-panel__icon">
+                        <BookOpen size={18} />
+                      </span>
                       <div>
                         <h2>Students by class</h2>
                         <p>Current student records grouped by class</p>
@@ -1165,9 +1394,14 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                     </div>
                   </div>
                   {dashboardLoading ? (
-                    <div className="admin-chart-skeleton" role="status">Loading class distribution…</div>
+                    <div className="admin-chart-skeleton" role="status">
+                      Loading class distribution…
+                    </div>
                   ) : dashboardError ? (
-                    <DashboardSectionError error={dashboardError} onRetry={() => void loadDashboard()} />
+                    <DashboardSectionError
+                      error={dashboardError}
+                      onRetry={() => void loadDashboard()}
+                    />
                   ) : dashboard?.classDistribution?.length ? (
                     <ClassDistribution items={dashboard.classDistribution} />
                   ) : (
@@ -1180,10 +1414,15 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
               </div>
 
               <div className="admin-dashboard-lower">
-                <section className="admin-panel admin-activity-panel" aria-busy={dashboardLoading}>
+                <section
+                  className="admin-panel admin-activity-panel"
+                  aria-busy={dashboardLoading}
+                >
                   <div className="admin-panel__heading">
                     <div>
-                      <span className="admin-panel__icon"><Activity size={18} /></span>
+                      <span className="admin-panel__icon">
+                        <Activity size={18} />
+                      </span>
                       <div>
                         <h2>School activity</h2>
                         <p>Recent registrations and verifications</p>
@@ -1198,24 +1437,44 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                     </button>
                   </div>
                   {dashboardLoading ? (
-                    <div className="admin-activity-skeleton" role="status">Loading recent school activity…</div>
+                    <div className="admin-activity-skeleton" role="status">
+                      Loading recent school activity…
+                    </div>
                   ) : dashboardError ? (
-                    <DashboardSectionError error={dashboardError} onRetry={() => void loadDashboard()} />
+                    <DashboardSectionError
+                      error={dashboardError}
+                      onRetry={() => void loadDashboard()}
+                    />
                   ) : dashboard?.recentActivity?.length ? (
                     <ul className="admin-activity-list">
                       {dashboard.recentActivity.map((item, index) => (
-                        <li key={`${item.fullName}-${item.occurredAt}-${index}`}>
-                          <span className={`admin-activity-icon is-${item.type}`}>
-                            {item.type === "verified" ? <Check size={16} /> : <UserPlus size={16} />}
+                        <li
+                          key={`${item.fullName}-${item.occurredAt}-${index}`}
+                        >
+                          <span
+                            className={`admin-activity-icon is-${item.type}`}
+                          >
+                            {item.type === "verified" ? (
+                              <Check size={16} />
+                            ) : (
+                              <UserPlus size={16} />
+                            )}
                           </span>
                           <span className="admin-activity-copy">
                             <strong>{item.fullName}</strong>
                             <span>
-                              {item.type === "verified" ? "Verified" : "Registered"} ·{" "}
-                              {item.role === "student" ? item.designation || "Student" : item.role.replace("-", " ")}
+                              {item.type === "verified"
+                                ? "Verified"
+                                : "Registered"}{" "}
+                              ·{" "}
+                              {item.role === "student"
+                                ? item.designation || "Student"
+                                : item.role.replace("-", " ")}
                             </span>
                           </span>
-                          <time dateTime={item.occurredAt}>{formatActivityDate(item.occurredAt)}</time>
+                          <time dateTime={item.occurredAt}>
+                            {formatActivityDate(item.occurredAt)}
+                          </time>
                         </li>
                       ))}
                     </ul>
@@ -1229,26 +1488,49 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                 <section className="admin-panel admin-quick-actions">
                   <div className="admin-panel__heading">
                     <div>
-                      <span className="admin-panel__icon"><Plus size={18} /></span>
+                      <span className="admin-panel__icon">
+                        <Plus size={18} />
+                      </span>
                       <div>
                         <h2>Quick actions</h2>
                         <p>Start a task in your MVP workspace.</p>
                       </div>
                     </div>
                   </div>
-                  <button type="button" onClick={() => startEnrollment("student")}>
-                    <span><GraduationCap size={17} /></span>
-                    <span>Add student<small>Create a student record</small></span>
+                  <button
+                    type="button"
+                    onClick={() => startEnrollment("student")}
+                  >
+                    <span>
+                      <GraduationCap size={17} />
+                    </span>
+                    <span>
+                      Add student<small>Create a student record</small>
+                    </span>
                     <ArrowUpRight size={16} />
                   </button>
-                  <button type="button" onClick={() => startEnrollment("teacher")}>
-                    <span><UserPlus size={17} /></span>
-                    <span>Add staff<small>Create a staff account</small></span>
+                  <button
+                    type="button"
+                    onClick={() => startEnrollment("teacher")}
+                  >
+                    <span>
+                      <UserPlus size={17} />
+                    </span>
+                    <span>
+                      Add staff<small>Create a staff account</small>
+                    </span>
                     <ArrowUpRight size={16} />
                   </button>
-                  <button type="button" onClick={() => setActiveView("registry")}>
-                    <span><IdCard size={17} /></span>
-                    <span>Open registry<small>Search school records</small></span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveView("registry")}
+                  >
+                    <span>
+                      <IdCard size={17} />
+                    </span>
+                    <span>
+                      Open registry<small>Search school records</small>
+                    </span>
                     <ArrowUpRight size={16} />
                   </button>
                 </section>
@@ -1257,11 +1539,14 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
               <section className="admin-premium-preview" id="premium-preview">
                 <div className="admin-premium-preview__copy">
                   <span className="admin-premium-preview__eyebrow">
-                    <span className="admin-premium-preview__spark">✦</span> ACEEDU PREMIUM
+                    <span className="admin-premium-preview__spark">✦</span>{" "}
+                    ACEEDU PREMIUM
                   </span>
                   <h2>More of the school day, connected.</h2>
                   <p>
-                    Premium is designed for the full student portal, advanced academic workflows, financial management, and deeper reporting.
+                    Premium is designed for the full student portal, advanced
+                    academic workflows, financial management, and deeper
+                    reporting.
                   </p>
                   <span className="admin-premium-preview__notice">
                     {premiumAccessActive
@@ -1270,13 +1555,31 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                   </span>
                 </div>
                 <ul className="admin-premium-preview__features">
-                  <li><GraduationCap size={18} /><span>Student portal</span></li>
-                  <li><Users size={18} /><span>Teacher portal</span></li>
-                  <li><ClipboardList size={18} /><span>Advanced academic workflows</span></li>
-                  <li><CircleDollarSign size={18} /><span>School financial management</span></li>
-                  <li><ChartNoAxesCombined size={18} /><span>Advanced reports and analytics</span></li>
+                  <li>
+                    <GraduationCap size={18} />
+                    <span>Student portal</span>
+                  </li>
+                  <li>
+                    <Users size={18} />
+                    <span>Teacher portal</span>
+                  </li>
+                  <li>
+                    <ClipboardList size={18} />
+                    <span>Advanced academic workflows</span>
+                  </li>
+                  <li>
+                    <CircleDollarSign size={18} />
+                    <span>School financial management</span>
+                  </li>
+                  <li>
+                    <ChartNoAxesCombined size={18} />
+                    <span>Advanced reports and analytics</span>
+                  </li>
                 </ul>
-                <div className="admin-premium-access" aria-busy={entitlementLoading || verificationPending}>
+                <div
+                  className="admin-premium-access"
+                  aria-busy={entitlementLoading || verificationPending}
+                >
                   <div className="admin-premium-access__summary">
                     <span className="admin-premium-access__label">
                       <ShieldCheck size={15} /> SCHOOL ACCESS
@@ -1286,17 +1589,21 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                         ? "Checking entitlement…"
                         : premiumAccessActive && entitlement?.trialActive
                           ? `Premium trial · ends ${formatDate(entitlement.trialEndsAt)}`
-                          : premiumAccessActive && entitlement?.plan === "premium"
+                          : premiumAccessActive &&
+                              entitlement?.plan === "premium"
                             ? "Premium plan active"
                             : entitlement?.trialPreviouslyGranted
                               ? "Trial ended · MVP access active"
                               : entitlement?.verificationStatus === "pending"
                                 ? "School verification pending"
-                                : entitlement?.verificationStatus === "review_required"
+                                : entitlement?.verificationStatus ===
+                                    "review_required"
                                   ? "Additional identity review required"
-                                  : entitlement?.verificationStatus === "verified"
+                                  : entitlement?.verificationStatus ===
+                                      "verified"
                                     ? "School verified · MVP access active"
-                                    : entitlement?.verificationStatus === "rejected"
+                                    : entitlement?.verificationStatus ===
+                                        "rejected"
                                       ? "Verification needs another review"
                                       : "MVP plan · default access"}
                     </strong>
@@ -1306,17 +1613,23 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                       onClick={() => void loadEntitlement()}
                       disabled={entitlementLoading}
                     >
-                      <RefreshCw size={13} className={entitlementLoading ? "is-spinning" : ""} />
+                      <RefreshCw
+                        size={13}
+                        className={entitlementLoading ? "is-spinning" : ""}
+                      />
                       Refresh access
                     </button>
                     <span className="admin-premium-access__hint">
-                      Your school identity stays the same across MVP and Premium.
+                      Your school identity stays the same across MVP and
+                      Premium.
                     </span>
                   </div>
                   <div className="admin-premium-access__identity">
                     <span>AceEdu school ID</span>
                     <code>{school.id || "Unavailable"}</code>
-                    <small>Permanent platform ID · not your official registration ID</small>
+                    <small>
+                      Permanent platform ID · not your official registration ID
+                    </small>
                   </div>
                   {!entitlementLoading &&
                     !entitlementError &&
@@ -1324,10 +1637,16 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                     !["pending", "review_required", "verified"].includes(
                       entitlement?.verificationStatus,
                     ) && (
-                      <form className="admin-verification-form" onSubmit={handleVerificationRequest}>
+                      <form
+                        className="admin-verification-form"
+                        onSubmit={handleVerificationRequest}
+                      >
                         <div className="admin-verification-form__copy">
                           <strong>Request school verification</strong>
-                          <small>Enter the official registration ID issued by your education authority.</small>
+                          <small>
+                            Enter the official registration ID issued by your
+                            education authority.
+                          </small>
                         </div>
                         <label htmlFor="school-registration-id">
                           Official school registration ID
@@ -1340,41 +1659,63 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                             minLength={2}
                             required
                             value={registrationId}
-                            onChange={(event) => setRegistrationId(event.target.value)}
+                            onChange={(event) =>
+                              setRegistrationId(event.target.value)
+                            }
                             placeholder="e.g. Ministry-issued registration number"
                             disabled={verificationPending}
                           />
                           <button
                             className="admin-primary-button"
                             type="submit"
-                            disabled={verificationPending || registrationId.trim().length < 2}
+                            disabled={
+                              verificationPending ||
+                              registrationId.trim().length < 2
+                            }
                           >
-                            {verificationPending ? "Submitting…" : "Request verification"}
+                            {verificationPending
+                              ? "Submitting…"
+                              : "Request verification"}
                           </button>
                         </div>
                         <small className="admin-verification-form__footnote">
-                          An authorized operator reviews each request. Approval starts one 90-day Premium trial; submission alone does not activate it.
+                          An authorized operator reviews each request. Approval
+                          starts one 90-day Premium trial; submission alone does
+                          not activate it.
                         </small>
                       </form>
                     )}
                   {entitlementError && (
-                    <div className="admin-premium-access__message is-error" role="alert">
+                    <div
+                      className="admin-premium-access__message is-error"
+                      role="alert"
+                    >
                       <span>{entitlementError}</span>
-                      <button type="button" onClick={() => void loadEntitlement()}>
+                      <button
+                        type="button"
+                        onClick={() => void loadEntitlement()}
+                      >
                         Retry
                       </button>
                     </div>
                   )}
                   {verificationMessage && (
-                    <p className="admin-premium-access__message" role="status" aria-live="polite">
+                    <p
+                      className="admin-premium-access__message"
+                      role="status"
+                      aria-live="polite"
+                    >
                       {verificationMessage}
                     </p>
                   )}
-                  {!entitlementLoading && entitlement?.trialEndsAt && !entitlement?.trialActive && (
-                    <p className="admin-premium-access__message">
-                      The trial period has ended. Your school data remains available on the MVP plan.
-                    </p>
-                  )}
+                  {!entitlementLoading &&
+                    entitlement?.trialEndsAt &&
+                    !entitlement?.trialActive && (
+                      <p className="admin-premium-access__message">
+                        The trial period has ended. Your school data remains
+                        available on the MVP plan.
+                      </p>
+                    )}
                 </div>
               </section>
             </section>
@@ -1395,280 +1736,293 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                   </span>
                 </div>
                 <p className="admin-panel__description">
-                  Each record and generated access PIN is scoped to{" "}
+                  Each record and generated access code is scoped to{" "}
                   {school.schoolName}.
                 </p>
                 <form
                   className="admin-enrollment-form"
                   onSubmit={handleEnrollmentSubmit}
-                aria-busy={enrollmentPending}
+                  aria-busy={enrollmentPending}
                 >
-                <fieldset
-                  className="admin-enrollment-fieldset"
-                  disabled={enrollmentPending}
-                >
-                <div className="admin-enrollment-fields">
-                    <label>
-                      Account role
-                      <select
-                        value={form.role}
-                        onChange={(event) =>
-                          handleRoleChange(event.target.value)
-                        }
-                      >
-                        <option value="student">Student</option>
-                        <option value="teacher">Faculty / Teacher</option>
-                        <option value="sub-admin">Sub-admin</option>
-                        <option value="school-admin">School admin</option>
-                      </select>
-                    </label>
-                    <label>
-                      Full name
-                      <input
-                        value={form.fullName}
-                        maxLength={160}
-                        onChange={(event) =>
-                          setForm((current) => ({
-                            ...current,
-                            fullName: event.target.value,
-                          }))
-                        }
-                        placeholder="Enter full name"
-                        required
-                      />
-                    </label>
-                    {form.role === "student" ? (
+                  <fieldset
+                    className="admin-enrollment-fieldset"
+                    disabled={enrollmentPending}
+                  >
+                    <div className="admin-enrollment-fields">
                       <label>
-                        Student class
+                        Account role
                         <select
-                          value={form.classLevelId}
-                          onChange={(event) => {
-                            const selectedClass = classLevels.find(
-                              (level) => level.id === event.target.value,
-                            )
-                            setForm((current) => ({
-                              ...current,
-                              classLevelId: event.target.value,
-                              designation: selectedClass?.displayName || "",
-                            }))
-                          }}
-                          required
-                          disabled={Boolean(curriculumError)}
+                          value={form.role}
+                          onChange={(event) =>
+                            handleRoleChange(event.target.value)
+                          }
                         >
-                          <option value="">Select a class…</option>
-                          {classLevels
-                            .filter((level) => level.isActive)
-                            .map((level) => (
-                              <option value={level.id} key={level.id}>
-                                {level.displayName}
-                                {level.isOptional ? " · Optional" : ""}
-                              </option>
-                            ))}
+                          <option value="student">Student</option>
+                          <option value="teacher">Faculty / Teacher</option>
+                          <option value="sub-admin">Sub-admin</option>
+                          <option value="school-admin">School admin</option>
                         </select>
-                        {curriculumError && (
-                          <small role="alert">
-                            Class options could not be loaded: {curriculumError}
-                          </small>
-                        )}
                       </label>
-                    ) : (
                       <label>
-                        Official designation
+                        Full name
                         <input
-                          value={form.designation}
-                          maxLength={120}
+                          value={form.fullName}
+                          maxLength={160}
                           onChange={(event) =>
                             setForm((current) => ({
                               ...current,
-                              designation: event.target.value,
+                              fullName: event.target.value,
                             }))
                           }
-                          placeholder={
-                            form.role === "student"
-                              ? "e.g. Year 7"
-                              : "e.g. Mathematics teacher"
-                          }
+                          placeholder="Enter full name"
                           required
                         />
                       </label>
-                    )}
-                    <label>
-                      State of origin
-                      <input
-                        value={form.stateOfOrigin}
-                        maxLength={100}
-                        onChange={(event) =>
-                          setForm((current) => ({
-                            ...current,
-                            stateOfOrigin: event.target.value,
-                          }))
-                        }
-                        placeholder="State"
-                      />
-                    </label>
-                    <label>
-                      House address
-                      <input
-                        value={form.address}
-                        maxLength={300}
-                        onChange={(event) =>
-                          setForm((current) => ({
-                            ...current,
-                            address: event.target.value,
-                          }))
-                        }
-                        placeholder="Residential address"
-                      />
-                    </label>
-                    {form.role === "student" ? (
-                      <>
+                      {form.role === "student" ? (
                         <label>
-                          Date of birth
+                          Student class
+                          <select
+                            value={form.classLevelId}
+                            onChange={(event) => {
+                              const selectedClass = classLevels.find(
+                                (level) => level.id === event.target.value,
+                              )
+                              setForm((current) => ({
+                                ...current,
+                                classLevelId: event.target.value,
+                                designation: selectedClass?.displayName || "",
+                              }))
+                            }}
+                            required
+                            disabled={Boolean(curriculumError)}
+                          >
+                            <option value="">Select a class…</option>
+                            {classLevels
+                              .filter((level) => level.isActive)
+                              .map((level) => (
+                                <option value={level.id} key={level.id}>
+                                  {level.displayName}
+                                  {level.isOptional ? " · Optional" : ""}
+                                </option>
+                              ))}
+                          </select>
+                          {curriculumError && (
+                            <small role="alert">
+                              Class options could not be loaded:{" "}
+                              {curriculumError}
+                            </small>
+                          )}
+                        </label>
+                      ) : (
+                        <label>
+                          Official designation
                           <input
-                            type="date"
-                            value={form.dob}
+                            value={form.designation}
+                            maxLength={120}
                             onChange={(event) =>
                               setForm((current) => ({
                                 ...current,
-                                dob: event.target.value,
+                                designation: event.target.value,
                               }))
                             }
-                          />
-                        </label>
-                        <label>
-                          Guardian phone
-                          <input
-                            type="tel"
-                            value={form.guardianPhone}
-                            maxLength={30}
-                            onChange={(event) =>
-                              setForm((current) => ({
-                                ...current,
-                                guardianPhone: event.target.value,
-                              }))
-                            }
-                            placeholder="Guardian contact number"
-                          />
-                        </label>
-                      </>
-                    ) : (
-                      <>
-                        <label>
-                          Personal phone
-                          <input
-                            type="tel"
-                            value={form.phone}
-                            maxLength={30}
-                            onChange={(event) =>
-                              setForm((current) => ({
-                                ...current,
-                                phone: event.target.value,
-                              }))
-                            }
-                            placeholder="Personal contact number"
-                          />
-                        </label>
-                        <label>
-                          Login password
-                          <input
-                            type="password"
-                            value={form.password}
-                            minLength={8}
-                            maxLength={72}
-                            autoComplete="new-password"
-                            onChange={(event) =>
-                              setForm((current) => ({
-                                ...current,
-                                password: event.target.value,
-                              }))
+                            placeholder={
+                              form.role === "student"
+                                ? "e.g. Year 7"
+                                : "e.g. Mathematics teacher"
                             }
                             required
                           />
                         </label>
-                      </>
-                    )}
-                    {form.role === "teacher" && (
-                      <>
-                        <fieldset className="admin-enrollment-choice-list">
-                          <legend>Teaching classes</legend>
-                          {classLevels.filter((level) => level.isActive).map((level) => (
-                            <label key={level.id}>
-                              <input
-                                type="checkbox"
-                                checked={selectedTeacherClasses.has(level.name)}
-                                onChange={(event) =>
-                                  setEnrollmentChoices(
-                                    "assignedClasses",
-                                    level.name,
-                                    event.target.checked,
-                                  )
-                                }
-                              />
-                              {level.displayName}
-                            </label>
-                          ))}
-                        </fieldset>
-                        <fieldset className="admin-enrollment-choice-list">
-                          <legend>Subjects to teach</legend>
-                          {teacherSubjectOptions.length ? teacherSubjectOptions.map((subject) => (
-                            <label key={subject}>
-                              <input
-                                type="checkbox"
-                                checked={form.subjects.split(",").map((item) => item.trim()).includes(subject)}
-                                onChange={(event) =>
-                                  setEnrollmentChoices(
-                                    "subjects",
-                                    subject,
-                                    event.target.checked,
-                                  )
-                                }
-                              />
-                              {subject}
-                            </label>
-                          )) : (
-                            <small>Select teaching classes that already have subject options configured.</small>
+                      )}
+                      <label>
+                        State of origin
+                        <input
+                          value={form.stateOfOrigin}
+                          maxLength={100}
+                          onChange={(event) =>
+                            setForm((current) => ({
+                              ...current,
+                              stateOfOrigin: event.target.value,
+                            }))
+                          }
+                          placeholder="State"
+                        />
+                      </label>
+                      <label>
+                        House address
+                        <input
+                          value={form.address}
+                          maxLength={300}
+                          onChange={(event) =>
+                            setForm((current) => ({
+                              ...current,
+                              address: event.target.value,
+                            }))
+                          }
+                          placeholder="Residential address"
+                        />
+                      </label>
+                      {form.role === "student" ? (
+                        <>
+                          <label>
+                            Date of birth
+                            <input
+                              type="date"
+                              value={form.dob}
+                              onChange={(event) =>
+                                setForm((current) => ({
+                                  ...current,
+                                  dob: event.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                          <label>
+                            Guardian phone
+                            <input
+                              type="tel"
+                              value={form.guardianPhone}
+                              maxLength={30}
+                              onChange={(event) =>
+                                setForm((current) => ({
+                                  ...current,
+                                  guardianPhone: event.target.value,
+                                }))
+                              }
+                              placeholder="Guardian contact number"
+                            />
+                          </label>
+                        </>
+                      ) : (
+                        <>
+                          <label>
+                            Personal phone
+                            <input
+                              type="tel"
+                              value={form.phone}
+                              maxLength={30}
+                              onChange={(event) =>
+                                setForm((current) => ({
+                                  ...current,
+                                  phone: event.target.value,
+                                }))
+                              }
+                              placeholder="Personal contact number"
+                            />
+                          </label>
+                          <label>
+                            Login password
+                            <input
+                              type="password"
+                              value={form.password}
+                              minLength={8}
+                              maxLength={72}
+                              autoComplete="new-password"
+                              onChange={(event) =>
+                                setForm((current) => ({
+                                  ...current,
+                                  password: event.target.value,
+                                }))
+                              }
+                              required
+                            />
+                          </label>
+                        </>
+                      )}
+                      {form.role === "teacher" && (
+                        <>
+                          <fieldset className="admin-enrollment-choice-list">
+                            <legend>Teaching classes</legend>
+                            {classLevels
+                              .filter((level) => level.isActive)
+                              .map((level) => (
+                                <label key={level.id}>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedTeacherClasses.has(
+                                      level.name,
+                                    )}
+                                    onChange={(event) =>
+                                      setEnrollmentChoices(
+                                        "assignedClasses",
+                                        level.name,
+                                        event.target.checked,
+                                      )
+                                    }
+                                  />
+                                  {level.displayName}
+                                </label>
+                              ))}
+                          </fieldset>
+                          <fieldset className="admin-enrollment-choice-list">
+                            <legend>Subjects to teach</legend>
+                            {teacherSubjectOptions.length ? (
+                              teacherSubjectOptions.map((subject) => (
+                                <label key={subject}>
+                                  <input
+                                    type="checkbox"
+                                    checked={form.subjects
+                                      .split(",")
+                                      .map((item) => item.trim())
+                                      .includes(subject)}
+                                    onChange={(event) =>
+                                      setEnrollmentChoices(
+                                        "subjects",
+                                        subject,
+                                        event.target.checked,
+                                      )
+                                    }
+                                  />
+                                  {subject}
+                                </label>
+                              ))
+                            ) : (
+                              <small>
+                                Select teaching classes that already have
+                                subject options configured.
+                              </small>
+                            )}
+                          </fieldset>
+                        </>
+                      )}
+                      <label className="admin-photo-field">
+                        Identity passport
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={handlePassportChange}
+                          disabled={passportPending || enrollmentPending}
+                          aria-busy={passportPending}
+                        />
+                        <small role={passportPending ? "status" : undefined}>
+                          {passportPending ? (
+                            <>
+                              <LoadingSpinner /> Optimizing image…
+                            </>
+                          ) : (
+                            "JPEG, PNG, or WebP · maximum 5 MB"
                           )}
-                        </fieldset>
-                      </>
-                    )}
-                    <label className="admin-photo-field">
-                      Identity passport
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        onChange={handlePassportChange}
-                        disabled={passportPending || enrollmentPending}
-                        aria-busy={passportPending}
-                      />
-                      <small role={passportPending ? "status" : undefined}>
-                        {passportPending ? (
-                          <>
-                            <LoadingSpinner /> Optimizing image…
-                          </>
-                        ) : (
-                          "JPEG, PNG, or WebP · maximum 5 MB"
-                        )}
-                      </small>
-                    </label>
-                    <div className="admin-enrollment-submit">
-                      <button
-                        className="admin-primary-button"
-                        type="submit"
-                        disabled={enrollmentPending}
-                      >
-                        {enrollmentPending ? (
-                          <LoadingSpinner />
-                        ) : (
-                          <Plus size={18} />
-                        )}
-                        {enrollmentPending
-                          ? form.role === "student"
-                            ? "Registering student…"
-                            : "Creating account…"
-                          : "Create identity"}
-                      </button>
+                        </small>
+                      </label>
+                      <div className="admin-enrollment-submit">
+                        <button
+                          className="admin-primary-button"
+                          type="submit"
+                          disabled={enrollmentPending}
+                        >
+                          {enrollmentPending ? (
+                            <LoadingSpinner />
+                          ) : (
+                            <Plus size={18} />
+                          )}
+                          {enrollmentPending
+                            ? form.role === "student"
+                              ? "Registering student…"
+                              : "Creating account…"
+                            : "Create identity"}
+                        </button>
+                      </div>
                     </div>
-                  </div>
                   </fieldset>
                 </form>
               </section>
@@ -1726,11 +2080,21 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
               school={school}
               onSchoolUpdated={onSchoolUpdated}
               onCurriculumUpdated={setClassLevels}
+              premiumAccessActive={premiumAccessActive}
+              premiumLoading={entitlementLoading}
             />
           )}
-          {activeView === "attendance" && <PremiumOperations mode="attendance" />}
-          {activeView === "academicRecords" && <PremiumOperations mode="academicRecords" />}
-          {(activeView === "studentPortal" || activeView === "teacherPortal") && (
+          {activeView === "attendance" && (
+            <PremiumOperations mode="attendance" />
+          )}
+          {activeView === "academicRecords" && (
+            <PremiumOperations
+              mode="academicRecords"
+              onOpenSettings={() => setActiveView("settings")}
+            />
+          )}
+          {(activeView === "studentPortal" ||
+            activeView === "teacherPortal") && (
             <section className="admin-panel admin-portal-access">
               <div className="admin-panel__heading">
                 <div>
@@ -1742,8 +2106,15 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                     )}
                   </span>
                   <div>
-                    <h2>{activeView === "studentPortal" ? "Student portal" : "Teacher portal"}</h2>
-                    <p>Share one school-specific sign-in address with students and teachers.</p>
+                    <h2>
+                      {activeView === "studentPortal"
+                        ? "Student portal"
+                        : "Teacher portal"}
+                    </h2>
+                    <p>
+                      Share one school-specific sign-in address with students
+                      and teachers.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1751,7 +2122,8 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                 {school.slug ? (
                   <>
                     <code>
-                      {window.location.origin}/s/{encodeURIComponent(school.slug)}/portal
+                      {window.location.origin}/s/
+                      {encodeURIComponent(school.slug)}/portal
                     </code>
                     <a
                       className="admin-primary-button"
@@ -1761,11 +2133,16 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                     </a>
                   </>
                 ) : (
-                  <span>School URL is unavailable until a school identity is configured.</span>
+                  <span>
+                    School URL is unavailable until a school identity is
+                    configured.
+                  </span>
                 )}
               </div>
               <p className="admin-portal-access__hint">
-                Access requires an active enrollment in this school and the member’s existing school-issued sign-in credentials. Premium access is checked by the server.
+                Access requires an active enrollment in this school and the
+                member’s existing school-issued sign-in credentials. Premium
+                access is checked by the server.
               </p>
             </section>
           )}
@@ -1817,8 +2194,8 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search by name, role, or access PIN"
-                  aria-label="Search registry by name, role, or access PIN"
+                  placeholder="Search by name, role, or access code"
+                  aria-label="Search registry by name, role, or access code"
                 />
                 {query && (
                   <button
@@ -1834,7 +2211,11 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                     Clear
                   </button>
                 )}
-                <button className="admin-search__button" type="submit" disabled={registryLoading}>
+                <button
+                  className="admin-search__button"
+                  type="submit"
+                  disabled={registryLoading}
+                >
                   {registryLoading ? "Searching…" : "Search"}
                 </button>
               </form>
@@ -1880,7 +2261,8 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
               )}
               {registryLoading && records.length > 0 && (
                 <p className="admin-registry-loading" role="status">
-                  <LoaderCircle size={15} className="admin-spin" /> Updating registry…
+                  <LoaderCircle size={15} className="admin-spin" /> Updating
+                  registry…
                 </p>
               )}
               {registryLoading && records.length === 0 && (
@@ -1895,7 +2277,7 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                       <th>Name</th>
                       <th>Role</th>
                       <th>Class / designation</th>
-                      <th>Access PIN</th>
+                      <th>Access code</th>
                       <th>Portal password</th>
                       <th>Status</th>
                       <th>Added</th>
@@ -1908,38 +2290,44 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                     {registryLoading && records.length === 0 && (
                       <RegistrySkeletonRows />
                     )}
-                    {!registryLoading && !registryError && records.length === 0 && (
-                      <tr>
-                        <td colSpan="8" className="admin-empty">
-                          <span className="admin-empty__icon"><Users size={20} /></span>
-                          <strong>
-                            {appliedQuery || registryStatus
-                              ? "No matching records"
-                              : activeView === "students"
-                                ? "No students registered yet"
-                                : activeView === "staff"
-                                  ? "No staff records yet"
-                                  : "No records in this registry"}
-                          </strong>
-                          <span>
-                            {appliedQuery || registryStatus
-                              ? "Try adjusting the search or status filter."
-                              : activeView === "students"
-                                ? "Register a student to start building your school roster."
-                                : "New school records will appear here when they are added."}
-                          </span>
-                          {!appliedQuery && !registryStatus && activeView !== "staff" && (
-                            <button
-                              className="admin-outline-button"
-                              type="button"
-                              onClick={() => startEnrollment("student")}
-                            >
-                              <Plus size={16} /> Add student
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    )}
+                    {!registryLoading &&
+                      !registryError &&
+                      records.length === 0 && (
+                        <tr>
+                          <td colSpan="8" className="admin-empty">
+                            <span className="admin-empty__icon">
+                              <Users size={20} />
+                            </span>
+                            <strong>
+                              {appliedQuery || registryStatus
+                                ? "No matching records"
+                                : activeView === "students"
+                                  ? "No students registered yet"
+                                  : activeView === "staff"
+                                    ? "No staff records yet"
+                                    : "No records in this registry"}
+                            </strong>
+                            <span>
+                              {appliedQuery || registryStatus
+                                ? "Try adjusting the search or status filter."
+                                : activeView === "students"
+                                  ? "Register a student to start building your school roster."
+                                  : "New school records will appear here when they are added."}
+                            </span>
+                            {!appliedQuery &&
+                              !registryStatus &&
+                              activeView !== "staff" && (
+                                <button
+                                  className="admin-outline-button"
+                                  type="button"
+                                  onClick={() => startEnrollment("student")}
+                                >
+                                  <Plus size={16} /> Add student
+                                </button>
+                              )}
+                          </td>
+                        </tr>
+                      )}
                     {records.map((record) => (
                       <tr key={record._id}>
                         <td>
@@ -1982,7 +2370,9 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                         <td>
                           <span
                             className={`admin-status ${
-                              record.status === "Active" ? "is-active" : "is-pending"
+                              record.status === "Active"
+                                ? "is-active"
+                                : "is-pending"
                             }`}
                             aria-label={`Status: ${record.status}`}
                           >
@@ -2064,7 +2454,9 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                             ? "No staff records yet"
                             : "No records in this registry"}
                     </strong>
-                    <span>Adjust your filters or add a record to this school.</span>
+                    <span>
+                      Adjust your filters or add a record to this school.
+                    </span>
                   </div>
                 )}
                 {records.map((record) => (
@@ -2104,6 +2496,115 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
           )}
         </div>
       </main>
+      {shortNamePromptRole && (
+        <div
+          className="admin-modal-backdrop admin-short-name-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              cancelSchoolShortNamePrompt()
+            }
+          }}
+        >
+          <section
+            className="admin-modal admin-short-name-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-short-name-title"
+          >
+            <header className="admin-modal__header">
+              <div>
+                <span className="admin-panel__icon">
+                  <IdCard size={19} aria-hidden="true" />
+                </span>
+                <h2 id="admin-short-name-title">Create your school code</h2>
+              </div>
+              <button
+                className="admin-modal__close"
+                type="button"
+                onClick={cancelSchoolShortNamePrompt}
+                aria-label="Cancel adding a school member"
+                disabled={shortNamePending}
+              >
+                <X size={20} aria-hidden="true" />
+              </button>
+            </header>
+            <form
+              className="admin-short-name-form"
+              onSubmit={handleSchoolShortNameSubmit}
+            >
+              <p>
+                Before adding a{" "}
+                {shortNamePromptRole === "student" ? "student" : "staff member"}
+                , choose a unique three-letter code for {school.schoolName}. It
+                will appear at the start of every access code.
+              </p>
+              <label htmlFor="admin-school-short-name">
+                School short name
+                <input
+                  id="admin-school-short-name"
+                  autoFocus
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  maxLength={3}
+                  minLength={3}
+                  pattern="[A-Za-z]{3}"
+                  placeholder="EIS"
+                  value={shortNameDraft}
+                  onChange={(event) => {
+                    setShortNameDraft(
+                      event.target.value.replace(/[^a-z]/gi, "").toUpperCase(),
+                    )
+                    setShortNameError("")
+                  }}
+                  aria-describedby="admin-school-short-name-hint"
+                  required
+                  disabled={shortNamePending}
+                />
+              </label>
+              <small
+                className="admin-short-name-hint"
+                id="admin-school-short-name-hint"
+              >
+                Use exactly three letters, for example EIS for Eliud
+                International School.
+              </small>
+              {shortNameDraft.length === 3 && (
+                <div className="admin-short-name-preview" aria-live="polite">
+                  <span>ACCESS CODE PREVIEW</span>
+                  <code>{shortNameDraft}-23456</code>
+                </div>
+              )}
+              {shortNameError && (
+                <p className="admin-alert admin-alert--error" role="alert">
+                  {shortNameError}
+                </p>
+              )}
+              <div className="admin-short-name-actions">
+                <button
+                  className="admin-outline-button"
+                  type="button"
+                  onClick={cancelSchoolShortNamePrompt}
+                  disabled={shortNamePending}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="admin-primary-button"
+                  type="submit"
+                  disabled={
+                    shortNamePending || !/^[A-Z]{3}$/.test(shortNameDraft)
+                  }
+                >
+                  {shortNamePending ? "Saving code…" : "Save and continue"}
+                  {!shortNamePending && (
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
       {selectedRecord && (
         <div
           className="admin-modal-backdrop"
@@ -2211,7 +2712,7 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                     />
                   </>
                 )}
-                <Detail label="Access PIN" value={selectedRecord.accessPin} />
+                <Detail label="Access code" value={selectedRecord.accessPin} />
               </dl>
             </div>
             {selectedRecord.role === "student" && (
@@ -2227,7 +2728,9 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                   ) : (
                     <LockKeyhole size={16} />
                   )}
-                  {passwordResetPending ? "Resetting password…" : "Reset student password"}
+                  {passwordResetPending
+                    ? "Resetting password…"
+                    : "Reset student password"}
                 </button>
                 {passwordResetResult?.recordId === selectedRecord._id && (
                   <p
@@ -2347,7 +2850,9 @@ function DashboardSectionError({ error, onRetry }) {
   return (
     <div className="admin-dashboard-section-error" role="alert">
       <span>Could not load this data.</span>
-      <button type="button" onClick={onRetry} title={error}>Retry</button>
+      <button type="button" onClick={onRetry} title={error}>
+        Retry
+      </button>
     </div>
   )
 }
@@ -2361,19 +2866,25 @@ function StudentTrendChart({ points }) {
   const maximum = Math.max(1, ...points.map((point) => point.total))
   const coordinates = points.map((point, index) => ({
     ...point,
-    x: padding.left + (points.length === 1 ? chartWidth / 2 : (index / (points.length - 1)) * chartWidth),
+    x:
+      padding.left +
+      (points.length === 1
+        ? chartWidth / 2
+        : (index / (points.length - 1)) * chartWidth),
     y: padding.top + chartHeight - (point.total / maximum) * chartHeight,
   }))
-  const line = coordinates.map((point, index) =>
-    `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`,
-  ).join(" ")
+  const line = coordinates
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+    .join(" ")
   const area = `${line} L ${coordinates.at(-1).x} ${padding.top + chartHeight} L ${coordinates[0].x} ${padding.top + chartHeight} Z`
 
   return (
     <div className="admin-trend-chart">
       <div className="admin-trend-chart__summary">
         <span>New student records</span>
-        <strong>{points.reduce((sum, point) => sum + point.total, 0).toLocaleString()}</strong>
+        <strong>
+          {points.reduce((sum, point) => sum + point.total, 0).toLocaleString()}
+        </strong>
         <small>Across the periods shown</small>
       </div>
       <svg
@@ -2383,25 +2894,67 @@ function StudentTrendChart({ points }) {
         aria-label={`Student registrations for the last six months: ${points.map((point) => `${point.month} ${point.total}`).join(", ")}`}
       >
         <defs>
-          <linearGradient id="admin-trend-fill" x1="280" y1="15" x2="280" y2="158" gradientUnits="userSpaceOnUse">
+          <linearGradient
+            id="admin-trend-fill"
+            x1="280"
+            y1="15"
+            x2="280"
+            y2="158"
+            gradientUnits="userSpaceOnUse"
+          >
             <stop stopColor="#4384FF" stopOpacity=".22" />
             <stop offset="1" stopColor="#4384FF" stopOpacity="0" />
           </linearGradient>
-          <linearGradient id="admin-trend-line" x1="16" y1="20" x2="544" y2="155" gradientUnits="userSpaceOnUse">
+          <linearGradient
+            id="admin-trend-line"
+            x1="16"
+            y1="20"
+            x2="544"
+            y2="155"
+            gradientUnits="userSpaceOnUse"
+          >
             <stop stopColor="#397DFF" />
             <stop offset="1" stopColor="#7765E8" />
           </linearGradient>
         </defs>
         {[0, 1, 2].map((lineIndex) => {
           const y = padding.top + (chartHeight / 2) * lineIndex
-          return <line key={lineIndex} x1={padding.left} x2={width - padding.right} y1={y} y2={y} className="admin-trend-chart__gridline" />
+          return (
+            <line
+              key={lineIndex}
+              x1={padding.left}
+              x2={width - padding.right}
+              y1={y}
+              y2={y}
+              className="admin-trend-chart__gridline"
+            />
+          )
         })}
         <path d={area} fill="url(#admin-trend-fill)" />
-        <path d={line} fill="none" stroke="url(#admin-trend-line)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          d={line}
+          fill="none"
+          stroke="url(#admin-trend-line)"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
         {coordinates.map((point) => (
           <g key={point.month}>
-            <circle cx={point.x} cy={point.y} r="5" className="admin-trend-chart__point" />
-            <text x={point.x} y={height - 8} textAnchor="middle" className="admin-trend-chart__label">{point.month}</text>
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r="5"
+              className="admin-trend-chart__point"
+            />
+            <text
+              x={point.x}
+              y={height - 8}
+              textAnchor="middle"
+              className="admin-trend-chart__label"
+            >
+              {point.month}
+            </text>
           </g>
         ))}
       </svg>
@@ -2415,7 +2968,9 @@ function ClassDistribution({ items }) {
     <ul className="admin-class-distribution">
       {items.map((item) => (
         <li key={item.className}>
-          <span className="admin-class-distribution__label">{item.className}</span>
+          <span className="admin-class-distribution__label">
+            {item.className}
+          </span>
           <span className="admin-class-distribution__track" aria-hidden="true">
             <span style={{ width: `${(item.total / maximum) * 100}%` }} />
           </span>
@@ -2429,7 +2984,9 @@ function ClassDistribution({ items }) {
 function DashboardEmpty({ title, detail }) {
   return (
     <div className="admin-dashboard-empty">
-      <span aria-hidden="true"><Activity size={18} /></span>
+      <span aria-hidden="true">
+        <Activity size={18} />
+      </span>
       <strong>{title}</strong>
       <p>{detail}</p>
     </div>
@@ -2438,7 +2995,11 @@ function DashboardEmpty({ title, detail }) {
 
 function RegistrySkeletonRows() {
   return Array.from({ length: 4 }, (_, row) => (
-    <tr className="admin-table-skeleton" key={`loading-${row}`} aria-hidden="true">
+    <tr
+      className="admin-table-skeleton"
+      key={`loading-${row}`}
+      aria-hidden="true"
+    >
       {Array.from({ length: 8 }, (_, column) => (
         <td key={`loading-${row}-${column}`}>
           <span className="admin-table-skeleton__bar" />
@@ -2451,9 +3012,15 @@ function RegistrySkeletonRows() {
 function RegistryCardSkeleton() {
   return (
     <div className="admin-registry-card-skeleton" role="status">
-      <span className="admin-registry-card-skeleton__avatar" aria-hidden="true" />
+      <span
+        className="admin-registry-card-skeleton__avatar"
+        aria-hidden="true"
+      />
       <span className="admin-registry-card-skeleton__line" aria-hidden="true" />
-      <span className="admin-registry-card-skeleton__line is-short" aria-hidden="true" />
+      <span
+        className="admin-registry-card-skeleton__line is-short"
+        aria-hidden="true"
+      />
       <span className="admin-visually-hidden">Loading student records…</span>
     </div>
   )
@@ -2500,18 +3067,36 @@ function RegistryRecordCard({
         </span>
       </div>
       <dl className="admin-registry-card__details">
-        <div><dt>Class / designation</dt><dd>{record.designation || "—"}</dd></div>
-        <div><dt>Access PIN</dt><dd><code className="admin-pin">{record.accessPin}</code></dd></div>
+        <div>
+          <dt>Class / designation</dt>
+          <dd>{record.designation || "—"}</dd>
+        </div>
+        <div>
+          <dt>Access code</dt>
+          <dd>
+            <code className="admin-pin">{record.accessPin}</code>
+          </dd>
+        </div>
         {record.role === "student" && (
           <div>
             <dt>Portal password</dt>
             <dd>{record.hasPortalPassword ? "Set" : "Not set"}</dd>
           </div>
         )}
-        <div><dt>Added</dt><dd>{formatDate(record.createdAt)}</dd></div>
+        <div>
+          <dt>Added</dt>
+          <dd>{formatDate(record.createdAt)}</dd>
+        </div>
       </dl>
-      <div className="admin-registry-card__actions" aria-label={`Actions for ${record.fullName}`}>
-        <button type="button" onClick={onView} aria-label={`View ${record.fullName}`}>
+      <div
+        className="admin-registry-card__actions"
+        aria-label={`Actions for ${record.fullName}`}
+      >
+        <button
+          type="button"
+          onClick={onView}
+          aria-label={`View ${record.fullName}`}
+        >
           <Eye size={16} /> View
         </button>
         {record.role === "student" && (
@@ -2592,7 +3177,7 @@ function IdentityCard({ record, qrCode = "", printable = false }) {
             <img
               className="admin-id-card__qr"
               src={qrCode}
-              alt={`QR code for access PIN ${record.accessPin}`}
+              alt={`QR code for access code ${record.accessPin}`}
             />
           )}
         </div>

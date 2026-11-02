@@ -438,6 +438,22 @@ export async function getClassAssessments(classId, termId) {
   return readJson(response)
 }
 
+export async function getClassPerformance(classId) {
+  const response = await fetch(
+    `/api/admin/academic/classes/${encodeURIComponent(classId)}/records`,
+    { credentials: "same-origin" },
+  )
+  return readJson(response)
+}
+
+export async function getClassStudentRecords(classId, studentId) {
+  const response = await fetch(
+    `/api/admin/academic/classes/${encodeURIComponent(classId)}/records/${encodeURIComponent(studentId)}`,
+    { credentials: "same-origin" },
+  )
+  return readJson(response)
+}
+
 export function createClassAssessment(values) {
   return postJson("/api/admin/academic/assessments", values)
 }
@@ -533,6 +549,16 @@ export function getEnrollments({
 
 export async function createEnrollment(values) {
   return postJson("/api/admin/users", values)
+}
+
+export async function saveSchoolShortName(shortName) {
+  const response = await fetch("/api/admin/school/short-name", {
+    method: "PATCH",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ shortName }),
+  })
+  return readJson(response)
 }
 
 export async function verifyEnrollment(id) {

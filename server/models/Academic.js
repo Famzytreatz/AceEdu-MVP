@@ -50,7 +50,15 @@ function mapEnrollment(row) {
 }
 
 export async function getAcademicSetup(schoolId) {
-  const [yearsResult, termsResult, classesResult, subjectsResult, studentsResult, teachersResult] =
+  const [
+    yearsResult,
+    termsResult,
+    classesResult,
+    subjectsResult,
+    studentsResult,
+    teachersResult,
+    rosterResult,
+  ] =
     await Promise.all([
       supabase
         .from("academic_years")
@@ -85,6 +93,10 @@ export async function getAcademicSetup(schoolId) {
         .eq("role", "teacher")
         .eq("status", "Active")
         .order("full_name"),
+      supabase
+        .from("school_class_students")
+        .select("class_id,student_id")
+        .eq("school_id", schoolId),
     ])
 
   for (const result of [
@@ -94,6 +106,7 @@ export async function getAcademicSetup(schoolId) {
     subjectsResult,
     studentsResult,
     teachersResult,
+    rosterResult,
   ]) {
     if (result.error) throw result.error
   }
@@ -103,6 +116,10 @@ export async function getAcademicSetup(schoolId) {
     terms: termsResult.data.map(mapTerm),
     classes: classesResult.data.map(mapClass),
     subjects: subjectsResult.data.map(mapSubject),
+    classRosters: rosterResult.data.map((row) => ({
+      classId: String(row.class_id),
+      studentId: String(row.student_id),
+    })),
     students: studentsResult.data.map((row) => ({
       ...mapEnrollment(row),
       status: row.status,
