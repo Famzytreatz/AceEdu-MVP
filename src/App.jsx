@@ -15,10 +15,17 @@ import SchoolSpacePage from "./pages/SchoolSpacePage"
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"))
 const SchoolPortalPage = lazy(() => import("./pages/SchoolPortalPage"))
 const schoolSpacePath = window.location.pathname === "/s" || window.location.pathname.startsWith("/s/")
-const schoolSpaceMatch = window.location.pathname.match(/^\/s\/([^/]+)(?:\/(student|teacher|portal))?\/?$/)
+const schoolSpaceMatch = window.location.pathname.match(/^\/s\/([^/]+)(?:\/(student|teacher|parent|portal))?\/?$/)
 const schoolSpaceSlug = schoolSpaceMatch?.[1] || null
 const schoolSpaceRole = schoolSpaceMatch?.[2] || null
-const schoolPortalPath = ["student", "teacher", "portal"].includes(schoolSpaceRole)
+const schoolPortalPath = ["student", "teacher", "parent", "portal"].includes(schoolSpaceRole)
+if (schoolSpaceSlug && schoolPortalPath && schoolSpaceRole !== "portal") {
+  window.history.replaceState(
+    null,
+    "",
+    `/s/${encodeURIComponent(schoolSpaceSlug)}/portal`,
+  )
+}
 
 function readSavedTheme() {
   try {
@@ -131,7 +138,7 @@ export default function App() {
       >
         <SchoolPortalPage
           school={schoolSpace}
-          role={schoolSpaceRole === "portal" ? null : schoolSpaceRole}
+          role={null}
           notFound={schoolSpaceNotFound}
           error={schoolSpaceError}
           onRetry={retrySessionCheck}

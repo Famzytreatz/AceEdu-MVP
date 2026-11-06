@@ -100,7 +100,7 @@ export default function PremiumAcademicSetup({
 
   useEffect(() => {
     const roster = data.classRosters
-      .filter((entry) => entry.classId === rosterClassId)
+      .filter((entry) => entry.classId === rosterClassId && entry.isActive)
       .map((entry) => entry.studentId)
     setStudentIds(roster)
   }, [rosterClassId, data.classRosters])

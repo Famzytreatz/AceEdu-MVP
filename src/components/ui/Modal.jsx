@@ -354,10 +354,9 @@ export default function Modal({
               ? <>
                   <p className="modal__switch">Need an account? Contact your school administrator.</p>
                   <p className="modal__switch">
-                    Access your portal:{" "}
-                    <a href={`/s/${encodeURIComponent(schoolContext.slug)}/student`}>Student</a>
-                    {" · "}
-                    <a href={`/s/${encodeURIComponent(schoolContext.slug)}/teacher`}>Teacher</a>
+                    <a href={`/s/${encodeURIComponent(schoolContext.slug)}/portal`}>
+                      Student, teacher or parent portal
+                    </a>
                   </p>
                 </>
               : <p className="modal__switch">Registering a new school? <button type="button" className="modal__text-button" onClick={() => onOpenModal?.("started")}>Use Get Started on the page to register.</button></p>}

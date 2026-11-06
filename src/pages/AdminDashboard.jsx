@@ -48,10 +48,12 @@ import {
 } from "../data/api"
 import LoadingSpinner from "../components/ui/LoadingSpinner"
 import PremiumOperations from "./PremiumOperations"
+import PremiumWorkspace from "./PremiumWorkspace"
 import SchoolCurriculumSetup from "./SchoolCurriculumSetup"
 import SchoolSettings from "./SchoolSettings"
 
 import "./AdminDashboard.css"
+import "./PremiumWorkspace.css"
 
 const navigation = [
   { id: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
@@ -85,6 +87,10 @@ const premiumNavigation = [
 const implementedPremiumViews = new Set([
   "academicRecords",
   "attendance",
+  "examinations",
+  "financialManagement",
+  "advancedReports",
+  "parentPortal",
   "studentPortal",
   "teacherPortal",
 ])
@@ -105,6 +111,8 @@ const emptyForm = {
   passport: "",
 
   dob: "",
+
+  guardianName: "",
 
   guardianPhone: "",
 
@@ -303,6 +311,8 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
   const [form, setForm] = useState(emptyForm)
 
   const [createdEnrollment, setCreatedEnrollment] = useState(null)
+
+  const [createdParentPortal, setCreatedParentPortal] = useState(null)
 
   const [qrCode, setQrCode] = useState("")
 
@@ -516,11 +526,13 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
     setSuccess("")
 
     setCreatedEnrollment(null)
+    setCreatedParentPortal(null)
 
     try {
       const result = await createEnrollment(form)
 
       setCreatedEnrollment(result.enrollment)
+      setCreatedParentPortal(result.parentPortal || null)
 
       setSuccess(
         `${result.enrollment.fullName} was added to ${school.schoolName}'s registry. Access code: ${result.enrollment.accessPin}`,
@@ -873,7 +885,8 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
         >
           {premiumNavigation.map(({ id, label, Icon }) => {
             const featureImplemented = implementedPremiumViews.has(id)
-            const featureEnabled = premiumAccessActive && featureImplemented
+            const featureEnabled =
+              !entitlementLoading && premiumAccessActive && featureImplemented
             return (
               <button
                 className={`admin-nav__item admin-nav__item--planned ${
@@ -888,7 +901,7 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                   featureEnabled
                     ? `Open ${label}.`
                     : premiumAccessActive
-                      ? `${label} is still in development and is not available yet.`
+                      ? `${label} is loading or unavailable.`
                       : `${label} requires an active Premium entitlement and is not available yet.`
                 }
                 onClick={() => setActiveView(id)}
@@ -934,7 +947,7 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
           </strong>
           <p>
             {premiumAccessActive
-              ? "Academic setup, attendance, and academic records are ready. More Premium workflows are being built."
+              ? "Your school's academic, finance, reporting, family and portal workflows are ready."
               : "Explore the Premium roadmap and upcoming school workflows."}
           </p>
           <button
@@ -1092,6 +1105,21 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                   "Manage the school structure and preferences for your workspace."}
                 {activeView === "classes" &&
                   "Organize class levels, subject options, and student approvals."}
+                {activeView === "academicRecords" &&
+                  "Review historical academic sessions, class performance, and student progress."}
+                {activeView === "attendance" &&
+                  "Record daily attendance by class and review saved registers."}
+                {activeView === "examinations" &&
+                  "Create class assessments, enter scores, and publish results."}
+                {activeView === "financialManagement" &&
+                  "Manage fee schedules, student invoices, manual payments, and printable receipts."}
+                {activeView === "advancedReports" &&
+                  "Explore enrollment, attendance, and academic performance from live school records."}
+                {activeView === "parentPortal" &&
+                  "Manage linked parent accounts and publish updates to the shared school feed."}
+                {(activeView === "studentPortal" ||
+                  activeView === "teacherPortal") &&
+                  "Share the school-specific portal sign-in with your community."}
                 {(activeView === "registry" ||
                   activeView === "students" ||
                   activeView === "staff") &&
@@ -1102,9 +1130,19 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                       : "Search, verify, and manage records belonging to your school.")}
               </p>
             </div>
-            {activeView !== "enrollment" &&
-              activeView !== "settings" &&
-              activeView !== "classes" && (
+            {![
+              "enrollment",
+              "settings",
+              "classes",
+              "academicRecords",
+              "attendance",
+              "examinations",
+              "financialManagement",
+              "advancedReports",
+              "parentPortal",
+              "studentPortal",
+              "teacherPortal",
+            ].includes(activeView) && (
                 <button
                   className="admin-primary-button"
                   type="button"
@@ -1550,8 +1588,8 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                   </p>
                   <span className="admin-premium-preview__notice">
                     {premiumAccessActive
-                      ? "Premium is active. Academic setup, attendance, academic records, and the student and teacher portals are available now; more workflows are in development."
-                      : "An active Premium plan or approved trial unlocks academic setup, attendance, academic records, and student and teacher portals. Other Premium workflows are in development."}
+                      ? "Premium is active. All eight school operations workflows are available from the navigation."
+                      : "An active Premium plan or approved trial unlocks all eight school operations workflows, including academics, finance, reporting, and family access."}
                   </span>
                 </div>
                 <ul className="admin-premium-preview__features">
@@ -1878,11 +1916,27 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                             />
                           </label>
                           <label>
+                            Guardian name
+                            <input
+                              value={form.guardianName}
+                              maxLength={160}
+                              required
+                              onChange={(event) =>
+                                setForm((current) => ({
+                                  ...current,
+                                  guardianName: event.target.value,
+                                }))
+                              }
+                              placeholder="Parent or guardian full name"
+                            />
+                          </label>
+                          <label>
                             Guardian phone
                             <input
                               type="tel"
                               value={form.guardianPhone}
                               maxLength={30}
+                              required
                               onChange={(event) =>
                                 setForm((current) => ({
                                   ...current,
@@ -1891,6 +1945,10 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                               }
                               placeholder="Guardian contact number"
                             />
+                            <small>
+                              A parent portal is created automatically. Siblings
+                              with this phone join the same family account.
+                            </small>
                           </label>
                         </>
                       ) : (
@@ -2050,6 +2108,43 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                     >
                       <Printer size={17} /> Print identity card
                     </button>
+                    {createdParentPortal && createdEnrollment.role === "student" && (
+                      <div className="admin-enrollment-note" role="status">
+                        <Users size={20} aria-hidden="true" />
+                        {createdParentPortal.status === "linked" ? (
+                          <>
+                            <h2>{createdParentPortal.isFamily ? "Family portal linked" : "Parent portal created"}</h2>
+                            <p>
+                              {createdParentPortal.studentCount} student
+                              {createdParentPortal.studentCount === 1 ? "" : "s"}{" "}
+                              linked to {createdEnrollment.guardianName} at{" "}
+                              {createdEnrollment.guardianPhone}.
+                              {createdParentPortal.setupCodeSent
+                                ? " A unique setup code was sent by SMS. It expires in 24 hours and must be changed after sign-in."
+                                : createdParentPortal.setupCode
+                                  ? " SMS delivery is not available; securely share the one-time setup code below. It expires in 24 hours."
+                                  : " The existing parent account and its current sign-in were kept."}
+                            </p>
+                            {createdParentPortal.setupCode && (
+                              <p><strong>One-time setup code: </strong><code>{createdParentPortal.setupCode}</code></p>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <h2>Parent portal needs attention</h2>
+                            <p>
+                              {createdParentPortal.status === "parent_unavailable"
+                                ? "A parent account already uses this phone but is disabled. The student was registered; review the existing parent account before linking."
+                                : createdParentPortal.status === "premium_required"
+                                  ? "The student was registered, but automatic family access requires the Parent Portal Premium entitlement."
+                                  : createdParentPortal.status === "entitlement_check_failed"
+                                    ? "The student was registered, but AceEdu could not verify the Parent Portal entitlement. Retry after checking the school account."
+                                    : "The student was registered, but family portal linking failed. Review the parent account and linked students before retrying."}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </section>
                 ) : (
                   <section className="admin-panel admin-preview-panel">
@@ -2092,6 +2187,18 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
               mode="academicRecords"
               onOpenSettings={() => setActiveView("settings")}
             />
+          )}
+          {activeView === "examinations" && (
+            <PremiumOperations mode="examinations" />
+          )}
+          {activeView === "financialManagement" && (
+            <PremiumWorkspace mode="financialManagement" school={school} />
+          )}
+          {activeView === "advancedReports" && (
+            <PremiumWorkspace mode="advancedReports" school={school} />
+          )}
+          {activeView === "parentPortal" && (
+            <PremiumWorkspace mode="parentPortal" school={school} />
           )}
           {(activeView === "studentPortal" ||
             activeView === "teacherPortal") && (

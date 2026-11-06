@@ -1844,3 +1844,128 @@
   .admin-content, .admin-welcome__visual { animation: none !important; }
   .admin-app *, .admin-app *::before, .admin-app *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* Operations-console navigation and responsive access to every workspace. */
+.admin-app {
+  grid-template-columns: 276px minmax(0, 1fr);
+  --admin-motion: cubic-bezier(.2,.75,.25,1);
+}
+.admin-sidebar {
+  background:
+    radial-gradient(ellipse at 0% 2%, rgba(84, 121, 255, .2), transparent 34%),
+    linear-gradient(180deg, #0b1a34 0%, #09152a 54%, #0c1930 100%);
+}
+.admin-sidebar__label--premium {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  margin-top: 1rem;
+  border-top: 1px solid rgba(159, 187, 235, .12);
+  padding-top: 1rem;
+}
+.admin-sidebar__label--premium::before {
+  width: .38rem;
+  height: .38rem;
+  border-radius: 50%;
+  background: #89a9ff;
+  box-shadow: 0 0 .7rem rgba(137, 169, 255, .8);
+  content: "";
+}
+.admin-nav--premium .admin-nav__item {
+  min-height: 2.45rem;
+  border-radius: .62rem;
+  font-size: .69rem;
+}
+.admin-nav__item--planned:not(:disabled) { background: rgba(99, 130, 195, .035); }
+.admin-nav__item--planned:not(:disabled):hover { background: rgba(119, 155, 222, .12); }
+.admin-nav__lock { color: #8dabe6; }
+.admin-sidebar__spacer { min-height: .65rem; }
+.admin-global-search:focus-within {
+  border-color: var(--admin-blue);
+  box-shadow: 0 0 0 3px var(--admin-focus);
+}
+.admin-page-heading { padding-bottom: .35rem; }
+.admin-page-heading h1 { letter-spacing: -.055em; }
+.admin-page-heading__description { max-width: 45rem; line-height: 1.65; }
+.admin-welcome { min-height: 14rem; }
+
+@media (max-width: 1200px) and (min-width: 761px) {
+  .admin-app { grid-template-columns: 244px minmax(0, 1fr); }
+  .admin-sidebar { padding-right: .8rem; padding-left: .8rem; }
+  .admin-sidebar__label { padding-right: .45rem; padding-left: .45rem; }
+}
+
+@media (max-width: 760px) {
+  .admin-app { padding-bottom: 5.2rem; }
+  .admin-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    height: 5.2rem;
+    max-height: 5.2rem;
+    overflow: hidden;
+    padding: .2rem 0 calc(.2rem + env(safe-area-inset-bottom));
+    background: rgba(8, 21, 43, .97);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+  }
+  .admin-brand,
+  .admin-sidebar__label,
+  .admin-sidebar__spacer,
+  .admin-school-identity,
+  .admin-sidebar-premium,
+  .admin-profile { display: none; }
+  .admin-nav,
+  .admin-nav--premium {
+    display: flex;
+    flex: 1 1 50%;
+    gap: .25rem;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: .1rem .55rem;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .admin-nav::-webkit-scrollbar,
+  .admin-nav--premium::-webkit-scrollbar { display: none; }
+  .admin-nav__item,
+  .admin-nav--premium .admin-nav__item {
+    display: inline-flex;
+    flex: 0 0 auto;
+    justify-content: center;
+    width: auto;
+    min-width: max-content;
+    min-height: 2.05rem;
+    gap: .35rem;
+    border-radius: .55rem;
+    padding: 0 .62rem;
+    font-size: .59rem;
+    white-space: nowrap;
+  }
+  .admin-nav--premium .admin-nav__item { min-height: 1.9rem; }
+  .admin-nav__item.is-active {
+    border-color: rgba(105, 158, 255, .24);
+    box-shadow: inset 0 0 0 1px rgba(105, 158, 255, .12);
+  }
+  .admin-nav__lock { width: .7rem; }
+  .admin-global-search { max-width: 21rem; }
+  .admin-content { padding-top: 1.15rem; }
+  .admin-page-heading { margin-bottom: 1.1rem; }
+}
+
+@media (max-width: 390px) {
+  .admin-nav__item,
+  .admin-nav--premium .admin-nav__item {
+    gap: .22rem;
+    padding-right: .48rem;
+    padding-left: .48rem;
+    font-size: .55rem;
+  }
+  .admin-nav__item svg { width: 15px; height: 15px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-nav__item,
+  .admin-brand__mark { transition: none !important; }
+}

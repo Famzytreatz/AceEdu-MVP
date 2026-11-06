@@ -30,7 +30,7 @@ import schoolsRouter from "./routes/schools.js"
 
 import portalAuthRouter from "./routes/portal-auth.js"
 
-import { studentRouter, teacherRouter } from "./routes/portal.js"
+import { parentRouter, studentRouter, teacherRouter } from "./routes/portal.js"
 
 export function createApp() {
   const app = express()
@@ -143,6 +143,8 @@ export function createApp() {
   app.use("/api/portal/student", studentRouter)
 
   app.use("/api/portal/teacher", teacherRouter)
+
+  app.use("/api/portal/parent", parentRouter)
 
   app.use("/api/platform", platformRouter)
 

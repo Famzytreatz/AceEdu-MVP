@@ -1,7 +1,7 @@
 import { supabase } from "../supabase.js"
 
 const enrollmentColumns =
-  "id,school_id,full_name,role,designation,assigned_classes,subjects,passport,dob,guardian_phone,address,state_of_origin,phone,access_pin,password_hash,status,created_at,updated_at,class_level_id,class_level:school_class_levels(name,nickname)"
+  "id,school_id,full_name,role,designation,assigned_classes,subjects,passport,dob,guardian_name,guardian_phone,address,state_of_origin,phone,access_pin,password_hash,status,created_at,updated_at,class_level_id,class_level:school_class_levels(name,nickname)"
 
 const pageSize = 50
 
@@ -27,6 +27,8 @@ function enrollmentFromRow(row) {
     passport: row.passport,
 
     dob: row.dob,
+
+    guardianName: row.guardian_name,
 
     guardianPhone: row.guardian_phone,
 
@@ -197,6 +199,8 @@ export async function createEnrollment({ schoolId, values, accessPin }) {
       passport: values.passport,
 
       dob: values.dob,
+
+      guardian_name: values.guardianName,
 
       guardian_phone: values.guardianPhone,
 

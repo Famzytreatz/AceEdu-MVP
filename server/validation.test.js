@@ -158,6 +158,8 @@ test("enrollment only accepts supported fields and valid registry roles", () => 
 
       dob: null,
 
+      guardianName: null,
+
       guardianPhone: null,
 
       address: null,
@@ -235,6 +237,17 @@ test("enrollment only accepts supported fields and valid registry roles", () => 
       }),
     /valid JPEG, PNG, or WebP/,
   )
+
+  assert.throws(
+    () =>
+      validateEnrollment({
+        fullName: "Ada",
+        role: "student",
+        designation: "JSS 1",
+        classLevelId: "1",
+      }),
+    /Guardian name and phone are required/,
+  )
 })
 
 test("enrollment keeps legacy profile fields without exposing password input to other fields", () => {
@@ -250,6 +263,8 @@ test("enrollment keeps legacy profile fields without exposing password input to 
     subjects: "Physics, Maths",
 
     dob: "1990-05-12",
+
+    guardianName: "A Guardian",
 
     guardianPhone: "+2348000000000",
 
@@ -271,6 +286,33 @@ test("enrollment keeps legacy profile fields without exposing password input to 
   assert.equal(result.stateOfOrigin, "Lagos")
 
   assert.equal(result.password, "secure-password")
+})
+
+test("student enrollment requires and normalizes guardian details for family portal access", () => {
+  const result = validateEnrollment({
+    fullName: "Ada Student",
+    role: "student",
+    designation: "JSS 1",
+    classLevelId: "1",
+    guardianName: "Ada Guardian",
+    guardianPhone: "+234 (801) 234-5678",
+  })
+
+  assert.equal(result.guardianName, "Ada Guardian")
+  assert.equal(result.guardianPhone, "+2348012345678")
+
+  assert.throws(
+    () =>
+      validateEnrollment({
+        fullName: "Ada Student",
+        role: "student",
+        designation: "JSS 1",
+        classLevelId: "1",
+        guardianName: "Ada Guardian",
+        guardianPhone: "call me",
+      }),
+    /valid guardian phone number/,
+  )
 })
 
 test("database IDs accept positive safe integers only", () => {

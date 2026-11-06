@@ -454,6 +454,22 @@ export async function getClassStudentRecords(classId, studentId) {
   return readJson(response)
 }
 
+export async function getAcademicYearRecords(yearId) {
+  const response = await fetch(
+    `/api/admin/academic/years/${encodeURIComponent(yearId)}/records`,
+    { credentials: "same-origin" },
+  )
+  return readJson(response)
+}
+
+export async function getStudentAcademicHistory(studentId) {
+  const response = await fetch(
+    `/api/admin/academic/students/${encodeURIComponent(studentId)}/academic-history`,
+    { credentials: "same-origin" },
+  )
+  return readJson(response)
+}
+
 export function createClassAssessment(values) {
   return postJson("/api/admin/academic/assessments", values)
 }
@@ -469,6 +485,120 @@ export async function saveAssessmentResults(assessmentId, results) {
     },
   )
   return readJson(response)
+}
+
+export async function getFinanceData() {
+  const response = await fetch("/api/admin/finance", {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export function createFeeSchedule(values) {
+  return postJson("/api/admin/finance/schedules", values)
+}
+
+export function createFeeInvoice(values) {
+  return postJson("/api/admin/finance/invoices", values)
+}
+
+export function recordFeePayment(invoiceId, values) {
+  return postJson(
+    `/api/admin/finance/invoices/${encodeURIComponent(invoiceId)}/payments`,
+    values,
+  )
+}
+
+export async function getSchoolParents() {
+  const response = await fetch("/api/admin/parents", {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export async function updateParentStudents(parentId, studentIds) {
+  const response = await fetch(
+    `/api/admin/parents/${encodeURIComponent(parentId)}/students`,
+    {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentIds }),
+    },
+  )
+  return readJson(response)
+}
+
+export function resetParentPortalPassword(parentId) {
+  return postJson(
+    `/api/admin/parents/${encodeURIComponent(parentId)}/password/reset`,
+    {},
+  )
+}
+
+export async function getSchoolAnnouncements() {
+  const response = await fetch("/api/admin/communications", {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export function createSchoolAnnouncement(values) {
+  return postJson("/api/admin/communications", values)
+}
+
+export async function deleteSchoolAnnouncement(id) {
+  const response = await fetch(
+    `/api/admin/communications/${encodeURIComponent(id)}`,
+    { method: "DELETE", credentials: "same-origin" },
+  )
+  return readJson(response)
+}
+
+export async function getParentPortalDashboard() {
+  const response = await fetch("/api/portal/parent/dashboard", {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export async function getPortalAnnouncements(role) {
+  if (!["student", "teacher"].includes(role)) {
+    throw new Error("Choose a valid portal audience.")
+  }
+  const response = await fetch(`/api/portal/${role}/announcements`, {
+    credentials: "same-origin",
+  })
+  return readJson(response)
+}
+
+export async function getAllActiveStudents() {
+  const students = []
+  let cursor = null
+  do {
+    const result = await getEnrollments({
+      role: "student",
+      status: "Active",
+      cursor,
+    })
+    students.push(...result.items)
+    cursor = result.nextCursor
+  } while (cursor)
+  return students
+}
+
+export async function getAllStudents() {
+  const students = []
+  let cursor = null
+  do {
+    const result = await getEnrollments({
+      role: "student",
+      cursor,
+    })
+    students.push(...result.items)
+    cursor = result.nextCursor
+  } while (cursor)
+  return students
 }
 
 export function requestSchoolVerification(registrationId) {

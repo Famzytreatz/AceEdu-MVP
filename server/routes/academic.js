@@ -10,8 +10,10 @@ import {
 } from "../models/Academic.js"
 import {
   createClassAssessment,
+  getAcademicYearPerformance,
   getClassPerformance,
   getClassStudentRecords,
+  getStudentAcademicHistory,
   getAttendanceSession,
   getClassAssessments,
   saveAssessmentResults,
@@ -61,6 +63,24 @@ router.get(
 )
 
 router.get(
+  "/years/:yearId/records",
+  requireEntitlement("academicRecords"),
+  asyncRoute(async (req, res) => {
+    if (!isValidDatabaseId(req.params.yearId)) {
+      return res.status(400).json({ error: "Academic year ID is invalid." })
+    }
+    const records = await getAcademicYearPerformance(
+      req.session.schoolId,
+      req.params.yearId,
+    )
+    if (!records) {
+      return res.status(404).json({ error: "Academic year not found for this school." })
+    }
+    return res.json(records)
+  }),
+)
+
+router.get(
   "/classes/:classId/records/:studentId",
   requireEntitlement("academicRecords"),
   asyncRoute(async (req, res) => {
@@ -79,6 +99,24 @@ router.get(
       return res.status(404).json({
         error: "Student records were not found for this class and school.",
       })
+    }
+    return res.json(records)
+  }),
+)
+
+router.get(
+  "/students/:studentId/academic-history",
+  requireEntitlement("academicRecords"),
+  asyncRoute(async (req, res) => {
+    if (!isValidDatabaseId(req.params.studentId)) {
+      return res.status(400).json({ error: "Student ID is invalid." })
+    }
+    const records = await getStudentAcademicHistory(
+      req.session.schoolId,
+      req.params.studentId,
+    )
+    if (!records) {
+      return res.status(404).json({ error: "Student not found for this school." })
     }
     return res.json(records)
   }),

@@ -202,6 +202,105 @@ test("shared school member login detects role and binds session to resolved scho
   assert.equal(result.body.member.password_hash, undefined)
 })
 
+test("parent login requires the school password and starts a parent session", async () => {
+  let started
+  const parent = {
+    id: "91",
+    school_id: "42",
+    full_name: "Avery Family",
+    phone: "+2348012345678",
+    password_hash: "parent-hash",
+    must_change_password: true,
+    status: "active",
+  }
+  const result = await postLogin(
+    {
+      schoolSlug: "bright-future",
+      role: "parent",
+      phone: "+234 (801) 234-5678",
+      password: "temporary-password",
+    },
+    {
+      findSchool: async () => school,
+      findParent: async (schoolId, phone) => {
+        assert.equal(schoolId, "42")
+        assert.equal(phone, "+2348012345678")
+        return parent
+      },
+      comparePassword: async (password, hash) =>
+        password === "temporary-password" && hash === "parent-hash",
+      findEntitlement: async () => ({ plan: "premium" }),
+      startSession: async (_req, member, schoolId) => {
+        started = { memberId: member.id, role: member.role, schoolId }
+      },
+    },
+  )
+
+  assert.equal(result.status, 200)
+  assert.deepEqual(started, { memberId: "91", role: "parent", schoolId: "42" })
+  assert.equal(result.body.member.role, "parent")
+  assert.equal(result.body.member.phone, parent.phone)
+  assert.equal(result.body.member.mustChangePassword, true)
+  assert.equal(result.body.member.premiumAccess, true)
+  assert.equal(result.body.member.accessCode, undefined)
+})
+
+test("parent login does not authenticate with a matching phone alone", async () => {
+  const result = await postLogin(
+    {
+      schoolSlug: "bright-future",
+      role: "parent",
+      phone: "+2348012345678",
+      password: "wrong-password",
+    },
+    {
+      findSchool: async () => school,
+      findParent: async () => ({
+        id: "91",
+        school_id: "42",
+        full_name: "Avery Family",
+        phone: "+2348012345678",
+        password_hash: "parent-hash",
+        status: "active",
+      }),
+      comparePassword: async () => false,
+    },
+  )
+
+  assert.equal(result.status, 401)
+  assert.match(result.body.error, /sign-in details are incorrect/)
+})
+
+test("parent login rejects an expired setup code before starting a session", async () => {
+  const result = await postLogin(
+    {
+      schoolSlug: "bright-future",
+      role: "parent",
+      phone: "+2348012345678",
+      password: "expired-setup-code",
+    },
+    {
+      findSchool: async () => school,
+      findParent: async () => ({
+        id: "91",
+        school_id: "42",
+        full_name: "Avery Family",
+        phone: "+2348012345678",
+        password_hash: "parent-hash",
+        must_change_password: true,
+        initial_password_expires_at: new Date(Date.now() - 60_000).toISOString(),
+      }),
+      comparePassword: async () =>
+        assert.fail("Expired setup codes must not be checked as passwords."),
+      startSession: async () =>
+        assert.fail("Expired setup codes must not start a session."),
+    },
+  )
+
+  assert.equal(result.status, 401)
+  assert.equal(result.body.code, "PARENT_SETUP_CODE_EXPIRED")
+})
+
 test("shared sign-in rejects accounts outside the student and teacher portals", async () => {
   const result = await postLogin(
     { schoolSlug: "bright-future", accessPin: "482193" },

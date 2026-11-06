@@ -95,7 +95,7 @@ export async function getAcademicSetup(schoolId) {
         .order("full_name"),
       supabase
         .from("school_class_students")
-        .select("class_id,student_id")
+        .select("class_id,student_id,is_active")
         .eq("school_id", schoolId),
     ])
 
@@ -119,6 +119,7 @@ export async function getAcademicSetup(schoolId) {
     classRosters: rosterResult.data.map((row) => ({
       classId: String(row.class_id),
       studentId: String(row.student_id),
+      isActive: row.is_active,
     })),
     students: studentsResult.data.map((row) => ({
       ...mapEnrollment(row),

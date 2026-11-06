@@ -1,4 +1,5 @@
 import { isValidDatabaseId } from "./ids.js"
+import { isValidPhone, normalizePhone } from "./phone.js"
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -45,6 +46,7 @@ const allowedEnrollmentKeys = new Set([
   "subjects",
   "passport",
   "dob",
+  "guardianName",
   "guardianPhone",
   "address",
   "stateOfOrigin",
@@ -221,6 +223,20 @@ export function validateEnrollment(body = {}) {
     throw new Error("Upload a valid JPEG, PNG, or WebP passport image.")
   }
 
+  const guardianName = optionalText(body.guardianName, "Guardian name", 160)
+  const guardianPhone = (() => {
+    const phone = optionalText(body.guardianPhone, "Guardian phone", 30)
+    if (!phone) return null
+    const normalizedPhone = normalizePhone(phone)
+    if (!isValidPhone(normalizedPhone)) {
+      throw new Error("Enter a valid guardian phone number.")
+    }
+    return normalizedPhone
+  })()
+  if (role === "student" && (!guardianName || !guardianPhone)) {
+    throw new Error("Guardian name and phone are required to create family portal access.")
+  }
+
   return {
     fullName: text(body.fullName, "Full name", 160),
 
@@ -242,7 +258,8 @@ export function validateEnrollment(body = {}) {
 
     dob: dateOfBirth,
 
-    guardianPhone: optionalText(body.guardianPhone, "Guardian phone", 30),
+    guardianName,
+    guardianPhone,
 
     address: optionalText(body.address, "House address", 300),
 

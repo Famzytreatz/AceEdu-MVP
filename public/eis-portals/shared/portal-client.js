@@ -6,7 +6,7 @@
   function goToPortal(role) {
     const targetSlug = slug || params.get("schoolSlug") || ""
     const target = targetSlug
-      ? `/s/${encodeURIComponent(targetSlug)}/${encodeURIComponent(role || "portal")}`
+      ? `/s/${encodeURIComponent(targetSlug)}/portal`
       : "/"
     try {
       if (window.top && window.top !== window) window.top.location.assign(target)

@@ -4,6 +4,7 @@ import { hasFeatureAccess } from "./entitlements.js"
 import { getSchoolEntitlement } from "./models/Entitlement.js"
 import { findActivePlatformOperatorById } from "./models/PlatformOperator.js"
 import { findActivePortalEnrollmentById } from "./models/Portal.js"
+import { findActiveParentById } from "./models/Parents.js"
 import { findSchoolById } from "./models/School.js"
 
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"])
@@ -40,6 +41,7 @@ export const requireSchool = createRequireSchool()
 
 export function createRequirePortalMember({
   findEnrollment = findActivePortalEnrollmentById,
+  findParent = findActiveParentById,
   findSchool = findSchoolById,
 } = {}) {
   return function requirePortalMember(role) {
@@ -50,14 +52,16 @@ export function createRequirePortalMember({
       if (
         !isValidDatabaseId(memberId) ||
         !isValidDatabaseId(schoolId) ||
-        !["student", "teacher"].includes(sessionRole) ||
+        !["student", "teacher", "parent"].includes(sessionRole) ||
         (role && sessionRole !== role)
       ) {
         return res.status(401).json({ error: "Sign in to your school portal." })
       }
 
       return Promise.all([
-        findEnrollment(schoolId, memberId),
+        sessionRole === "parent"
+          ? findParent(schoolId, memberId)
+          : findEnrollment(schoolId, memberId),
         findSchool(schoolId),
       ])
         .then(([member, school]) => {
@@ -65,23 +69,36 @@ export function createRequirePortalMember({
             !member ||
             !school ||
             String(member.school_id) !== String(schoolId) ||
-            member.role !== sessionRole
+            (sessionRole === "parent"
+              ? member.status !== "active"
+              : member.role !== sessionRole)
           ) {
             return res.status(401).json({ error: "This portal account is no longer available." })
           }
-          req.portalMember = {
-            id: String(member.id),
-            schoolId: String(member.school_id),
-            role: member.role,
-            fullName: member.full_name,
-            designation: member.designation,
-            assignedClasses: member.assigned_classes,
-            subjects: member.subjects,
-            passport: member.passport,
-            accessPin: member.access_pin,
-            classLevelId: member.class_level_id ? String(member.class_level_id) : null,
-            hasPortalPassword: Boolean(member.password_hash),
-          }
+          req.portalMember =
+            sessionRole === "parent"
+              ? {
+                  id: String(member.id),
+                  schoolId: String(member.school_id),
+                  role: "parent",
+                  fullName: member.full_name,
+                  phone: member.phone,
+                  hasPortalPassword: Boolean(member.password_hash),
+                  mustChangePassword: member.must_change_password,
+                }
+              : {
+                  id: String(member.id),
+                  schoolId: String(member.school_id),
+                  role: member.role,
+                  fullName: member.full_name,
+                  designation: member.designation,
+                  assignedClasses: member.assigned_classes,
+                  subjects: member.subjects,
+                  passport: member.passport,
+                  accessPin: member.access_pin,
+                  classLevelId: member.class_level_id ? String(member.class_level_id) : null,
+                  hasPortalPassword: Boolean(member.password_hash),
+                }
           req.school = school
           return next()
         })

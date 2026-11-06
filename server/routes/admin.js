@@ -14,6 +14,11 @@ import {
   resetStudentPortalPassword,
   verifyEnrollment,
 } from "../models/Enrollment.js"
+import { ensureParentPortalForStudent } from "../models/Parents.js"
+import { sendParentSetupSms } from "../parent-notifications.js"
+import { getSchoolEntitlement } from "../models/Entitlement.js"
+import { hasFeatureAccess } from "../entitlements.js"
+import { logError } from "../error-logging.js"
 import { updateSchoolShortName } from "../models/School.js"
 import { findSchoolClassLevel } from "../models/Curriculum.js"
 
@@ -23,6 +28,9 @@ import { asyncRoute } from "../security.js"
 import entitlementRouter from "./entitlements.js"
 import academicRouter from "./academic.js"
 import curriculumRouter from "./curriculum.js"
+import financeRouter from "./finance.js"
+import parentsRouter from "./parents.js"
+import communicationsRouter from "./communications.js"
 
 import { validateEnrollment, validateSchoolShortName } from "../validation.js"
 
@@ -33,6 +41,9 @@ const pageSize = 50
 router.use("/entitlements", entitlementRouter)
 router.use("/academic", academicRouter)
 router.use("/curriculum", curriculumRouter)
+router.use("/finance", financeRouter)
+router.use("/parents", parentsRouter)
+router.use("/communications", communicationsRouter)
 
 function csvCell(value) {
   let text = String(value ?? "")
@@ -201,7 +212,80 @@ router.post(
           accessPin: await makeAccessPin(schoolId, req.school.shortName),
         })
 
-        return res.status(201).json({ enrollment })
+        let parentPortal = { status: "not_applicable" }
+        if (values.role === "student") {
+          let parentPortalEnabled = false
+          try {
+            const parentEntitlement = await getSchoolEntitlement(schoolId)
+            parentPortalEnabled = hasFeatureAccess(
+              parentEntitlement,
+              "parentPortal",
+            )
+            if (!parentPortalEnabled) {
+              parentPortal = { status: "premium_required" }
+            }
+          } catch (entitlementError) {
+            logError("Could not verify parent portal entitlement:", entitlementError, req)
+            parentPortal = { status: "entitlement_check_failed" }
+          }
+          if (parentPortalEnabled) {
+            const setupCode = randomBytes(9).toString("base64url")
+            const setupCodeExpiresAt = new Date(
+              Date.now() + 24 * 60 * 60 * 1000,
+            ).toISOString()
+            const setupCodeHash = await bcrypt.hash(setupCode, 12)
+
+            try {
+              const linkedParent = await ensureParentPortalForStudent(
+                schoolId,
+                enrollment._id,
+                {
+                  fullName: values.guardianName,
+                  phone: values.guardianPhone,
+                },
+                setupCodeHash,
+                setupCodeExpiresAt,
+              )
+              let delivery = { delivered: false, reason: "not_needed" }
+              if (linkedParent.sendSetupCode) {
+                try {
+                  delivery = await sendParentSetupSms(
+                    {
+                      phone: values.guardianPhone,
+                      parentName: linkedParent.parentName,
+                      schoolName: req.school.schoolName,
+                      schoolSlug: req.school.slug,
+                      setupCode,
+                    },
+                  )
+                } catch (deliveryError) {
+                  logError("Parent setup SMS delivery failed:", deliveryError, req)
+                  delivery = { delivered: false, reason: "delivery_failed" }
+                }
+              }
+              parentPortal = {
+                status: "linked",
+                isFamily: linkedParent.isFamily,
+                studentCount: linkedParent.studentCount,
+                created: linkedParent.created,
+                setupCodeSent: delivery.delivered,
+                ...(!delivery.delivered && linkedParent.sendSetupCode
+                  ? { setupCode, deliveryIssue: delivery.reason }
+                  : {}),
+              }
+            } catch (parentError) {
+              logError("Could not link student to parent portal:", parentError, req)
+              parentPortal = {
+                status:
+                  parentError?.code === "P0002"
+                    ? "parent_unavailable"
+                    : "link_failed",
+              }
+            }
+          }
+        }
+
+        return res.status(201).json({ enrollment, parentPortal })
       } catch (error) {
         if (error?.code === "23505" && attempt < 4) continue
 

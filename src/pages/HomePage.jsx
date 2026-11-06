@@ -29,6 +29,7 @@ function SectionIntro({ title, description, centered = false }) {
 function Hero({ onOpenModal }) {
   return (
     <section className="hero" aria-labelledby="hero-title">
+      <div className="hero__light-sweep" aria-hidden="true" />
       <div className="hero__content reveal" data-reveal>
         <div>
           <h1 id="hero-title">Smarter School Management</h1>

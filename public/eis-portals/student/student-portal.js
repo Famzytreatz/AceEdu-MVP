@@ -97,17 +97,28 @@
     renderRecentResults(assessments)
   }
 
-  function renderTransmissions(posts) {
+  function renderTransmissions(posts, announcements = []) {
     const display = byId("broadcastDisplay")
     if (!display) return
+    const feed = [
+      ...announcements.map((item) => ({
+        ...item,
+        contentBody: item.body,
+        author: "School administration",
+        source: "school",
+      })),
+      ...(Array.isArray(posts) ? posts : []),
+    ].sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0))
 
-    if (!Array.isArray(posts) || posts.length === 0) {
-      display.innerHTML = '<div class="announcement-empty"><i class="fa-regular fa-bell" aria-hidden="true"></i>No class announcements yet. Your teachers’ latest notices and resources will appear here.</div>'
+    if (!feed.length) {
+      display.innerHTML = '<div class="announcement-empty"><i class="fa-regular fa-bell" aria-hidden="true"></i>No school or class updates yet. New notices will appear here.</div>'
       return
     }
 
-    display.innerHTML = posts.slice(0, 5).map((post) => {
-      const type = post.type === "assignment" ? "Assignment" : (post.type || "notice").replaceAll("_", " ")
+    display.innerHTML = feed.slice(0, 8).map((post) => {
+      const type = post.source === "school"
+        ? `${post.type || "announcement"} · school`
+        : post.type === "assignment" ? "Assignment" : (post.type || "notice").replaceAll("_", " ")
       const createdDate = post.createdAt && !Number.isNaN(new Date(post.createdAt).getTime())
         ? new Date(post.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
         : "Recently"
@@ -438,6 +449,7 @@
         portal.request("/api/portal/student/classroom"),
         portal.request("/api/portal/student/exams"),
         portal.request("/api/portal/student/subjects"),
+        portal.request("/api/portal/student/announcements"),
       ])
       if (results[0].status === "fulfilled") dashboard = results[0].value
       if (results[1].status === "fulfilled") classroom = results[1].value
@@ -446,10 +458,17 @@
       else console.warn("Student exams were not loaded.", results[2].reason)
       if (results[3].status === "fulfilled") subjectChoices = results[3].value
       else console.warn("Student subject choices were not loaded.", results[3].reason)
+      const schoolAnnouncements =
+        results[4].status === "fulfilled"
+          ? results[4].value.announcements || []
+          : []
+      if (results[4].status === "rejected") {
+        console.warn("School announcements were not loaded.", results[4].reason)
+      }
 
       renderIdentity()
       renderSubjectChoices()
-      renderTransmissions(classroom?.posts || [])
+      renderTransmissions(classroom?.posts || [], schoolAnnouncements)
 
       byId("studentOverviewLink")?.addEventListener("click", () => {
         byId("studentOverviewLink")?.classList.add("active")

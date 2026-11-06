@@ -15,6 +15,8 @@ import {
   getTeacherPortalDashboard,
   teacherCanAccessClass,
 } from "../models/Portal.js"
+import { getPortalAnnouncements } from "../models/Communications.js"
+import { getParentPortalDashboard } from "../models/Parents.js"
 
 import {
   createClassroomPost,
@@ -53,6 +55,8 @@ const studentRouter = express.Router()
 
 const teacherRouter = express.Router()
 
+const parentRouter = express.Router()
+
 const requirePortalMember = createRequirePortalMember()
 
 studentRouter.use(
@@ -63,6 +67,49 @@ studentRouter.use(
 teacherRouter.use(
   requirePortalMember("teacher"),
   requireEntitlement("teacherPortal"),
+)
+
+parentRouter.use(
+  requirePortalMember("parent"),
+  requireEntitlement("parentPortal"),
+)
+
+studentRouter.get(
+  "/announcements",
+  asyncRoute(async (req, res) => {
+    return res.json({
+      announcements: await getPortalAnnouncements(
+        req.portalMember.schoolId,
+        "students",
+      ),
+    })
+  }),
+)
+
+teacherRouter.get(
+  "/announcements",
+  asyncRoute(async (req, res) => {
+    return res.json({
+      announcements: await getPortalAnnouncements(
+        req.portalMember.schoolId,
+        "teachers",
+      ),
+    })
+  }),
+)
+
+parentRouter.get(
+  "/dashboard",
+  asyncRoute(async (req, res) => {
+    const dashboard = await getParentPortalDashboard(
+      req.portalMember.schoolId,
+      req.portalMember.id,
+    )
+    if (!dashboard) {
+      return res.status(401).json({ error: "This parent account is no longer active." })
+    }
+    return res.json(dashboard)
+  }),
 )
 
 studentRouter.get(
@@ -497,4 +544,4 @@ teacherRouter.post(
   }),
 )
 
-export { studentRouter, teacherRouter }
+export { parentRouter, studentRouter, teacherRouter }

@@ -5,6 +5,30 @@
   let passwordSaving = false
   const $ = (selector) => document.querySelector(selector)
 
+  function renderSchoolAnnouncements(announcements) {
+    const home = document.getElementById("home")
+    if (!home) return
+    const section = document.createElement("section")
+    section.className = "content-panel teacher-school-feed"
+    section.setAttribute("aria-labelledby", "schoolFeedHeading")
+    const items = Array.isArray(announcements) ? announcements : []
+    section.innerHTML = `
+      <div class="panel-heading">
+        <div><span class="eyebrow">SCHOOL-WIDE</span><h2 id="schoolFeedHeading">School updates</h2></div>
+        <span class="panel-heading-icon"><i class="fas fa-bullhorn" aria-hidden="true"></i></span>
+      </div>
+      ${items.length ? `<div class="teacher-school-feed__items">${items.map((item) => `
+        <article>
+          <div class="teacher-school-feed__meta"><span>${portal.escapeHtml(item.type || "announcement")}</span><time>${portal.escapeHtml(new Date(item.createdAt).toLocaleDateString())}</time></div>
+          <h3>${portal.escapeHtml(item.title)}</h3>
+          <p>${portal.escapeHtml(item.body)}</p>
+          ${item.eventDate ? `<small>Event date: ${portal.escapeHtml(item.eventDate)}</small>` : ""}
+        </article>`).join("")}</div>` : '<p class="teacher-school-feed__empty">School announcements, events and newsletters will appear here.</p>'}
+    `
+    const firstHeading = home.querySelector(".section-heading")
+    if (firstHeading) home.insertBefore(section, firstHeading)
+  }
+
   function setSchoolName(name) {
     const school = name || "Your School"
     portal.setText("teacherSchoolName", school)
@@ -211,6 +235,15 @@
       member = await portal.getMember("teacher")
       if (!member) return
       dashboard = await portal.request("/api/portal/teacher/dashboard")
+      let schoolAnnouncements = []
+      try {
+        const result = await portal.request("/api/portal/teacher/announcements")
+        schoolAnnouncements = result.announcements || []
+      } catch (error) {
+        console.warn("Teacher school announcements were not loaded.", error)
+        portal.showError(`School updates could not be loaded: ${error.message}`)
+      }
+      renderSchoolAnnouncements(schoolAnnouncements)
       setSchoolName(member.school?.schoolName)
       const firstName = (member.fullName || "Teacher").trim().split(/\s+/)[0]
       portal.setText("displayTeacherName", `Welcome back, ${firstName}`)

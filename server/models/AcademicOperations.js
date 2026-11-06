@@ -1,4 +1,9 @@
 import { supabase } from "../supabase.js"
+import {
+  bestExamAttempts,
+  rankStudents,
+  summarizeAttendance,
+} from "../academic-records.js"
 
 async function findClassAndTerm(schoolId, classId, termId) {
   const [classResult, termResult] = await Promise.all([
@@ -410,20 +415,11 @@ async function fetchAllRows(makeQuery) {
   }
 }
 
-function summarizeAttendance(records) {
-  const totals = { present: 0, absent: 0, late: 0, excused: 0 }
-  for (const record of records) totals[record.status] += 1
-  const marked = totals.present + totals.absent + totals.late
-  return {
-    ...totals,
-    marked,
-    rate: marked
-      ? Math.round(((totals.present + totals.late) / marked) * 1000) / 10
-      : null,
-  }
-}
-
-async function getClassRecordData(schoolId, classId) {
+async function getClassRecordData(
+  schoolId,
+  classId,
+  { includeActivity = false } = {},
+) {
   const { data: schoolClass, error: classError } = await supabase
     .from("school_classes")
     .select("id,academic_year_id,name")
@@ -461,12 +457,24 @@ async function getClassRecordData(schoolId, classId) {
   if (termsError) throw termsError
   if (rosterError) throw rosterError
   if (!year) return null
+  const classroomPosts = includeActivity
+    ? await fetchAllRows(() =>
+        supabase
+          .from("school_classroom_posts")
+          .select("id,author_id,subject_id,post_type,title,deadline,created_at")
+          .eq("school_id", schoolId)
+          .eq("class_id", classId)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false }),
+      )
+    : []
 
   const termIds = terms.map((term) => term.id)
   let assessments = []
   let sessions = []
+  let portalExams = []
   if (termIds.length) {
-    const [assessmentResult, sessionResult] = await Promise.all([
+    const [assessmentResult, sessionResult, portalExamResult] = await Promise.all([
       fetchAllRows(() =>
         supabase
           .from("academic_assessments")
@@ -487,14 +495,28 @@ async function getClassRecordData(schoolId, classId) {
           .in("academic_term_id", termIds)
           .order("id"),
       ),
+      fetchAllRows(() =>
+        supabase
+          .from("school_portal_exams")
+          .select(
+            "id,subject_id,academic_term_id,title,questions,created_at",
+          )
+          .eq("school_id", schoolId)
+          .eq("class_id", classId)
+          .eq("is_published", true)
+          .in("academic_term_id", termIds)
+          .order("id"),
+      ),
     ])
     assessments = assessmentResult
     sessions = sessionResult
+    portalExams = portalExamResult
   }
 
   const assessmentIds = assessments.map((assessment) => assessment.id)
   const sessionIds = sessions.map((session) => session.id)
-  const [results, attendanceRecords] = await Promise.all([
+  const portalExamIds = portalExams.map((exam) => exam.id)
+  const [results, attendanceRecords, portalAttempts] = await Promise.all([
     assessmentIds.length
       ? fetchAllRows(() =>
           supabase
@@ -515,38 +537,58 @@ async function getClassRecordData(schoolId, classId) {
             .order("id"),
         )
       : [],
+    portalExamIds.length
+        ? fetchAllRows(() =>
+            supabase
+              .from("school_portal_exam_attempts")
+              .select("exam_id,student_id,score,status,end_time")
+              .eq("school_id", schoolId)
+              .eq("status", "submitted")
+              .in("exam_id", portalExamIds)
+              .order("id"),
+          )
+        : [],
   ])
+  const portalResults = bestExamAttempts(portalExams, portalAttempts)
 
   const studentIds = [
     ...new Set([
       ...roster.map((item) => String(item.student_id)),
       ...results.map((item) => String(item.student_id)),
+      ...portalResults.map((item) => item.studentId),
       ...attendanceRecords.map((item) => String(item.student_id)),
     ]),
+  ]
+  const authorIds = [
+    ...new Set(classroomPosts.map((post) => String(post.author_id))),
   ]
   const [studentsResult, subjectsResult] = await Promise.all([
     studentIds.length
       ? supabase
           .from("enrollments")
-          .select("id,full_name,designation,status")
+          .select("id,full_name,designation,status,passport,dob,phone")
           .eq("school_id", schoolId)
           .eq("role", "student")
           .in("id", studentIds)
           .order("full_name")
       : Promise.resolve({ data: [], error: null }),
-    assessments.length
-      ? supabase
-          .from("school_subjects")
-          .select("id,name")
-          .eq("school_id", schoolId)
-          .in(
-            "id",
-            [...new Set(assessments.map((assessment) => assessment.subject_id))],
-          )
-      : Promise.resolve({ data: [], error: null }),
+    supabase
+      .from("school_subjects")
+      .select("id,name")
+      .eq("school_id", schoolId)
+      .eq("class_id", classId)
+      .order("name"),
   ])
   if (studentsResult.error) throw studentsResult.error
   if (subjectsResult.error) throw subjectsResult.error
+  const authorsResult = authorIds.length
+    ? await supabase
+        .from("enrollments")
+        .select("id,full_name")
+        .eq("school_id", schoolId)
+        .in("id", authorIds)
+    : { data: [], error: null }
+  if (authorsResult.error) throw authorsResult.error
 
   const termById = new Map(terms.map((term) => [String(term.id), term]))
   const subjectById = new Map(
@@ -558,25 +600,65 @@ async function getClassRecordData(schoolId, classId) {
   const sessionById = new Map(
     sessions.map((session) => [String(session.id), session]),
   )
-  const resultsByStudent = new Map()
-  for (const result of results) {
-    const key = String(result.student_id)
-    if (!resultsByStudent.has(key)) resultsByStudent.set(key, [])
+  const authorById = new Map(
+    authorsResult.data.map((author) => [
+      String(author.id),
+      author.full_name,
+    ]),
+  )
+  const scoredRecords = results.flatMap((result) => {
     const assessment = assessmentById.get(String(result.assessment_id))
-    if (!assessment) continue
+    if (!assessment) return []
+    return [
+      {
+        assessmentId: String(assessment.id),
+        studentId: String(result.student_id),
+        title: assessment.title,
+        type: assessment.assessment_type,
+        source: "Teacher-recorded",
+        subjectId: String(assessment.subject_id),
+        termId: String(assessment.academic_term_id),
+        maximumScore: Number(assessment.maximum_score),
+        score: Number(result.score),
+        dueOn: assessment.due_on,
+      },
+    ]
+  })
+  for (const result of portalResults) {
+    const exam = portalExams.find(
+      (item) => String(item.id) === result.examId,
+    )
+    if (!exam) continue
+    scoredRecords.push({
+      assessmentId: `portal-${result.examId}`,
+      studentId: result.studentId,
+      title: exam.title,
+      type: "exam",
+      source: "Student platform exam",
+      subjectId: exam.subject_id ? String(exam.subject_id) : null,
+      termId: String(exam.academic_term_id),
+      maximumScore: result.maximumScore,
+      score: result.score,
+      dueOn: result.submittedAt?.slice(0, 10) || exam.created_at.slice(0, 10),
+    })
+  }
+  const resultsByStudent = new Map()
+  for (const result of scoredRecords) {
+    const key = result.studentId
+    if (!resultsByStudent.has(key)) resultsByStudent.set(key, [])
     resultsByStudent.get(key).push({
-      assessmentId: String(assessment.id),
-      title: assessment.title,
-      type: assessment.assessment_type,
-      subject: subjectById.get(String(assessment.subject_id)) || "Subject",
-      termId: String(assessment.academic_term_id),
-      termName:
-        termById.get(String(assessment.academic_term_id))?.name || "Term",
-      termNumber:
-        termById.get(String(assessment.academic_term_id))?.term_number || 0,
-      maximumScore: Number(assessment.maximum_score),
-      score: Number(result.score),
-      dueOn: assessment.due_on,
+      assessmentId: result.assessmentId,
+      title: result.title,
+      type: result.type,
+      source: result.source,
+      subject:
+        subjectById.get(String(result.subjectId)) || "Subject",
+      termId: result.termId,
+      termName: termById.get(result.termId)?.name || "Term",
+      termNumber: termById.get(result.termId)?.term_number || 0,
+      maximumScore: result.maximumScore,
+      score: result.score,
+      dueOn: result.dueOn,
     })
   }
   const attendanceByStudent = new Map()
@@ -615,9 +697,15 @@ async function getClassRecordData(schoolId, classId) {
       fullName: student.full_name,
       designation: student.designation,
       status: student.status,
+      passport: student.passport,
+      dateOfBirth: student.dob,
+      studentId: id,
       assessmentCount: studentResults.length,
       averagePercentage: possible
         ? Math.round((earned / possible) * 1000) / 10
+        : null,
+      rankingPercentage: possible
+        ? Math.round((earned / possible) * 100000000) / 1000000
         : null,
       attendance: summarizeAttendance(studentAttendance),
       assessmentHistory: studentResults,
@@ -627,33 +715,149 @@ async function getClassRecordData(schoolId, classId) {
     }
   })
 
-  const rankedStudents = studentSummaries
-    .filter((student) => student.averagePercentage !== null)
-    .sort(
-      (a, b) =>
-        b.averagePercentage - a.averagePercentage ||
-        a.fullName.localeCompare(b.fullName),
-    )
-  let previousAverage = null
-  let previousRank = 0
-  for (let index = 0; index < rankedStudents.length; index += 1) {
-    const student = rankedStudents[index]
-    if (student.averagePercentage !== previousAverage) {
-      previousRank = index + 1
-      previousAverage = student.averagePercentage
-    }
-    student.rank = previousRank
-  }
-  studentSummaries.sort((a, b) => {
-    if (a.rank && b.rank) return a.rank - b.rank || a.fullName.localeCompare(b.fullName)
-    if (a.rank) return -1
-    if (b.rank) return 1
-    return a.fullName.localeCompare(b.fullName)
-  })
+  rankStudents(studentSummaries)
 
   const classResults = studentSummaries.filter(
     (student) => student.averagePercentage !== null,
   )
+  const subjectStats = new Map(
+    subjectsResult.data.map((subject) => [
+      String(subject.id),
+      {
+        subjectId: String(subject.id),
+        subject: subject.name,
+        earned: 0,
+        possible: 0,
+        resultCount: 0,
+      },
+    ]),
+  )
+  const termStats = new Map()
+  const distribution = [
+    { label: "Below 50%", min: 0, max: 50, count: 0 },
+    { label: "50–64%", min: 50, max: 65, count: 0 },
+    { label: "65–79%", min: 65, max: 80, count: 0 },
+    { label: "80% and above", min: 80, max: 101, count: 0 },
+  ]
+  for (const result of scoredRecords) {
+    if (result.subjectId) {
+      const subjectId = String(result.subjectId)
+      if (!subjectStats.has(subjectId)) {
+        subjectStats.set(subjectId, {
+          subjectId,
+          subject: subjectById.get(subjectId) || "Subject",
+          earned: 0,
+          possible: 0,
+          resultCount: 0,
+        })
+      }
+      const subject = subjectStats.get(subjectId)
+      subject.earned += result.score
+      subject.possible += result.maximumScore
+      subject.resultCount += 1
+    }
+
+    const termId = result.termId
+    if (!termStats.has(termId)) {
+      termStats.set(termId, {
+        termId,
+        termName: termById.get(termId)?.name || "Term",
+        termNumber: termById.get(termId)?.term_number || 0,
+        earned: 0,
+        possible: 0,
+        resultCount: 0,
+        students: new Map(),
+      })
+    }
+    const term = termStats.get(termId)
+    term.earned += result.score
+    term.possible += result.maximumScore
+    term.resultCount += 1
+    const studentId = result.studentId
+    if (!term.students.has(studentId)) term.students.set(studentId, { earned: 0, possible: 0 })
+    const studentTerm = term.students.get(studentId)
+    studentTerm.earned += result.score
+    studentTerm.possible += result.maximumScore
+  }
+  for (const student of classResults) {
+    const bucket = distribution.find(
+      (item) =>
+        student.averagePercentage >= item.min &&
+        student.averagePercentage < item.max,
+    )
+    if (bucket) bucket.count += 1
+  }
+  const subjectPerformance = [...subjectStats.values()]
+    .map((item) => ({
+      subjectId: item.subjectId,
+      subject: item.subject,
+      resultCount: item.resultCount,
+      averagePercentage: item.possible
+        ? Math.round((item.earned / item.possible) * 1000) / 10
+        : null,
+    }))
+    .sort((a, b) => a.subject.localeCompare(b.subject))
+  const termPerformance = terms.map((term) => {
+    const stats = termStats.get(String(term.id))
+    const studentAverages = stats
+      ? [...stats.students.values()]
+          .filter((student) => student.possible)
+          .map((student) => (student.earned / student.possible) * 100)
+      : []
+    return {
+      termId: String(term.id),
+      termName: term.name,
+      averagePercentage: studentAverages.length
+        ? Math.round(
+            (studentAverages.reduce((sum, average) => sum + average, 0) /
+              studentAverages.length) *
+              10,
+          ) / 10
+        : null,
+      resultCount: stats?.resultCount || 0,
+      attendance: summarizeAttendance(
+        attendanceRecords
+          .filter(
+            (record) =>
+              String(
+                sessionById.get(String(record.attendance_session_id))
+                  ?.academic_term_id,
+              ) === String(term.id),
+          )
+          .map((record) => ({ status: record.status })),
+      ),
+    }
+  })
+  const sortedByAverage = [...classResults].sort(
+    (a, b) => a.averagePercentage - b.averagePercentage,
+  )
+  const attendanceBySession = new Map(
+    sessions.map((session) => [
+      String(session.id),
+      {
+        sessionId: String(session.id),
+        date: session.session_date,
+        ...summarizeAttendance([]),
+      },
+    ]),
+  )
+  for (const record of attendanceRecords) {
+    const item = attendanceBySession.get(String(record.attendance_session_id))
+    if (!item) continue
+    item[record.status] += 1
+  }
+  const attendanceTrend = [...attendanceBySession.values()]
+    .map((item) => {
+      const marked = item.present + item.absent + item.late
+      return {
+        ...item,
+        marked,
+        rate: marked
+          ? Math.round(((item.present + item.late) / marked) * 1000) / 10
+          : null,
+      }
+    })
+    .sort((a, b) => b.date.localeCompare(a.date))
   const attendanceTotals = summarizeAttendance(
     attendanceRecords.map((record) => ({ status: record.status })),
   )
@@ -690,19 +894,142 @@ async function getClassRecordData(schoolId, classId) {
               10,
           ) / 10
         : null,
-      assessmentCount: assessments.length,
+      highestAverage: sortedByAverage.at(-1)?.averagePercentage ?? null,
+      highestStudent: sortedByAverage.at(-1)?.fullName || null,
+      lowestAverage: sortedByAverage[0]?.averagePercentage ?? null,
+      lowestStudent: sortedByAverage[0]?.fullName || null,
+      assessmentCount: scoredRecords.length,
+      academicHubActivityCount: includeActivity ? classroomPosts.length : null,
       attendance: attendanceTotals,
     },
+    academicHubActivity: classroomPosts.slice(0, 100).map((post) => ({
+      id: String(post.id),
+      type: post.post_type,
+      title: post.title,
+      subject: post.subject_id
+        ? subjectById.get(String(post.subject_id)) || null
+        : null,
+      author: authorById.get(String(post.author_id)) || "School staff",
+      deadline: post.deadline,
+      createdAt: post.created_at,
+    })),
+    subjectPerformance,
+    termPerformance,
+    attendanceTrend,
+    performanceDistribution: distribution.map(
+      ({ label, count }) => ({ label, count }),
+    ),
   }
 }
 
 export async function getClassPerformance(schoolId, classId) {
-  return getClassRecordData(schoolId, classId)
+  return getClassRecordData(schoolId, classId, { includeActivity: true })
+}
+
+export async function getAcademicYearPerformance(schoolId, academicYearId) {
+  const [{ data: year, error: yearError }, { data: classes, error: classesError }] =
+    await Promise.all([
+      supabase
+        .from("academic_years")
+        .select("id,name,starts_on,ends_on,is_current")
+        .eq("school_id", schoolId)
+        .eq("id", academicYearId)
+        .maybeSingle(),
+      supabase
+        .from("school_classes")
+        .select("id,name,academic_year_id")
+        .eq("school_id", schoolId)
+        .eq("academic_year_id", academicYearId)
+        .order("name"),
+    ])
+  if (yearError) throw yearError
+  if (classesError) throw classesError
+  if (!year) return null
+
+  const classRecords = await Promise.all(
+    classes.map((schoolClass) => getClassRecordData(schoolId, schoolClass.id)),
+  )
+  return {
+    academicYear: {
+      id: String(year.id),
+      name: year.name,
+      startsOn: year.starts_on,
+      endsOn: year.ends_on,
+      isCurrent: year.is_current,
+    },
+    classes: classRecords.map((records) => ({
+      schoolClass: records.schoolClass,
+      metrics: records.metrics,
+    })),
+  }
 }
 
 export async function getClassStudentRecords(schoolId, classId, studentId) {
   const records = await getClassRecordData(schoolId, classId)
   if (!records) return null
   const student = records.students.find((item) => item.id === studentId)
-  return student ? { schoolClass: records.schoolClass, academicYear: records.academicYear, student } : null
+  return student
+    ? {
+        schoolClass: records.schoolClass,
+        academicYear: records.academicYear,
+        student,
+      }
+    : null
+}
+
+export async function getStudentAcademicHistory(schoolId, studentId) {
+  const { data: enrollment, error: enrollmentError } = await supabase
+    .from("enrollments")
+    .select("id,full_name,designation,status,passport,dob,phone")
+    .eq("school_id", schoolId)
+    .eq("id", studentId)
+    .eq("role", "student")
+    .maybeSingle()
+  if (enrollmentError) throw enrollmentError
+  if (!enrollment) return null
+
+  const { data: memberships, error: membershipsError } = await supabase
+    .from("school_class_students")
+    .select("class_id")
+    .eq("school_id", schoolId)
+    .eq("student_id", studentId)
+  if (membershipsError) throw membershipsError
+
+  const classIds = [...new Set(memberships.map((item) => String(item.class_id)))]
+  const classRecords = await Promise.all(
+    classIds.map((classId) => getClassRecordData(schoolId, classId)),
+  )
+  const history = classRecords
+    .filter(Boolean)
+    .map((records) => {
+      const student = records.students.find(
+        (item) => item.id === String(studentId),
+      )
+      if (!student) return null
+      return {
+        academicYear: records.academicYear,
+        schoolClass: records.schoolClass,
+        student,
+      }
+    })
+    .filter(Boolean)
+    .sort(
+      (a, b) =>
+        a.academicYear.startsOn.localeCompare(b.academicYear.startsOn) ||
+        a.schoolClass.name.localeCompare(b.schoolClass.name),
+    )
+
+  return {
+    student: {
+      id: String(enrollment.id),
+      studentId: String(enrollment.id),
+      fullName: enrollment.full_name,
+      designation: enrollment.designation,
+      status: enrollment.status,
+      passport: enrollment.passport,
+      dateOfBirth: enrollment.dob,
+      phone: enrollment.phone,
+    },
+    history,
+  }
 }

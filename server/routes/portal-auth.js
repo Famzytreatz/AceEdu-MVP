@@ -7,6 +7,11 @@ import {
   findPortalEnrollmentByCredentials,
   updatePortalPassword,
 } from "../models/Portal.js"
+import {
+  findActiveParentById,
+  findParentByPhone,
+  updateParentPassword,
+} from "../models/Parents.js"
 
 import { findSchoolLoginIdentityBySlug } from "../models/School.js"
 
@@ -17,6 +22,7 @@ import { featureEntitlements, hasFeatureAccess } from "../entitlements.js"
 import { getSchoolEntitlement } from "../models/Entitlement.js"
 
 import {
+  validateParentPortalLogin,
   validatePortalLogin,
   validateStudentPortalPassword,
 } from "../portal-validation.js"
@@ -52,8 +58,14 @@ function memberResponse(member, school, premiumAccess) {
       ? { accessCode: member.access_pin }
       : {}),
 
+    ...(member.role === "parent" ? { phone: member.phone } : {}),
+
     hasPortalPassword:
       member.hasPortalPassword ?? Boolean(member.password_hash),
+
+    ...(member.must_change_password === undefined
+      ? {}
+      : { mustChangePassword: member.must_change_password }),
 
     school: {
       schoolName: school.schoolName,
@@ -73,6 +85,9 @@ export function createPortalAuthRouter({
   findEnrollment = findPortalEnrollmentByCredentials,
 
   findActiveEnrollment = findActivePortalEnrollmentById,
+  findParent = findParentByPhone,
+  findActiveParent = findActiveParentById,
+  setParentPassword = updateParentPassword,
 
   findEntitlement = getSchoolEntitlement,
 
@@ -95,7 +110,13 @@ export function createPortalAuthRouter({
       let credentials
 
       try {
-        credentials = validatePortalLogin(req.body)
+        credentials =
+          req.body?.role === "parent"
+            ? {
+                ...validateParentPortalLogin(req.body),
+                role: "parent",
+              }
+            : { ...validatePortalLogin(req.body), role: "student-or-teacher" }
       } catch (error) {
         return res.status(400).json({ error: error.message })
       }
@@ -105,11 +126,41 @@ export function createPortalAuthRouter({
       if (!school)
         return res.status(404).json({ error: "School space not found." })
 
-      const member = await findEnrollment(
-        school._id,
+      if (credentials.role === "parent") {
+        const parent = await findParent(school._id, credentials.phone)
+        const setupCodeExpired =
+          parent?.must_change_password &&
+          parent.initial_password_expires_at &&
+          Date.parse(parent.initial_password_expires_at) <= Date.now()
+        if (setupCodeExpired) {
+          return res.status(401).json({
+            error: "This setup code has expired. Contact your school to request a new one.",
+            code: "PARENT_SETUP_CODE_EXPIRED",
+          })
+        }
+        if (
+          !parent ||
+          !(await comparePassword(credentials.password, parent.password_hash))
+        ) {
+          return res
+            .status(401)
+            .json({ error: "Parent sign-in details are incorrect." })
+        }
 
-        credentials.accessPin,
-      )
+        await startSession(req, { ...parent, role: "parent" }, school._id)
+        const entitlement = await findEntitlement(school._id)
+        const premiumAccess = hasFeatureAccess(entitlement, "parentPortal")
+        return res.json({
+          member: memberResponse(
+            { ...parent, role: "parent" },
+            school,
+            premiumAccess,
+          ),
+          ...(premiumAccess ? {} : { code: "PREMIUM_REQUIRED" }),
+        })
+      }
+
+      const member = await findEnrollment(school._id, credentials.accessPin)
 
       const hasPassword =
         typeof member?.password_hash === "string" && member.password_hash
@@ -163,7 +214,7 @@ export function createPortalAuthRouter({
       }
 
       const role = req.portalMember.role
-      if (!["student", "teacher"].includes(role)) {
+      if (!["student", "teacher", "parent"].includes(role)) {
         return res.status(403).json({ error: "This account cannot change a portal password." })
       }
 
@@ -172,10 +223,16 @@ export function createPortalAuthRouter({
           return res.status(400).json({ error: "Enter your current password." })
         }
 
-        const member = await findActiveEnrollment(
-          req.portalMember.schoolId,
-          req.portalMember.id,
-        )
+        const member =
+          role === "parent"
+            ? await findActiveParent(
+                req.portalMember.schoolId,
+                req.portalMember.id,
+              )
+            : await findActiveEnrollment(
+                req.portalMember.schoolId,
+                req.portalMember.id,
+              )
 
         if (
           !member ||
@@ -192,17 +249,24 @@ export function createPortalAuthRouter({
       }
 
       const passwordHash = await hashPassword(values.newPassword)
-      const updated = await setMemberPassword(
-        req.portalMember.schoolId,
-        req.portalMember.id,
-        role,
-        passwordHash,
-      )
+      const updated =
+        role === "parent"
+          ? await setParentPassword(
+              req.portalMember.schoolId,
+              req.portalMember.id,
+              passwordHash,
+            )
+          : await setMemberPassword(
+              req.portalMember.schoolId,
+              req.portalMember.id,
+              role,
+              passwordHash,
+            )
 
       if (!updated) {
         return res
           .status(401)
-          .json({ error: "This student account is no longer active." })
+          .json({ error: "This portal account is no longer active." })
       }
 
       return res.json({ hasPortalPassword: true })
@@ -218,28 +282,38 @@ export function createPortalAuthRouter({
       const entitlement = await findEntitlement(req.portalMember.schoolId)
 
       const feature =
-        req.portalMember.role === "student" ? "studentPortal" : "teacherPortal"
+        req.portalMember.role === "student"
+          ? "studentPortal"
+          : req.portalMember.role === "teacher"
+            ? "teacherPortal"
+            : "parentPortal"
 
       const school = req.school
+      const parentMember =
+        req.portalMember.role === "parent"
+          ? {
+              id: req.portalMember.id,
+              school_id: req.portalMember.schoolId,
+              full_name: req.portalMember.fullName,
+              phone: req.portalMember.phone,
+              hasPortalPassword: req.portalMember.hasPortalPassword,
+              must_change_password: req.portalMember.mustChangePassword,
+              role: "parent",
+            }
+          : null
 
       return res.json({
         member: memberResponse(
-          {
+          parentMember || {
             id: req.portalMember.id,
-
             full_name: req.portalMember.fullName,
-
             role: req.portalMember.role,
-
             designation: req.portalMember.designation,
-
             passport: req.portalMember.passport,
             access_pin: req.portalMember.accessPin,
             hasPortalPassword: req.portalMember.hasPortalPassword,
           },
-
           school,
-
           hasFeatureAccess(entitlement, feature),
         ),
       })
