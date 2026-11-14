@@ -26,7 +26,10 @@ import {
   validatePortalLogin,
   validateStudentPortalPassword,
 } from "../portal-validation.js"
-import { removeAuthenticationSession, updateAuthenticationSession } from "../session-auth.js"
+import {
+  removeAuthenticationSession,
+  updateAuthenticationSession,
+} from "../session-auth.js"
 
 const requirePortalMember = createRequirePortalMember()
 
@@ -54,18 +57,18 @@ function memberResponse(member, school, premiumAccess) {
 
     passport: member.passport,
 
-    ...(member.role === "student"
-      ? { accessCode: member.access_pin }
-      : {}),
+    ...(member.role === "student" ? { accessCode: member.access_pin } : {}),
 
     ...(member.role === "parent" ? { phone: member.phone } : {}),
 
     hasPortalPassword:
       member.hasPortalPassword ?? Boolean(member.password_hash),
 
-    ...(member.must_change_password === undefined
-      ? {}
-      : { mustChangePassword: member.must_change_password }),
+    ...(member.role === "parent"
+      ? { mustChangePassword: false }
+      : member.must_change_password === undefined
+        ? {}
+        : { mustChangePassword: member.must_change_password }),
 
     school: {
       schoolName: school.schoolName,
@@ -134,7 +137,8 @@ export function createPortalAuthRouter({
           Date.parse(parent.initial_password_expires_at) <= Date.now()
         if (setupCodeExpired) {
           return res.status(401).json({
-            error: "This setup code has expired. Contact your school to request a new one.",
+            error:
+              "This setup code has expired. Contact your school to request a new one.",
             code: "PARENT_SETUP_CODE_EXPIRED",
           })
         }
@@ -162,12 +166,24 @@ export function createPortalAuthRouter({
 
       const member = await findEnrollment(school._id, credentials.accessPin)
 
+      const setupCodeExpired =
+        member?.must_change_password &&
+        member.initial_password_expires_at &&
+        Date.parse(member.initial_password_expires_at) <= Date.now()
+      if (setupCodeExpired) {
+        return res.status(401).json({
+          error:
+            "This setup code has expired. Contact your school to request a new one.",
+          code: "PORTAL_SETUP_CODE_EXPIRED",
+        })
+      }
+
       const hasPassword =
         typeof member?.password_hash === "string" && member.password_hash
 
       const passwordMatches = hasPassword
         ? Boolean(credentials.password) &&
-          await comparePassword(credentials.password, member.password_hash)
+          (await comparePassword(credentials.password, member.password_hash))
         : member?.role === "student" && !credentials.password
 
       if (
@@ -175,11 +191,9 @@ export function createPortalAuthRouter({
         !["student", "teacher"].includes(member.role) ||
         !passwordMatches
       ) {
-        return res
-          .status(401)
-          .json({
-            error: "Portal details are incorrect or the account is not active.",
-          })
+        return res.status(401).json({
+          error: "Portal details are incorrect or the account is not active.",
+        })
       }
 
       await startSession(req, member, school._id)
@@ -215,7 +229,9 @@ export function createPortalAuthRouter({
 
       const role = req.portalMember.role
       if (!["student", "teacher", "parent"].includes(role)) {
-        return res.status(403).json({ error: "This account cannot change a portal password." })
+        return res
+          .status(403)
+          .json({ error: "This account cannot change a portal password." })
       }
 
       if (req.portalMember.hasPortalPassword) {
@@ -237,10 +253,7 @@ export function createPortalAuthRouter({
         if (
           !member ||
           String(member.id) !== req.portalMember.id ||
-          !(await comparePassword(
-            values.currentPassword,
-            member.password_hash,
-          ))
+          !(await comparePassword(values.currentPassword, member.password_hash))
         ) {
           return res
             .status(401)
@@ -312,6 +325,7 @@ export function createPortalAuthRouter({
             passport: req.portalMember.passport,
             access_pin: req.portalMember.accessPin,
             hasPortalPassword: req.portalMember.hasPortalPassword,
+            must_change_password: req.portalMember.mustChangePassword,
           },
           school,
           hasFeatureAccess(entitlement, feature),

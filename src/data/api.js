@@ -704,7 +704,7 @@ export async function verifyEnrollment(id) {
   return readJson(response)
 }
 
-export async function resetStudentPortalPassword(id) {
+export async function resetPortalMemberPassword(id) {
   return postJson(
     `/api/admin/users/${encodeURIComponent(id)}/password/reset`,
     {},

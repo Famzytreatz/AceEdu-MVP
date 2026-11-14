@@ -202,6 +202,58 @@ test("shared school member login detects role and binds session to resolved scho
   assert.equal(result.body.member.password_hash, undefined)
 })
 
+test("temporary student and teacher passwords require a password change after sign-in", async () => {
+  const member = {
+    ...activeMember("teacher"),
+    must_change_password: true,
+    initial_password_expires_at: new Date(Date.now() + 60_000).toISOString(),
+  }
+  const result = await postLogin(
+    {
+      schoolSlug: "bright-future",
+      accessPin: "482193",
+      password: "temporary-code",
+    },
+    {
+      findSchool: async () => school,
+      findEnrollment: async () => member,
+      comparePassword: async (password) => password === "temporary-code",
+      findEntitlement: async () => ({ plan: "premium" }),
+      startSession: async () => {},
+    },
+  )
+
+  assert.equal(result.status, 200)
+  assert.equal(result.body.member.mustChangePassword, true)
+})
+
+test("expired student or teacher setup codes cannot start a portal session", async () => {
+  const result = await postLogin(
+    {
+      schoolSlug: "bright-future",
+      accessPin: "482193",
+      password: "expired-code",
+    },
+    {
+      findSchool: async () => school,
+      findEnrollment: async () => ({
+        ...activeMember("student"),
+        must_change_password: true,
+        initial_password_expires_at: new Date(
+          Date.now() - 60_000,
+        ).toISOString(),
+      }),
+      comparePassword: async () =>
+        assert.fail("Expired setup codes must not be checked as passwords."),
+      startSession: async () =>
+        assert.fail("Expired setup codes must not start a session."),
+    },
+  )
+
+  assert.equal(result.status, 401)
+  assert.equal(result.body.code, "PORTAL_SETUP_CODE_EXPIRED")
+})
+
 test("parent login requires the school password and starts a parent session", async () => {
   let started
   const parent = {
@@ -240,7 +292,7 @@ test("parent login requires the school password and starts a parent session", as
   assert.deepEqual(started, { memberId: "91", role: "parent", schoolId: "42" })
   assert.equal(result.body.member.role, "parent")
   assert.equal(result.body.member.phone, parent.phone)
-  assert.equal(result.body.member.mustChangePassword, true)
+  assert.equal(result.body.member.mustChangePassword, false)
   assert.equal(result.body.member.premiumAccess, true)
   assert.equal(result.body.member.accessCode, undefined)
 })
@@ -288,7 +340,9 @@ test("parent login rejects an expired setup code before starting a session", asy
         phone: "+2348012345678",
         password_hash: "parent-hash",
         must_change_password: true,
-        initial_password_expires_at: new Date(Date.now() - 60_000).toISOString(),
+        initial_password_expires_at: new Date(
+          Date.now() - 60_000,
+        ).toISOString(),
       }),
       comparePassword: async () =>
         assert.fail("Expired setup codes must not be checked as passwords."),
@@ -383,19 +437,16 @@ test("a student without a configured password can use only the school-issued PIN
 test("students can set a portal password using their school-bound session", async () => {
   let savedPassword
   let hashedPasswordInput
-  const result = await patchStudentPassword(
-    { newPassword: "StudentPass123" },
-    {
-      hashPassword: async (password) => {
-        hashedPasswordInput = password
-        return "secure-hash"
-      },
-      setMemberPassword: async (...args) => {
-        savedPassword = args
-        return true
-      },
+  const result = await patchStudentPassword({ newPassword: "StudentPass123" }, {
+    hashPassword: async (password) => {
+      hashedPasswordInput = password
+      return "secure-hash"
     },
-  )
+    setMemberPassword: async (...args) => {
+      savedPassword = args
+      return true
+    },
+  })
 
   assert.equal(result.status, 200)
   assert.deepEqual(result.body, { hasPortalPassword: true })

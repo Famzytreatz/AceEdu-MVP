@@ -1,7 +1,7 @@
 import { supabase } from "../supabase.js"
 
 const enrollmentColumns =
-  "id,school_id,full_name,role,designation,assigned_classes,subjects,passport,dob,guardian_name,guardian_phone,address,state_of_origin,phone,access_pin,password_hash,status,created_at,updated_at,class_level_id,class_level:school_class_levels(name,nickname)"
+  "id,school_id,full_name,role,designation,assigned_classes,subjects,passport,dob,guardian_name,guardian_phone,address,state_of_origin,phone,access_pin,password_hash,must_change_password,initial_password_expires_at,status,created_at,updated_at,class_level_id,class_level:school_class_levels(name,nickname)"
 
 const pageSize = 50
 
@@ -41,6 +41,8 @@ function enrollmentFromRow(row) {
     accessPin: row.access_pin,
 
     hasPortalPassword: Boolean(row.password_hash),
+
+    mustChangePassword: row.must_change_password,
 
     status: row.status,
 
@@ -82,7 +84,15 @@ export async function getDashboardAnalytics(schoolId) {
   return data
 }
 
-async function findPage({ schoolId, prefix, column, cursor, limit, roles, status }) {
+async function findPage({
+  schoolId,
+  prefix,
+  column,
+  cursor,
+  limit,
+  roles,
+  status,
+}) {
   let query = supabase
 
     .from("enrollments")
@@ -111,7 +121,13 @@ async function findPage({ schoolId, prefix, column, cursor, limit, roles, status
   return data.map(enrollmentFromRow)
 }
 
-export async function listEnrollments({ schoolId, queryText, cursor, role, status }) {
+export async function listEnrollments({
+  schoolId,
+  queryText,
+  cursor,
+  role,
+  status,
+}) {
   const roles =
     role === "student"
       ? ["student"]
@@ -214,6 +230,10 @@ export async function createEnrollment({ schoolId, values, accessPin }) {
 
       access_pin: accessPin,
 
+      must_change_password: false,
+
+      initial_password_expires_at: null,
+
       status: "Pending",
     })
 
@@ -246,13 +266,23 @@ export async function verifyEnrollment(schoolId, id) {
   return data ? enrollmentFromRow(data) : null
 }
 
-export async function resetStudentPortalPassword(schoolId, id, passwordHash) {
+export async function resetPortalMemberPassword(
+  schoolId,
+  id,
+  passwordHash,
+  expiresAt,
+) {
   const { data, error } = await supabase
     .from("enrollments")
-    .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+    .update({
+      password_hash: passwordHash,
+      must_change_password: true,
+      initial_password_expires_at: expiresAt,
+      updated_at: new Date().toISOString(),
+    })
     .eq("school_id", schoolId)
     .eq("id", id)
-    .eq("role", "student")
+    .in("role", ["student", "teacher"])
     .select(enrollmentColumns)
     .maybeSingle()
 

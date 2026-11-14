@@ -2,7 +2,7 @@ import { supabase } from "../supabase.js"
 import { getStudentSubjectChoices } from "./Curriculum.js"
 
 const memberColumns =
-  "id,school_id,full_name,role,designation,passport,access_pin,status,password_hash,class_id,class_level_id,assigned_classes,subjects"
+  "id,school_id,full_name,role,designation,passport,access_pin,status,password_hash,must_change_password,initial_password_expires_at,class_id,class_level_id,assigned_classes,subjects"
 
 function mapSubject(row) {
   return {
@@ -94,6 +94,8 @@ export async function updatePortalPassword(
     .from("enrollments")
     .update({
       password_hash: passwordHash,
+      must_change_password: false,
+      initial_password_expires_at: null,
       updated_at: new Date().toISOString(),
     })
     .eq("school_id", schoolId)

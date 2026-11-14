@@ -59,13 +59,25 @@ const parentRouter = express.Router()
 
 const requirePortalMember = createRequirePortalMember()
 
+function requirePasswordChangeComplete(req, res, next) {
+  if (req.portalMember.mustChangePassword) {
+    return res.status(403).json({
+      error: "Change your temporary portal password before continuing.",
+      code: "PASSWORD_CHANGE_REQUIRED",
+    })
+  }
+  return next()
+}
+
 studentRouter.use(
   requirePortalMember("student"),
+  requirePasswordChangeComplete,
   requireEntitlement("studentPortal"),
 )
 
 teacherRouter.use(
   requirePortalMember("teacher"),
+  requirePasswordChangeComplete,
   requireEntitlement("teacherPortal"),
 )
 
@@ -106,7 +118,9 @@ parentRouter.get(
       req.portalMember.id,
     )
     if (!dashboard) {
-      return res.status(401).json({ error: "This parent account is no longer active." })
+      return res
+        .status(401)
+        .json({ error: "This parent account is no longer active." })
     }
     return res.json(dashboard)
   }),

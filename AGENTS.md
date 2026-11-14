@@ -41,3 +41,9 @@ This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin con
 - Ensure JSX tags are closed and braces are balanced.
 - Export components as default exports.
 
+## Existing-account and data continuity
+
+- For portal, authentication, enrollment, or account-model changes, trace the effect on already registered students, parents, teachers, and existing portal accounts—not only newly created records.
+- Include a safe, idempotent migration or backfill when existing database rows need new fields, links, or formats. Preserve valid credentials and access unless a deliberate, user-approved security change requires otherwise.
+- Keep stored data, API models, account linking, and portal behavior consistent. Do not leave legacy records silently unsupported or require re-registration as a substitute for migration.
+- Verify both new-account and existing-account behavior, and document any manual migration or deployment step that is required.

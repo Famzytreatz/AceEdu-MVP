@@ -42,7 +42,7 @@ import {
   getSchoolCurriculum,
   getSchoolEntitlement,
   requestSchoolVerification,
-  resetStudentPortalPassword,
+  resetPortalMemberPassword,
   saveSchoolShortName,
   verifyEnrollment,
 } from "../data/api"
@@ -719,12 +719,12 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
     }
   }
 
-  async function handleStudentPasswordReset(record) {
+  async function handlePortalPasswordReset(record) {
     if (passwordResetLock.current) return
 
     if (
       !window.confirm(
-        `Reset ${record.fullName}'s student portal password? A new temporary password will be shown once.`,
+        `Reset ${record.fullName}'s portal password? A one-time login code will be shown once and must be changed before portal access.`,
       )
     ) {
       return
@@ -737,7 +737,7 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
     setSuccess("")
 
     try {
-      const result = await resetStudentPortalPassword(record._id)
+      const result = await resetPortalMemberPassword(record._id)
       const updatedRecord = {
         ...record,
         ...(result.enrollment || {}),
@@ -754,7 +754,7 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
         temporaryPassword: result.temporaryPassword,
       })
       setSuccess(
-        `A temporary portal password was generated for ${record.fullName}.`,
+        `A one-time portal login code was generated for ${record.fullName}.`,
       )
     } catch (resetError) {
       setError(resetError.message)
@@ -1143,19 +1143,19 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
               "studentPortal",
               "teacherPortal",
             ].includes(activeView) && (
-                <button
-                  className="admin-primary-button"
-                  type="button"
-                  onClick={() => {
-                    if (activeView === "students") startEnrollment("student")
-                    else if (activeView === "staff") startEnrollment("teacher")
-                    else startEnrollment("student")
-                  }}
-                >
-                  <Plus size={18} aria-hidden="true" />
-                  {activeView === "staff" ? "Add staff" : "Add student"}
-                </button>
-              )}
+              <button
+                className="admin-primary-button"
+                type="button"
+                onClick={() => {
+                  if (activeView === "students") startEnrollment("student")
+                  else if (activeView === "staff") startEnrollment("teacher")
+                  else startEnrollment("student")
+                }}
+              >
+                <Plus size={18} aria-hidden="true" />
+                {activeView === "staff" ? "Add staff" : "Add student"}
+              </button>
+            )}
           </div>
 
           {error && (
@@ -2108,43 +2108,56 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                     >
                       <Printer size={17} /> Print identity card
                     </button>
-                    {createdParentPortal && createdEnrollment.role === "student" && (
-                      <div className="admin-enrollment-note" role="status">
-                        <Users size={20} aria-hidden="true" />
-                        {createdParentPortal.status === "linked" ? (
-                          <>
-                            <h2>{createdParentPortal.isFamily ? "Family portal linked" : "Parent portal created"}</h2>
-                            <p>
-                              {createdParentPortal.studentCount} student
-                              {createdParentPortal.studentCount === 1 ? "" : "s"}{" "}
-                              linked to {createdEnrollment.guardianName} at{" "}
-                              {createdEnrollment.guardianPhone}.
-                              {createdParentPortal.setupCodeSent
-                                ? " A unique setup code was sent by SMS. It expires in 24 hours and must be changed after sign-in."
-                                : createdParentPortal.setupCode
-                                  ? " SMS delivery is not available; securely share the one-time setup code below. It expires in 24 hours."
+                    {createdParentPortal &&
+                      createdEnrollment.role === "student" && (
+                        <div className="admin-enrollment-note" role="status">
+                          <Users size={20} aria-hidden="true" />
+                          {createdParentPortal.status === "linked" ? (
+                            <>
+                              <h2>
+                                {createdParentPortal.isFamily
+                                  ? "Family portal linked"
+                                  : "Parent portal created"}
+                              </h2>
+                              <p>
+                                {createdParentPortal.studentCount} student
+                                {createdParentPortal.studentCount === 1
+                                  ? ""
+                                  : "s"}{" "}
+                                linked to {createdEnrollment.guardianName} at{" "}
+                                {createdEnrollment.guardianPhone}.
+                                {createdParentPortal.setupCode
+                                  ? " A unique setup code is ready to share. It expires in 24 hours and must be changed after sign-in."
                                   : " The existing parent account and its current sign-in were kept."}
-                            </p>
-                            {createdParentPortal.setupCode && (
-                              <p><strong>One-time setup code: </strong><code>{createdParentPortal.setupCode}</code></p>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <h2>Parent portal needs attention</h2>
-                            <p>
-                              {createdParentPortal.status === "parent_unavailable"
-                                ? "A parent account already uses this phone but is disabled. The student was registered; review the existing parent account before linking."
-                                : createdParentPortal.status === "premium_required"
-                                  ? "The student was registered, but automatic family access requires the Parent Portal Premium entitlement."
-                                  : createdParentPortal.status === "entitlement_check_failed"
-                                    ? "The student was registered, but AceEdu could not verify the Parent Portal entitlement. Retry after checking the school account."
-                                    : "The student was registered, but family portal linking failed. Review the parent account and linked students before retrying."}
-                            </p>
-                          </>
-                        )}
-                      </div>
-                    )}
+                              </p>
+                              {createdParentPortal.setupCode && (
+                                <>
+                                  <p>
+                                    <strong>One-time setup code: </strong>
+                                    <code>{createdParentPortal.setupCode}</code>
+                                  </p>
+                                </>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <h2>Parent portal needs attention</h2>
+                              <p>
+                                {createdParentPortal.status ===
+                                "parent_unavailable"
+                                  ? "A parent account already uses this phone but is disabled. The student was registered; review the existing parent account before linking."
+                                  : createdParentPortal.status ===
+                                      "premium_required"
+                                    ? "The student was registered, but automatic family access requires the Parent Portal Premium entitlement."
+                                    : createdParentPortal.status ===
+                                        "entitlement_check_failed"
+                                      ? "The student was registered, but AceEdu could not verify the Parent Portal entitlement. Retry after checking the school account."
+                                      : "The student was registered, but family portal linking failed. Review the parent account and linked students before retrying."}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      )}
                   </section>
                 ) : (
                   <section className="admin-panel admin-preview-panel">
@@ -2772,7 +2785,7 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                   value={`${selectedRecord.role} — ${selectedRecord.designation}`}
                 />
                 <Detail label="Status" value={selectedRecord.status} />
-                {selectedRecord.role === "student" && (
+                {["student", "teacher"].includes(selectedRecord.role) && (
                   <Detail
                     label="Portal password"
                     value={
@@ -2822,13 +2835,13 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                 <Detail label="Access code" value={selectedRecord.accessPin} />
               </dl>
             </div>
-            {selectedRecord.role === "student" && (
+            {["student", "teacher"].includes(selectedRecord.role) && (
               <div style={{ padding: "0 1.5rem 1.5rem" }}>
                 <button
                   className="admin-outline-button"
                   type="button"
                   disabled={passwordResetPending}
-                  onClick={() => handleStudentPasswordReset(selectedRecord)}
+                  onClick={() => handlePortalPasswordReset(selectedRecord)}
                 >
                   {passwordResetPending ? (
                     <LoaderCircle size={16} className="admin-spin" />
@@ -2837,7 +2850,7 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                   )}
                   {passwordResetPending
                     ? "Resetting password…"
-                    : "Reset student password"}
+                    : `Reset ${selectedRecord.role} password`}
                 </button>
                 {passwordResetResult?.recordId === selectedRecord._id && (
                   <p
@@ -2853,11 +2866,11 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
                       overflowWrap: "anywhere",
                     }}
                   >
-                    Temporary password (shown once):{" "}
+                    One-time login code (shown once):{" "}
                     <code>{passwordResetResult.temporaryPassword}</code>
                     <br />
-                    Share it securely with the student. They can change it in
-                    portal settings.
+                    Share it securely with the {selectedRecord.role}. They must
+                    choose a new password before accessing portal features.
                   </p>
                 )}
               </div>

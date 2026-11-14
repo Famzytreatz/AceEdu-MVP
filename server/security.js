@@ -1,10 +1,17 @@
 import { config } from "./config.js"
+
 import { isValidDatabaseId } from "./ids.js"
+
 import { hasFeatureAccess } from "./entitlements.js"
+
 import { getSchoolEntitlement } from "./models/Entitlement.js"
+
 import { findActivePlatformOperatorById } from "./models/PlatformOperator.js"
+
 import { findActivePortalEnrollmentById } from "./models/Portal.js"
+
 import { findActiveParentById } from "./models/Parents.js"
+
 import { findSchoolById } from "./models/School.js"
 
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"])
@@ -13,7 +20,10 @@ export function requireAllowedOrigin(req, res, next) {
   if (safeMethods.has(req.method)) return next()
 
   const origin = req.get("origin")
-  const sameHostOrigin = !config.isProduction && origin === `${req.protocol}://${req.get("host")}`
+
+  const sameHostOrigin =
+    !config.isProduction && origin === `${req.protocol}://${req.get("host")}`
+
   if (origin !== config.appOrigin && !sameHostOrigin) {
     return res.status(403).json({ error: "Request origin is not allowed." })
   }
@@ -24,15 +34,26 @@ export function requireAllowedOrigin(req, res, next) {
 export function createRequireSchool(findSchool = findSchoolById) {
   return function requireSchool(req, res, next) {
     const schoolId = req.session?.schoolId
+
     if (!isValidDatabaseId(schoolId)) {
-      return res.status(401).json({ error: "Sign in to access this school account." })
+      return res
+        .status(401)
+        .json({ error: "Sign in to access this school account." })
     }
+
     return findSchool(schoolId)
+
       .then((school) => {
-        if (!school) return res.status(401).json({ error: "This school account is no longer available." })
+        if (!school)
+          return res
+            .status(401)
+            .json({ error: "This school account is no longer available." })
+
         req.school = school
+
         return next()
       })
+
       .catch(next)
   }
 }
@@ -41,14 +62,19 @@ export const requireSchool = createRequireSchool()
 
 export function createRequirePortalMember({
   findEnrollment = findActivePortalEnrollmentById,
+
   findParent = findActiveParentById,
+
   findSchool = findSchoolById,
 } = {}) {
   return function requirePortalMember(role) {
     return (req, res, next) => {
       const memberId = req.session?.portalMemberId
+
       const schoolId = req.session?.portalSchoolId
+
       const sessionRole = req.session?.portalRole
+
       if (
         !isValidDatabaseId(memberId) ||
         !isValidDatabaseId(schoolId) ||
@@ -62,46 +88,85 @@ export function createRequirePortalMember({
         sessionRole === "parent"
           ? findParent(schoolId, memberId)
           : findEnrollment(schoolId, memberId),
+
         findSchool(schoolId),
       ])
+
         .then(([member, school]) => {
+          if (
+            member?.must_change_password &&
+            member.initial_password_expires_at &&
+            Date.parse(member.initial_password_expires_at) <= Date.now()
+          ) {
+            return res.status(401).json({
+              error:
+                "This setup code has expired. Contact your school to request a new one.",
+
+              code: "PORTAL_SETUP_CODE_EXPIRED",
+            })
+          }
+
           if (
             !member ||
             !school ||
             String(member.school_id) !== String(schoolId) ||
             (sessionRole === "parent"
-              ? member.status !== "active"
+              ? member.is_active !== true
               : member.role !== sessionRole)
           ) {
-            return res.status(401).json({ error: "This portal account is no longer available." })
+            return res
+              .status(401)
+              .json({ error: "This portal account is no longer available." })
           }
+
           req.portalMember =
             sessionRole === "parent"
               ? {
                   id: String(member.id),
+
                   schoolId: String(member.school_id),
+
                   role: "parent",
+
                   fullName: member.full_name,
+
                   phone: member.phone,
                   hasPortalPassword: Boolean(member.password_hash),
-                  mustChangePassword: member.must_change_password,
+                  mustChangePassword: false,
                 }
               : {
                   id: String(member.id),
+
                   schoolId: String(member.school_id),
+
                   role: member.role,
+
                   fullName: member.full_name,
+
                   designation: member.designation,
+
                   assignedClasses: member.assigned_classes,
+
                   subjects: member.subjects,
+
                   passport: member.passport,
+
                   accessPin: member.access_pin,
-                  classLevelId: member.class_level_id ? String(member.class_level_id) : null,
+
+                  classLevelId: member.class_level_id
+                    ? String(member.class_level_id)
+                    : null,
+
                   hasPortalPassword: Boolean(member.password_hash),
+
+                  mustChangePassword: member.must_change_password,
                 }
+
           req.school = school
+
           return next()
         })
+
         .catch(next)
     }
   }
@@ -109,32 +174,51 @@ export function createRequirePortalMember({
 
 export function requirePlatformOperator(req, res, next) {
   const operatorId = req.session?.operatorId
+
   if (!isValidDatabaseId(operatorId)) {
-    return res.status(401).json({ error: "Sign in with a platform operator account." })
+    return res
+      .status(401)
+      .json({ error: "Sign in with a platform operator account." })
   }
+
   return findActivePlatformOperatorById(operatorId)
+
     .then((operator) => {
-      if (!operator) return res.status(401).json({ error: "This platform operator account is unavailable." })
+      if (!operator)
+        return res
+          .status(401)
+          .json({ error: "This platform operator account is unavailable." })
+
       req.platformOperator = operator
+
       return next()
     })
+
     .catch(next)
 }
 
-export function createRequireEntitlement(findEntitlement = getSchoolEntitlement) {
+export function createRequireEntitlement(
+  findEntitlement = getSchoolEntitlement,
+) {
   return (feature) => (req, res, next) => {
     const schoolId = req.school?._id ?? req.session.schoolId
+
     findEntitlement(schoolId)
+
       .then((entitlement) => {
         if (!hasFeatureAccess(entitlement, feature)) {
           return res.status(403).json({
             error: "This feature requires an active Premium entitlement.",
+
             code: "PREMIUM_REQUIRED",
           })
         }
+
         req.entitlement = entitlement
+
         return next()
       })
+
       .catch(next)
   }
 }
@@ -142,5 +226,6 @@ export function createRequireEntitlement(findEntitlement = getSchoolEntitlement)
 export const requireEntitlement = createRequireEntitlement()
 
 export function asyncRoute(handler) {
-  return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next)
+  return (req, res, next) =>
+    Promise.resolve(handler(req, res, next)).catch(next)
 }

@@ -6,18 +6,23 @@ import {
   BookOpenCheck,
   Building2,
   CalendarCheck,
+  CalendarDays,
   CheckCircle2,
+  ChevronRight,
   Clock3,
   FileText,
   GraduationCap,
   Link2,
   Megaphone,
+  Heart,
   LoaderCircle,
   LogOut,
   Paperclip,
   Plus,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
+  TrendingUp,
   Trash2,
   Users,
 } from "lucide-react"
@@ -1604,6 +1609,119 @@ function TeacherDashboard({ dashboard, member, school, onReload }) {
   )
 }
 
+function PortalPasswordChange({ member, onComplete }) {
+  const [passwords, setPasswords] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  })
+  const [passwordPending, setPasswordPending] = useState(false)
+  const [passwordError, setPasswordError] = useState("")
+
+  async function changePassword(event) {
+    event.preventDefault()
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      setPasswordError("The new passwords do not match.")
+      return
+    }
+    setPasswordPending(true)
+    setPasswordError("")
+    try {
+      await updateStudentPortalPassword({
+        currentPassword: passwords.currentPassword,
+        newPassword: passwords.newPassword,
+      })
+      await onComplete()
+    } catch (error) {
+      setPasswordError(error.message)
+    } finally {
+      setPasswordPending(false)
+    }
+  }
+
+  return (
+    <section className="school-portal__entry-card school-portal__password-required">
+      <form
+        className="school-portal__panel school-portal__password-form"
+        onSubmit={changePassword}
+      >
+        <div className="school-portal__panel-heading">
+          <div>
+            <ShieldCheck size={18} />
+            <h2>Secure your account</h2>
+          </div>
+          <span>
+            Set a new password before accessing your {member.role} portal.
+          </span>
+        </div>
+        <p>
+          Your one-time login code is only for account setup. Choose a password
+          you have not used elsewhere.
+        </p>
+        {passwordError && (
+          <p className="school-portal__error" role="alert">
+            {passwordError}
+          </p>
+        )}
+        <label>
+          One-time login code
+          <input
+            type="password"
+            autoComplete="current-password"
+            minLength={8}
+            required
+            value={passwords.currentPassword}
+            onChange={(event) =>
+              setPasswords({
+                ...passwords,
+                currentPassword: event.target.value,
+              })
+            }
+          />
+        </label>
+        <label>
+          New password
+          <input
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            maxLength={128}
+            required
+            value={passwords.newPassword}
+            onChange={(event) =>
+              setPasswords({ ...passwords, newPassword: event.target.value })
+            }
+          />
+        </label>
+        <label>
+          Confirm new password
+          <input
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            maxLength={128}
+            required
+            value={passwords.confirmPassword}
+            onChange={(event) =>
+              setPasswords({
+                ...passwords,
+                confirmPassword: event.target.value,
+              })
+            }
+          />
+        </label>
+        <Button
+          type="submit"
+          loading={passwordPending}
+          loadingLabel="Updating password…"
+        >
+          Set new password
+        </Button>
+      </form>
+    </section>
+  )
+}
+
 function ParentDashboard({ dashboard }) {
   const [passwords, setPasswords] = useState({
     currentPassword: "",
@@ -1620,6 +1738,7 @@ function ParentDashboard({ dashboard }) {
       setPasswordError("The new passwords do not match.")
       return
     }
+
     setPasswordPending(true)
     setPasswordError("")
     setPasswordNotice("")
@@ -1628,9 +1747,12 @@ function ParentDashboard({ dashboard }) {
         currentPassword: passwords.currentPassword,
         newPassword: passwords.newPassword,
       })
-      setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" })
+      setPasswords({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      })
       setPasswordNotice("Your password has been updated.")
-      window.location.reload()
     } catch (error) {
       setPasswordError(error.message)
     } finally {
@@ -1640,51 +1762,243 @@ function ParentDashboard({ dashboard }) {
 
   return (
     <div className="school-portal__parent">
-      {dashboard.profile.mustChangePassword && (
-        <form className="school-portal__panel school-portal__password-form" onSubmit={changePassword}>
-          <div className="school-portal__panel-heading">
-            <div><ShieldCheck size={18} /><h2>Secure your account</h2></div>
-            <span>Change your one-time setup code to continue.</span>
+      <section className="school-portal__parent-intro">
+        <div>
+          <p className="school-portal__eyebrow">FAMILY OVERVIEW</p>
+          <h1>Welcome, {dashboard.profile.fullName}</h1>
+          <p>
+            Updates and learning records for students linked to your account.
+          </p>
+        </div>
+        <span>
+          <Users size={20} /> {dashboard.children.length} linked{" "}
+          {dashboard.children.length === 1 ? "student" : "students"}
+        </span>
+      </section>
+      <div className="school-portal__parent-grid">
+        {dashboard.children.map(({ id, fullName, dashboard: child }) => (
+          <article
+            className="school-portal__panel school-portal__parent-child"
+            key={id}
+          >
+            <header>
+              <span>
+                <GraduationCap size={19} />
+              </span>
+              <div>
+                <h2>{fullName}</h2>
+                <p>
+                  {child.schoolClass?.name || "Class not assigned"}
+                  {child.schoolClass?.academicYear
+                    ? ` · ${child.schoolClass.academicYear}`
+                    : ""}
+                </p>
+              </div>
+            </header>
+            <div className="school-portal__parent-stats">
+              <div>
+                <span>Attendance</span>
+                <strong>
+                  {child.attendance.total
+                    ? `${Math.round(((child.attendance.present + child.attendance.late) / child.attendance.total) * 100)}%`
+                    : "—"}
+                </strong>
+                <small>{child.attendance.total} recorded sessions</small>
+              </div>
+              <div>
+                <span>Published results</span>
+                <strong>
+                  {
+                    child.assessments.filter(
+                      (item) => item.score !== null && item.score !== undefined,
+                    ).length
+                  }
+                </strong>
+                <small>Visible assessments</small>
+              </div>
+            </div>
+            <h3>Published results</h3>
+            {child.assessments.length ? (
+              <div className="school-portal__parent-results">
+                {child.assessments.map((assessment) => (
+                  <div key={assessment.id}>
+                    <span>
+                      <strong>{assessment.title}</strong>
+                      <small>{assessment.subjectName || "Assessment"}</small>
+                    </span>
+                    <b>
+                      {assessment.score == null
+                        ? "Pending"
+                        : `${assessment.score} / ${assessment.maximumScore}`}
+                    </b>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="school-portal__empty">
+                No results have been published for this student yet.
+              </p>
+            )}
+          </article>
+        ))}
+        {!dashboard.children.length && (
+          <section className="school-portal__panel">
+            <p className="school-portal__empty">
+              No active student records are currently linked to this account.
+              Contact the school office if this seems incorrect.
+            </p>
+          </section>
+        )}
+      </div>
+      <section className="school-portal__panel school-portal__parent-feed">
+        <div className="school-portal__panel-heading">
+          <div>
+            <Megaphone size={18} />
+            <h2>School updates</h2>
           </div>
-          {passwordError && <p className="school-portal__error" role="alert">{passwordError}</p>}
-          {passwordNotice && <p role="status">{passwordNotice}</p>}
-          <label>One-time setup code<input type="password" autoComplete="current-password" minLength={8} required value={passwords.currentPassword} onChange={(event) => setPasswords({ ...passwords, currentPassword: event.target.value })} /></label>
-          <label>New password<input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={passwords.newPassword} onChange={(event) => setPasswords({ ...passwords, newPassword: event.target.value })} /></label>
-          <label>Confirm new password<input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={passwords.confirmPassword} onChange={(event) => setPasswords({ ...passwords, confirmPassword: event.target.value })} /></label>
-          <Button type="submit" loading={passwordPending} loadingLabel="Updating password…">Set new password</Button>
+          <span>Announcements, events & newsletters</span>
+        </div>
+        {dashboard.announcements.length ? (
+          dashboard.announcements.map((item) => (
+            <article key={item.id}>
+              <span className="school-portal__parent-feed-icon">
+                <Megaphone size={16} />
+              </span>
+              <div>
+                <small>
+                  {item.type} · {new Date(item.createdAt).toLocaleDateString()}
+                  {item.eventDate ? ` · ${item.eventDate}` : ""}
+                </small>
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </div>
+            </article>
+          ))
+        ) : (
+          <p className="school-portal__empty">
+            School announcements and event notices will appear here.
+          </p>
+        )}
+      </section>
+      <section className="school-portal__panel school-portal__parent-feed">
+        <div className="school-portal__panel-heading">
+          <div>
+            <BookOpenCheck size={18} />
+            <h2>Classroom updates</h2>
+          </div>
+          <span>Posts from linked students’ teachers</span>
+        </div>
+        {dashboard.classroomPosts.length ? (
+          dashboard.classroomPosts.map((post) => (
+            <article key={post.id}>
+              <span className="school-portal__parent-feed-icon">
+                <FileText size={16} />
+              </span>
+              <div>
+                <small>
+                  {post.author} · {post.type.replace("_", " ")} ·{" "}
+                  {new Date(post.createdAt).toLocaleDateString()}
+                </small>
+                <h3>{post.title}</h3>
+                {post.contentBody && <p>{post.contentBody}</p>}
+                {post.subject && <small>{post.subject}</small>}
+              </div>
+            </article>
+          ))
+        ) : (
+          <p className="school-portal__empty">
+            Teacher lessons, assignments and class notices will appear here.
+          </p>
+        )}
+      </section>
+      <p className="school-portal__parent-privacy">
+        <ShieldCheck size={15} /> Student records shown here are limited to
+        links verified by your school.
+      </p>
+      <details className="school-portal__panel school-portal__parent-settings">
+        <summary>
+          <span>
+            <ShieldCheck size={17} />
+            <span>
+              <strong>Account settings</strong>
+              <small>Update your parent portal password</small>
+            </span>
+          </span>
+          <span aria-hidden="true">+</span>
+        </summary>
+        <form
+          className="school-portal__parent-password-form"
+          onSubmit={changePassword}
+        >
+          <p>
+            You can change your password here at any time. It is not required to
+            open your parent portal.
+          </p>
+          {passwordError && (
+            <p className="school-portal__error" role="alert">
+              {passwordError}
+            </p>
+          )}
+          {passwordNotice && (
+            <p className="school-portal__notice" role="status">
+              {passwordNotice}
+            </p>
+          )}
+          <label>
+            Current password
+            <input
+              type="password"
+              autoComplete="current-password"
+              required
+              value={passwords.currentPassword}
+              onChange={(event) =>
+                setPasswords({
+                  ...passwords,
+                  currentPassword: event.target.value,
+                })
+              }
+            />
+          </label>
+          <label>
+            New password
+            <input
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              maxLength={128}
+              required
+              value={passwords.newPassword}
+              onChange={(event) =>
+                setPasswords({ ...passwords, newPassword: event.target.value })
+              }
+            />
+          </label>
+          <label>
+            Confirm new password
+            <input
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              maxLength={128}
+              required
+              value={passwords.confirmPassword}
+              onChange={(event) =>
+                setPasswords({
+                  ...passwords,
+                  confirmPassword: event.target.value,
+                })
+              }
+            />
+          </label>
+          <Button
+            type="submit"
+            loading={passwordPending}
+            loadingLabel="Updating password…"
+          >
+            Update password
+          </Button>
         </form>
-      )}
-      {!dashboard.profile.mustChangePassword && (
-        <>
-          <section className="school-portal__parent-intro">
-            <div><p className="school-portal__eyebrow">FAMILY OVERVIEW</p><h1>Welcome, {dashboard.profile.fullName}</h1><p>Updates and learning records for students linked to your account.</p></div>
-            <span><Users size={20} /> {dashboard.children.length} linked {dashboard.children.length === 1 ? "student" : "students"}</span>
-          </section>
-          <div className="school-portal__parent-grid">
-            {dashboard.children.map(({ id, fullName, dashboard: child }) => (
-              <article className="school-portal__panel school-portal__parent-child" key={id}>
-                <header><span><GraduationCap size={19} /></span><div><h2>{fullName}</h2><p>{child.schoolClass?.name || "Class not assigned"}{child.schoolClass?.academicYear ? ` · ${child.schoolClass.academicYear}` : ""}</p></div></header>
-                <div className="school-portal__parent-stats">
-                  <div><span>Attendance</span><strong>{child.attendance.total ? `${Math.round(((child.attendance.present + child.attendance.late) / child.attendance.total) * 100)}%` : "—"}</strong><small>{child.attendance.total} recorded sessions</small></div>
-                  <div><span>Published results</span><strong>{child.assessments.filter((item) => item.score !== null && item.score !== undefined).length}</strong><small>Visible assessments</small></div>
-                </div>
-                <h3>Published results</h3>
-                {child.assessments.length ? <div className="school-portal__parent-results">{child.assessments.map((assessment) => <div key={assessment.id}><span><strong>{assessment.title}</strong><small>{assessment.subjectName || "Assessment"}</small></span><b>{assessment.score == null ? "Pending" : `${assessment.score} / ${assessment.maximumScore}`}</b></div>)}</div> : <p className="school-portal__empty">No results have been published for this student yet.</p>}
-              </article>
-            ))}
-            {!dashboard.children.length && <section className="school-portal__panel"><p className="school-portal__empty">No active student records are currently linked to this account. Contact the school office if this seems incorrect.</p></section>}
-          </div>
-          <section className="school-portal__panel school-portal__parent-feed">
-            <div className="school-portal__panel-heading"><div><Megaphone size={18} /><h2>School updates</h2></div><span>Announcements, events & newsletters</span></div>
-            {dashboard.announcements.length ? dashboard.announcements.map((item) => <article key={item.id}><span className="school-portal__parent-feed-icon"><Megaphone size={16} /></span><div><small>{item.type} · {new Date(item.createdAt).toLocaleDateString()}{item.eventDate ? ` · ${item.eventDate}` : ""}</small><h3>{item.title}</h3><p>{item.body}</p></div></article>) : <p className="school-portal__empty">School announcements and event notices will appear here.</p>}
-          </section>
-          <section className="school-portal__panel school-portal__parent-feed">
-            <div className="school-portal__panel-heading"><div><BookOpenCheck size={18} /><h2>Classroom updates</h2></div><span>Posts from linked students’ teachers</span></div>
-            {dashboard.classroomPosts.length ? dashboard.classroomPosts.map((post) => <article key={post.id}><span className="school-portal__parent-feed-icon"><FileText size={16} /></span><div><small>{post.author} · {post.type.replace("_", " ")} · {new Date(post.createdAt).toLocaleDateString()}</small><h3>{post.title}</h3>{post.contentBody && <p>{post.contentBody}</p>}{post.subject && <small>{post.subject}</small>}</div></article>) : <p className="school-portal__empty">Teacher lessons, assignments and class notices will appear here.</p>}
-          </section>
-          <p className="school-portal__parent-privacy"><ShieldCheck size={15} /> Student records shown here are limited to links verified by your school.</p>
-        </>
-      )}
+      </details>
     </div>
   )
 }
@@ -1710,7 +2024,8 @@ export default function SchoolPortalPage({
 
   const [password, setPassword] = useState("")
   const [parentPhone, setParentPhone] = useState("")
-  const [loginRole, setLoginRole] = useState(role || "student")
+  const [studentCodeReady, setStudentCodeReady] = useState(false)
+  const loginRole = role === "teacher" || role === "parent" ? role : "student"
 
   const [pageError, setPageError] = useState("")
 
@@ -1768,7 +2083,12 @@ export default function SchoolPortalPage({
 
         setMember(currentMember)
 
-        if (currentMember) await loadDashboard(currentMember)
+        if (currentMember?.mustChangePassword) {
+          setDashboard(null)
+          setPremiumRequired(false)
+        } else if (currentMember) {
+          await loadDashboard(currentMember)
+        }
       })
 
       .catch((loadError) => {
@@ -1794,6 +2114,18 @@ export default function SchoolPortalPage({
 
     if (submitting) return
 
+    const enteredCode = accessPin.trim().toUpperCase()
+    if (
+      loginRole === "student" &&
+      ["STU-STAFF", "STU-PARENTS"].includes(enteredCode)
+    ) {
+      const portalMode = enteredCode === "STU-STAFF" ? "teacher" : "parent"
+      window.location.assign(
+        `/s/${encodeURIComponent(school.slug)}/portal/${portalMode}`,
+      )
+      return
+    }
+
     setSubmitting(true)
 
     setPageError("")
@@ -1814,9 +2146,7 @@ export default function SchoolPortalPage({
             },
       )
 
-      window.location.assign(
-        `/s/${encodeURIComponent(school.slug)}/portal`,
-      )
+      window.location.assign(`/s/${encodeURIComponent(school.slug)}/portal`)
     } catch (loginError) {
       setPageError(loginError.message)
     } finally {
@@ -2001,7 +2331,16 @@ export default function SchoolPortalPage({
                 {pageError}
               </p>
             )}
-            {premiumRequired ? (
+            {member.mustChangePassword && member.role !== "parent" ? (
+              <PortalPasswordChange
+                member={member}
+                onComplete={async () => {
+                  const updatedMember = await getPortalMember()
+                  setMember(updatedMember)
+                  await loadDashboard(updatedMember)
+                }}
+              />
+            ) : premiumRequired ? (
               <section className="school-portal__premium">
                 <span>
                   <ShieldCheck size={25} />
@@ -2047,87 +2386,286 @@ export default function SchoolPortalPage({
             )}
           </>
         ) : (
-          <section className="school-portal__login">
-            <a
-              className="school-portal__back"
-              href={`/s/${encodeURIComponent(school.slug)}`}
-            >
-              <ArrowLeft size={15} /> School administrator sign-in
-            </a>
-            <span className="school-portal__role-icon">
-              <ShieldCheck size={27} aria-hidden="true" />
-            </span>
-            <p className="school-portal__eyebrow">SECURE SCHOOL MEMBER ENTRY</p>
-            <h1>School member portal</h1>
-            <p className="school-portal__login-description">
-              Sign in to <strong>{school.schoolName}</strong> as a student,
-              teacher, or parent / guardian.
-            </p>
-            {pageError && (
-              <p className="school-portal__error" role="alert">
-                {pageError}
-              </p>
-            )}
-            <form onSubmit={handleLogin} className="school-portal__login-form">
-              <label>
-                Sign in as
-                <select value={loginRole} onChange={(event) => setLoginRole(event.target.value)}>
-                  <option value="student">Student</option>
-                  <option value="teacher">Teacher</option>
-                  <option value="parent">Parent / guardian</option>
-                </select>
-              </label>
-              {loginRole === "parent" ? (
-                <label>
-                  Registered phone number
-                  <input type="tel" inputMode="tel" autoComplete="username" value={parentPhone} onChange={(event) => setParentPhone(event.target.value)} required />
-                </label>
-              ) : (
-                <label>
-                  School access code
-                  <input
-                    type="text"
-                    inputMode="text"
-                    pattern="([A-Za-z]{3}-[0-9]{5}|[0-9]{6})"
-                    maxLength={9}
-                    autoCapitalize="characters"
-                    autoComplete="username"
-                    value={accessPin}
-                    onChange={(event) =>
-                      setAccessPin(event.target.value.toUpperCase().slice(0, 9))
-                    }
-                    required
-                    aria-describedby="portal-pin-help"
-                  />
-                </label>
-              )}
-              <label>
-                Password
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required={loginRole === "parent" || loginRole === "teacher"}
-                  aria-describedby="portal-pin-help"
-                />
-              </label>
-              <small id="portal-pin-help">
-                {loginRole === "parent"
-                  ? "Parent accounts are created by your school and linked to specific students."
-                  : "Use the code issued by your school, for example EIS-23456. Existing six-digit PINs remain valid. Teacher accounts require a password."}
-              </small>
-              <Button
-                type="submit"
-                loading={submitting}
-                loadingLabel="Verifying account..."
+          <section
+            className="school-portal__entry-shell"
+            data-entry-mode={loginRole}
+          >
+            <div className="school-portal__entry-hero">
+              <a
+                className="school-portal__back"
+                href={`/s/${encodeURIComponent(school.slug)}`}
               >
-                Sign in securely
-              </Button>
-            </form>
-            <p className="school-portal__support">
-              Need access? Contact your school administrator.
-            </p>
+                <ArrowLeft size={15} /> School administrator sign-in
+              </a>
+              <p className="school-portal__eyebrow">
+                {loginRole === "teacher"
+                  ? "ACEEDU · STAFF SPACE"
+                  : loginRole === "parent"
+                    ? "ACEEDU · FAMILY SPACE"
+                    : "ACEEDU · STUDENT SPACE"}
+              </p>
+              <h1>
+                {loginRole === "teacher"
+                  ? "Make room for great teaching."
+                  : loginRole === "parent"
+                    ? "Be part of every step."
+                    : "Your school day, in one place."}
+              </h1>
+              <p className="school-portal__entry-lede">
+                {loginRole === "teacher"
+                  ? "A focused space for your classes, attendance, lessons and results."
+                  : loginRole === "parent"
+                    ? "A closer view of your children's learning, progress and school updates."
+                    : "Pick up where you left off and stay connected to your learning."}
+              </p>
+              <div className="school-portal__entry-art" aria-hidden="true">
+                <div className="school-portal__entry-orbit school-portal__entry-orbit--outer" />
+                <div className="school-portal__entry-orbit school-portal__entry-orbit--inner" />
+                <span className="school-portal__entry-art-icon">
+                  {loginRole === "teacher" ? (
+                    <BookOpenCheck size={38} />
+                  ) : loginRole === "parent" ? (
+                    <Users size={38} />
+                  ) : (
+                    <GraduationCap size={40} />
+                  )}
+                </span>
+                <span className="school-portal__entry-art-label">
+                  {loginRole === "teacher"
+                    ? "TEACH · GUIDE · INSPIRE"
+                    : loginRole === "parent"
+                      ? "LEARN · GROW · TOGETHER"
+                      : "LEARN · DISCOVER · GROW"}
+                </span>
+                <span className="school-portal__entry-art-spark school-portal__entry-art-spark--one" />
+                <span className="school-portal__entry-art-spark school-portal__entry-art-spark--two" />
+              </div>
+              <p className="school-portal__entry-school">
+                <Building2 size={16} /> {school.schoolName}
+              </p>
+            </div>
+
+            <section className="school-portal__login">
+              {loginRole !== "student" && (
+                <a
+                  className="school-portal__back school-portal__back--switch"
+                  href={`/s/${encodeURIComponent(school.slug)}/portal`}
+                >
+                  <ArrowLeft size={15} /> Back to student sign-in
+                </a>
+              )}
+              <nav className="school-portal__role-switcher" aria-label="Choose a portal">
+                <a
+                  className={loginRole === "student" ? "is-active" : ""}
+                  href={`/s/${encodeURIComponent(school.slug)}/portal`}
+                  aria-current={loginRole === "student" ? "page" : undefined}
+                >
+                  <GraduationCap size={16} /> Student
+                </a>
+                <a
+                  className={loginRole === "teacher" ? "is-active" : ""}
+                  href={`/s/${encodeURIComponent(school.slug)}/portal/teacher`}
+                  aria-current={loginRole === "teacher" ? "page" : undefined}
+                >
+                  <BookOpenCheck size={16} /> Teacher
+                </a>
+                <a
+                  className={loginRole === "parent" ? "is-active" : ""}
+                  href={`/s/${encodeURIComponent(school.slug)}/portal/parent`}
+                  aria-current={loginRole === "parent" ? "page" : undefined}
+                >
+                  <Heart size={16} /> Parent
+                </a>
+              </nav>
+              <span className="school-portal__role-icon">
+                {loginRole === "teacher" ? (
+                  <BookOpenCheck size={26} aria-hidden="true" />
+                ) : loginRole === "parent" ? (
+                  <Users size={26} aria-hidden="true" />
+                ) : (
+                  <GraduationCap size={28} aria-hidden="true" />
+                )}
+              </span>
+              <p className="school-portal__eyebrow">
+                {loginRole === "teacher"
+                  ? "TEACHER SIGN IN"
+                  : loginRole === "parent"
+                    ? "PARENT SIGN IN"
+                    : "STUDENT SIGN IN"}
+              </p>
+              <h2>
+                {loginRole === "teacher"
+                  ? "Welcome back, teacher"
+                  : loginRole === "parent"
+                    ? "Welcome back"
+                    : "Welcome back"}
+              </h2>
+              <p className="school-portal__login-description">
+                Sign in to <strong>{school.schoolName}</strong>
+                {loginRole === "parent"
+                  ? " with your registered phone number."
+                  : " with the access code provided by your school."}
+              </p>
+              {pageError && (
+                <p className="school-portal__error" role="alert">
+                  {pageError}
+                </p>
+              )}
+              {loginRole === "student" && studentCodeReady ? (
+                <form
+                  onSubmit={handleLogin}
+                  className="school-portal__login-form"
+                >
+                  <label>
+                    Student ID
+                    <input
+                      type="text"
+                      autoComplete="username"
+                      value={accessPin}
+                      readOnly
+                    />
+                  </label>
+                  <label>
+                    Password
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      aria-describedby="portal-pin-help"
+                    />
+                  </label>
+                  <small id="portal-pin-help">
+                    If you have not set a password, leave this blank and
+                    continue with your school-issued student ID.
+                  </small>
+                  <Button
+                    type="submit"
+                    loading={submitting}
+                    loadingLabel="Verifying account..."
+                  >
+                    Sign in to student portal
+                  </Button>
+                  <button
+                    type="button"
+                    className="school-portal__text-button"
+                    onClick={() => {
+                      setAccessPin("")
+                      setPassword("")
+                      setStudentCodeReady(false)
+                      setPageError("")
+                    }}
+                  >
+                    Use a different student ID
+                  </button>
+                </form>
+              ) : (
+                <form
+                  onSubmit={handleLogin}
+                  className="school-portal__login-form"
+                >
+                  {loginRole === "parent" ? (
+                    <label>
+                      Registered phone number
+                      <input
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="username"
+                        value={parentPhone}
+                        onChange={(event) => setParentPhone(event.target.value)}
+                        required
+                        autoFocus
+                      />
+                    </label>
+                  ) : (
+                    <label>
+                      {loginRole === "teacher"
+                        ? "Staff access code"
+                        : "Student access code"}
+                      <input
+                        type="text"
+                        inputMode="text"
+                        pattern={
+                          loginRole === "student"
+                            ? "(?:[A-Za-z]{3}-[0-9]{5}|[0-9]{6}|STU-STAFF|STU-PARENTS)"
+                            : "(?:[A-Za-z]{3}-[0-9]{5}|[0-9]{6})"
+                        }
+                        maxLength={11}
+                        autoCapitalize="characters"
+                        autoComplete="username"
+                        value={accessPin}
+                        onChange={(event) => {
+                          const value = event.target.value
+                            .toUpperCase()
+                            .slice(0, 11)
+                          setAccessPin(value)
+                          setPassword("")
+                          setPageError("")
+                          if (loginRole === "student") {
+                            const portalMode =
+                              value.trim() === "STU-STAFF"
+                                ? "teacher"
+                                : value.trim() === "STU-PARENTS"
+                                  ? "parent"
+                                  : null
+                            if (portalMode) {
+                              window.location.assign(
+                                `/s/${encodeURIComponent(school.slug)}/portal/${portalMode}`,
+                              )
+                            }
+                            setStudentCodeReady(
+                              /^(?:[A-Z]{3}-\d{5}|\d{6})$/.test(value.trim()),
+                            )
+                          }
+                        }}
+                        required
+                        autoFocus
+                        aria-describedby="portal-pin-help"
+                      />
+                    </label>
+                  )}
+                  {(loginRole !== "student" || studentCodeReady) && (
+                    <label>
+                      Password
+                      <input
+                        type="password"
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        required={loginRole !== "student"}
+                        aria-describedby="portal-pin-help"
+                      />
+                    </label>
+                  )}
+                  <small id="portal-pin-help">
+                    {loginRole === "parent"
+                      ? "Use the phone number registered by your school and your parent portal password."
+                      : loginRole === "teacher"
+                        ? "Use the staff access code and password issued by your school."
+                        : studentCodeReady
+                          ? "Enter your password if you have one. New student accounts can continue with their school-issued code."
+                          : "Enter your student ID. Staff: type STU-STAFF. Parents: type STU-PARENTS."}
+                  </small>
+                  {(loginRole !== "student" || studentCodeReady) && (
+                    <Button
+                      type="submit"
+                      loading={submitting}
+                      loadingLabel="Verifying account..."
+                    >
+                      Sign in to {loginRole === "teacher" ? "staff" : loginRole}{" "}
+                      portal
+                    </Button>
+                  )}
+                </form>
+              )}
+              <div className="school-portal__login-security">
+                <ShieldCheck size={16} />
+                <span>Your school account is protected with secure, private access.</span>
+              </div>
+              <p className="school-portal__support">
+                Need access? Contact your school administrator.
+              </p>
+            </section>
           </section>
         )}
       </div>

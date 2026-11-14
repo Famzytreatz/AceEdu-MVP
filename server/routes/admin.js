@@ -11,11 +11,10 @@ import {
   getDashboardAnalytics,
   iterateEnrollments,
   listEnrollments,
-  resetStudentPortalPassword,
+  resetPortalMemberPassword,
   verifyEnrollment,
 } from "../models/Enrollment.js"
 import { ensureParentPortalForStudent } from "../models/Parents.js"
-import { sendParentSetupSms } from "../parent-notifications.js"
 import { getSchoolEntitlement } from "../models/Entitlement.js"
 import { hasFeatureAccess } from "../entitlements.js"
 import { logError } from "../error-logging.js"
@@ -225,7 +224,11 @@ router.post(
               parentPortal = { status: "premium_required" }
             }
           } catch (entitlementError) {
-            logError("Could not verify parent portal entitlement:", entitlementError, req)
+            logError(
+              "Could not verify parent portal entitlement:",
+              entitlementError,
+              req,
+            )
             parentPortal = { status: "entitlement_check_failed" }
           }
           if (parentPortalEnabled) {
@@ -246,35 +249,19 @@ router.post(
                 setupCodeHash,
                 setupCodeExpiresAt,
               )
-              let delivery = { delivered: false, reason: "not_needed" }
-              if (linkedParent.sendSetupCode) {
-                try {
-                  delivery = await sendParentSetupSms(
-                    {
-                      phone: values.guardianPhone,
-                      parentName: linkedParent.parentName,
-                      schoolName: req.school.schoolName,
-                      schoolSlug: req.school.slug,
-                      setupCode,
-                    },
-                  )
-                } catch (deliveryError) {
-                  logError("Parent setup SMS delivery failed:", deliveryError, req)
-                  delivery = { delivered: false, reason: "delivery_failed" }
-                }
-              }
               parentPortal = {
                 status: "linked",
                 isFamily: linkedParent.isFamily,
                 studentCount: linkedParent.studentCount,
                 created: linkedParent.created,
-                setupCodeSent: delivery.delivered,
-                ...(!delivery.delivered && linkedParent.sendSetupCode
-                  ? { setupCode, deliveryIssue: delivery.reason }
-                  : {}),
+                ...(linkedParent.sendSetupCode ? { setupCode } : {}),
               }
             } catch (parentError) {
-              logError("Could not link student to parent portal:", parentError, req)
+              logError(
+                "Could not link student to parent portal:",
+                parentError,
+                req,
+              )
               parentPortal = {
                 status:
                   parentError?.code === "P0002"
@@ -331,14 +318,18 @@ router.post(
 
     const temporaryPassword = randomBytes(12).toString("base64url")
     const passwordHash = await bcrypt.hash(temporaryPassword, 12)
-    const enrollment = await resetStudentPortalPassword(
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    const enrollment = await resetPortalMemberPassword(
       req.session.schoolId,
       req.params.userId,
       passwordHash,
+      expiresAt,
     )
 
-    if (!enrollment || enrollment.role !== "student") {
-      return res.status(404).json({ error: "Student record not found." })
+    if (!enrollment) {
+      return res
+        .status(404)
+        .json({ error: "Student or teacher record not found." })
     }
 
     return res.json({
