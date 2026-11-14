@@ -215,27 +215,27 @@ function FinanceWorkspace() {
       )
     : []
 
+  const activeSchedules = data.schedules.filter(
+    (schedule) => schedule.active,
+  )
+
   const selectedInvoiceSchedule = activeSchedules.find(
     (schedule) => schedule.id === invoiceForm.feeScheduleId,
   )
 
   const studentsInSelectedClass = new Set(
     academic.classRosters
-
       .filter(
         (roster) =>
           roster.classId === selectedInvoiceSchedule?.classId &&
           roster.isActive,
       )
-
-      .map((roster) => roster.studentId),
+      .map((roster) => String(roster.studentId)),
   )
 
   const invoiceStudents = (studentsResource.data || []).filter((student) =>
     studentsInSelectedClass.has(String(student._id)),
   )
-
-  const activeSchedules = data.schedules.filter((schedule) => schedule.active)
 
   const outstanding = data.invoices.filter((invoice) => invoice.balance > 0)
 
