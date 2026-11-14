@@ -54,6 +54,8 @@ import SchoolSettings from "./SchoolSettings"
 
 import "./AdminDashboard.css"
 import "./PremiumWorkspace.css"
+import AdminDashboardOverview from "./AdminDashboardOverview"
+import "./AdminDashboardRedesign.css"
 
 const navigation = [
   { id: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
@@ -217,15 +219,14 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
   const [activeView, setActiveView] = useState("dashboard")
   const [classLevels, setClassLevels] = useState([])
   const [curriculumError, setCurriculumError] = useState("")
-  const [theme, setTheme] = useState(() => {
-    try {
-      return window.localStorage.getItem("aceedu-admin-theme") === "dark"
-        ? "dark"
-        : "light"
-    } catch {
-      return "light"
-    }
-  })
+const [theme, setTheme] = useState(() => {
+  try {
+    const savedTheme = window.localStorage.getItem("aceedu-admin-theme")
+    return savedTheme === "light" ? "light" : "dark"
+  } catch {
+    return "dark"
+  }
+})
 
   useEffect(() => {
     try {
@@ -825,15 +826,15 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
   return (
     <div className="admin-app" data-theme={theme}>
       <aside className="admin-sidebar">
-        <a className="admin-brand" href="#top" aria-label="AceEdu admin home">
-          <span className="admin-brand__mark">
-            <GraduationCap size={23} aria-hidden="true" />
-          </span>
-          <span>
-            <strong>AceEdu</strong>
-            <small>SCHOOL OPERATING SYSTEM</small>
-          </span>
-        </a>
+        <a className="admin-brand" href="#top" aria-label="Aces Academy admin home">
+  <span className="admin-brand__mark" aria-hidden="true">
+    <span className="admin-brand__letter">A</span>
+  </span>
+  <span>
+    <strong>Aces Academy</strong>
+    <small>Manage · Educate · Grow</small>
+  </span>
+</a>
 
         <div className="admin-sidebar__label">MVP workspace</div>
         <nav className="admin-nav" aria-label="Admin navigation">
@@ -1185,579 +1186,29 @@ export default function AdminDashboard({ school, onLogout, onSchoolUpdated }) {
             </div>
           )}
 
-          {activeView === "dashboard" && (
-            <section
-              className="admin-dashboard"
-              aria-label="School dashboard"
-              aria-busy={dashboardLoading}
-            >
-              {dashboardError && (
-                <div className="admin-dashboard-error" role="alert">
-                  <span>
-                    Dashboard data could not be loaded: {dashboardError}
-                  </span>
-                  <button
-                    className="admin-outline-button"
-                    type="button"
-                    onClick={() => void loadDashboard()}
-                    disabled={dashboardLoading}
-                  >
-                    {dashboardLoading ? <LoadingSpinner /> : "Try again"}
-                  </button>
-                </div>
-              )}
-
-              <section className="admin-welcome">
-                <div className="admin-welcome__copy">
-                  <span className="admin-welcome__eyebrow">
-                    <span className="admin-online-dot" /> LIVE SCHOOL WORKSPACE
-                  </span>
-                  <h2>{school.schoolName}</h2>
-                  <p>
-                    A clear view of your people and the school records managed
-                    in AceEdu.
-                  </p>
-                  <div className="admin-welcome__meta">
-                    <span>
-                      <GraduationCap size={15} /> {school.schoolType}
-                    </span>
-                    <span>
-                      <UserRound size={15} /> {school.adminName}
-                    </span>
-                    <span className="admin-welcome__school-id">
-                      <IdCard size={15} /> AceEdu school ID:{" "}
-                      {school.id || "Unavailable"}
-                    </span>
-                    <span>
-                      <CalendarDays size={15} /> Academic session not configured
-                    </span>
-                  </div>
-                </div>
-                <div className="admin-welcome__visual" aria-hidden="true">
-                  <svg viewBox="0 0 260 210" fill="none">
-                    <defs>
-                      <linearGradient
-                        id="ace-orbit"
-                        x1="58"
-                        y1="35"
-                        x2="208"
-                        y2="174"
-                        gradientUnits="userSpaceOnUse"
-                      >
-                        <stop stopColor="#8CB9FF" />
-                        <stop offset="1" stopColor="#9A8CFF" />
-                      </linearGradient>
-                      <linearGradient
-                        id="ace-book"
-                        x1="83"
-                        y1="78"
-                        x2="179"
-                        y2="153"
-                        gradientUnits="userSpaceOnUse"
-                      >
-                        <stop stopColor="#F8FBFF" />
-                        <stop offset="1" stopColor="#C9D9FF" />
-                      </linearGradient>
-                    </defs>
-                    <ellipse
-                      cx="130"
-                      cy="108"
-                      rx="92"
-                      ry="38"
-                      transform="rotate(-27 130 108)"
-                      stroke="url(#ace-orbit)"
-                      strokeOpacity=".48"
-                    />
-                    <ellipse
-                      cx="130"
-                      cy="108"
-                      rx="69"
-                      ry="70"
-                      transform="rotate(34 130 108)"
-                      stroke="url(#ace-orbit)"
-                      strokeOpacity=".3"
-                    />
-                    <circle cx="210" cy="62" r="5" fill="#96B7FF" />
-                    <circle cx="54" cy="142" r="4" fill="#A699FF" />
-                    <path
-                      d="M130 77 178 96 130 116 82 96l48-19Z"
-                      fill="url(#ace-orbit)"
-                      fillOpacity=".92"
-                    />
-                    <path
-                      d="m98 103 32 14 32-14v37c-18-9-46-9-64 0v-37Z"
-                      fill="url(#ace-book)"
-                    />
-                    <path d="M130 117v23" stroke="#829DE0" strokeWidth="2" />
-                    <path
-                      d="m90 128-8-25 13-5"
-                      stroke="#B7C9FF"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                    <circle
-                      cx="130"
-                      cy="108"
-                      r="61"
-                      fill="#AEC8FF"
-                      fillOpacity=".08"
-                    />
-                  </svg>
-                  <span>LEARNING, IN SYNC</span>
-                </div>
-              </section>
-
-              <section className="admin-panel admin-school-space">
-                <div>
-                  <span className="admin-panel__icon">
-                    <ArrowUpRight size={18} />
-                  </span>
-                  <div>
-                    <h2>School sign-in link</h2>
-                    <p>
-                      Share your permanent AceEdu school entry point with staff
-                      and families.
-                    </p>
-                  </div>
-                </div>
-                {school.slug ? (
-                  <>
-                    <code>
-                      {window.location.origin}/s/
-                      {encodeURIComponent(school.slug)}
-                    </code>
-                    <a
-                      className="admin-outline-button"
-                      href={`/s/${encodeURIComponent(school.slug)}`}
-                    >
-                      Open school entry <ArrowUpRight size={15} />
-                    </a>
-                  </>
-                ) : (
-                  <p role="status">
-                    School URL is unavailable until a school identity is
-                    configured.
-                  </p>
-                )}
-              </section>
-
-              <div className="admin-stats-grid">
-                <StatCard
-                  Icon={GraduationCap}
-                  label="Total students"
-                  value={dashboard?.metrics.students}
-                  loading={dashboardLoading}
-                  error={dashboardError}
-                  tone="blue"
-                  context="Enrolled records"
-                />
-                <StatCard
-                  Icon={BookOpen}
-                  label="Active classes"
-                  value={dashboard?.metrics.activeClasses}
-                  loading={dashboardLoading}
-                  error={dashboardError}
-                  tone="violet"
-                  context="Distinct student class groups"
-                />
-                <StatCard
-                  Icon={Users}
-                  label="Teaching staff"
-                  value={dashboard?.metrics.teachingStaff}
-                  loading={dashboardLoading}
-                  error={dashboardError}
-                  tone="gold"
-                  context="Enrolled records"
-                />
-                <StatCard
-                  Icon={ShieldCheck}
-                  label="Administrative staff"
-                  value={dashboard?.metrics.administrativeStaff}
-                  loading={dashboardLoading}
-                  error={dashboardError}
-                  tone="blue"
-                  context="Enrolled records"
-                />
-              </div>
-              <div className="admin-analytics-grid">
-                <section
-                  className="admin-panel admin-chart-panel"
-                  aria-busy={dashboardLoading}
-                >
-                  <div className="admin-panel__heading">
-                    <div>
-                      <span className="admin-panel__icon">
-                        <Activity size={18} />
-                      </span>
-                      <div>
-                        <h2>Student enrollment</h2>
-                        <p>New student records by month · last 6 months</p>
-                      </div>
-                    </div>
-                    <span className="admin-chart-period">6 MONTHS</span>
-                  </div>
-                  {dashboardLoading ? (
-                    <div className="admin-chart-skeleton" role="status">
-                      Loading enrollment history…
-                    </div>
-                  ) : dashboardError ? (
-                    <DashboardSectionError
-                      error={dashboardError}
-                      onRetry={() => void loadDashboard()}
-                    />
-                  ) : dashboard?.studentTrend?.some(
-                      (item) => item.total > 0,
-                    ) ? (
-                    <StudentTrendChart points={dashboard.studentTrend} />
-                  ) : (
-                    <DashboardEmpty
-                      title="No enrollment history yet"
-                      detail="New student registrations will appear here as records are added."
-                    />
-                  )}
-                </section>
-                <section
-                  className="admin-panel admin-chart-panel"
-                  aria-busy={dashboardLoading}
-                >
-                  <div className="admin-panel__heading">
-                    <div>
-                      <span className="admin-panel__icon">
-                        <BookOpen size={18} />
-                      </span>
-                      <div>
-                        <h2>Students by class</h2>
-                        <p>Current student records grouped by class</p>
-                      </div>
-                    </div>
-                  </div>
-                  {dashboardLoading ? (
-                    <div className="admin-chart-skeleton" role="status">
-                      Loading class distribution…
-                    </div>
-                  ) : dashboardError ? (
-                    <DashboardSectionError
-                      error={dashboardError}
-                      onRetry={() => void loadDashboard()}
-                    />
-                  ) : dashboard?.classDistribution?.length ? (
-                    <ClassDistribution items={dashboard.classDistribution} />
-                  ) : (
-                    <DashboardEmpty
-                      title="No class groups yet"
-                      detail="Add students with a class designation to see the distribution."
-                    />
-                  )}
-                </section>
-              </div>
-
-              <div className="admin-dashboard-lower">
-                <section
-                  className="admin-panel admin-activity-panel"
-                  aria-busy={dashboardLoading}
-                >
-                  <div className="admin-panel__heading">
-                    <div>
-                      <span className="admin-panel__icon">
-                        <Activity size={18} />
-                      </span>
-                      <div>
-                        <h2>School activity</h2>
-                        <p>Recent registrations and verifications</p>
-                      </div>
-                    </div>
-                    <button
-                      className="admin-text-link"
-                      type="button"
-                      onClick={() => setActiveView("registry")}
-                    >
-                      Open registry <ArrowUpRight size={15} />
-                    </button>
-                  </div>
-                  {dashboardLoading ? (
-                    <div className="admin-activity-skeleton" role="status">
-                      Loading recent school activity…
-                    </div>
-                  ) : dashboardError ? (
-                    <DashboardSectionError
-                      error={dashboardError}
-                      onRetry={() => void loadDashboard()}
-                    />
-                  ) : dashboard?.recentActivity?.length ? (
-                    <ul className="admin-activity-list">
-                      {dashboard.recentActivity.map((item, index) => (
-                        <li
-                          key={`${item.fullName}-${item.occurredAt}-${index}`}
-                        >
-                          <span
-                            className={`admin-activity-icon is-${item.type}`}
-                          >
-                            {item.type === "verified" ? (
-                              <Check size={16} />
-                            ) : (
-                              <UserPlus size={16} />
-                            )}
-                          </span>
-                          <span className="admin-activity-copy">
-                            <strong>{item.fullName}</strong>
-                            <span>
-                              {item.type === "verified"
-                                ? "Verified"
-                                : "Registered"}{" "}
-                              ·{" "}
-                              {item.role === "student"
-                                ? item.designation || "Student"
-                                : item.role.replace("-", " ")}
-                            </span>
-                          </span>
-                          <time dateTime={item.occurredAt}>
-                            {formatActivityDate(item.occurredAt)}
-                          </time>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <DashboardEmpty
-                      title="Your school activity will appear here"
-                      detail="Registrations and verifications will show up as your team uses the registry."
-                    />
-                  )}
-                </section>
-                <section className="admin-panel admin-quick-actions">
-                  <div className="admin-panel__heading">
-                    <div>
-                      <span className="admin-panel__icon">
-                        <Plus size={18} />
-                      </span>
-                      <div>
-                        <h2>Quick actions</h2>
-                        <p>Start a task in your MVP workspace.</p>
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => startEnrollment("student")}
-                  >
-                    <span>
-                      <GraduationCap size={17} />
-                    </span>
-                    <span>
-                      Add student<small>Create a student record</small>
-                    </span>
-                    <ArrowUpRight size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => startEnrollment("teacher")}
-                  >
-                    <span>
-                      <UserPlus size={17} />
-                    </span>
-                    <span>
-                      Add staff<small>Create a staff account</small>
-                    </span>
-                    <ArrowUpRight size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveView("registry")}
-                  >
-                    <span>
-                      <IdCard size={17} />
-                    </span>
-                    <span>
-                      Open registry<small>Search school records</small>
-                    </span>
-                    <ArrowUpRight size={16} />
-                  </button>
-                </section>
-              </div>
-
-              <section className="admin-premium-preview" id="premium-preview">
-                <div className="admin-premium-preview__copy">
-                  <span className="admin-premium-preview__eyebrow">
-                    <span className="admin-premium-preview__spark">✦</span>{" "}
-                    ACEEDU PREMIUM
-                  </span>
-                  <h2>More of the school day, connected.</h2>
-                  <p>
-                    Premium is designed for the full student portal, advanced
-                    academic workflows, financial management, and deeper
-                    reporting.
-                  </p>
-                  <span className="admin-premium-preview__notice">
-                    {premiumAccessActive
-                      ? "Premium is active. All eight school operations workflows are available from the navigation."
-                      : "An active Premium plan or approved trial unlocks all eight school operations workflows, including academics, finance, reporting, and family access."}
-                  </span>
-                </div>
-                <ul className="admin-premium-preview__features">
-                  <li>
-                    <GraduationCap size={18} />
-                    <span>Student portal</span>
-                  </li>
-                  <li>
-                    <Users size={18} />
-                    <span>Teacher portal</span>
-                  </li>
-                  <li>
-                    <ClipboardList size={18} />
-                    <span>Advanced academic workflows</span>
-                  </li>
-                  <li>
-                    <CircleDollarSign size={18} />
-                    <span>School financial management</span>
-                  </li>
-                  <li>
-                    <ChartNoAxesCombined size={18} />
-                    <span>Advanced reports and analytics</span>
-                  </li>
-                </ul>
-                <div
-                  className="admin-premium-access"
-                  aria-busy={entitlementLoading || verificationPending}
-                >
-                  <div className="admin-premium-access__summary">
-                    <span className="admin-premium-access__label">
-                      <ShieldCheck size={15} /> SCHOOL ACCESS
-                    </span>
-                    <strong className="admin-premium-access__state">
-                      {entitlementLoading
-                        ? "Checking entitlement…"
-                        : premiumAccessActive && entitlement?.trialActive
-                          ? `Premium trial · ends ${formatDate(entitlement.trialEndsAt)}`
-                          : premiumAccessActive &&
-                              entitlement?.plan === "premium"
-                            ? "Premium plan active"
-                            : entitlement?.trialPreviouslyGranted
-                              ? "Trial ended · MVP access active"
-                              : entitlement?.verificationStatus === "pending"
-                                ? "School verification pending"
-                                : entitlement?.verificationStatus ===
-                                    "review_required"
-                                  ? "Additional identity review required"
-                                  : entitlement?.verificationStatus ===
-                                      "verified"
-                                    ? "School verified · MVP access active"
-                                    : entitlement?.verificationStatus ===
-                                        "rejected"
-                                      ? "Verification needs another review"
-                                      : "MVP plan · default access"}
-                    </strong>
-                    <button
-                      className="admin-premium-access__refresh"
-                      type="button"
-                      onClick={() => void loadEntitlement()}
-                      disabled={entitlementLoading}
-                    >
-                      <RefreshCw
-                        size={13}
-                        className={entitlementLoading ? "is-spinning" : ""}
-                      />
-                      Refresh access
-                    </button>
-                    <span className="admin-premium-access__hint">
-                      Your school identity stays the same across MVP and
-                      Premium.
-                    </span>
-                  </div>
-                  <div className="admin-premium-access__identity">
-                    <span>AceEdu school ID</span>
-                    <code>{school.id || "Unavailable"}</code>
-                    <small>
-                      Permanent platform ID · not your official registration ID
-                    </small>
-                  </div>
-                  {!entitlementLoading &&
-                    !entitlementError &&
-                    !entitlement?.trialPreviouslyGranted &&
-                    !["pending", "review_required", "verified"].includes(
-                      entitlement?.verificationStatus,
-                    ) && (
-                      <form
-                        className="admin-verification-form"
-                        onSubmit={handleVerificationRequest}
-                      >
-                        <div className="admin-verification-form__copy">
-                          <strong>Request school verification</strong>
-                          <small>
-                            Enter the official registration ID issued by your
-                            education authority.
-                          </small>
-                        </div>
-                        <label htmlFor="school-registration-id">
-                          Official school registration ID
-                        </label>
-                        <div className="admin-verification-form__controls">
-                          <input
-                            id="school-registration-id"
-                            autoComplete="off"
-                            maxLength={80}
-                            minLength={2}
-                            required
-                            value={registrationId}
-                            onChange={(event) =>
-                              setRegistrationId(event.target.value)
-                            }
-                            placeholder="e.g. Ministry-issued registration number"
-                            disabled={verificationPending}
-                          />
-                          <button
-                            className="admin-primary-button"
-                            type="submit"
-                            disabled={
-                              verificationPending ||
-                              registrationId.trim().length < 2
-                            }
-                          >
-                            {verificationPending
-                              ? "Submitting…"
-                              : "Request verification"}
-                          </button>
-                        </div>
-                        <small className="admin-verification-form__footnote">
-                          An authorized operator reviews each request. Approval
-                          starts one 90-day Premium trial; submission alone does
-                          not activate it.
-                        </small>
-                      </form>
-                    )}
-                  {entitlementError && (
-                    <div
-                      className="admin-premium-access__message is-error"
-                      role="alert"
-                    >
-                      <span>{entitlementError}</span>
-                      <button
-                        type="button"
-                        onClick={() => void loadEntitlement()}
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  )}
-                  {verificationMessage && (
-                    <p
-                      className="admin-premium-access__message"
-                      role="status"
-                      aria-live="polite"
-                    >
-                      {verificationMessage}
-                    </p>
-                  )}
-                  {!entitlementLoading &&
-                    entitlement?.trialEndsAt &&
-                    !entitlement?.trialActive && (
-                      <p className="admin-premium-access__message">
-                        The trial period has ended. Your school data remains
-                        available on the MVP plan.
-                      </p>
-                    )}
-                </div>
-              </section>
-            </section>
-          )}
+        {activeView === "dashboard" && (
+  <AdminDashboardOverview
+    school={school}
+    dashboard={dashboard}
+    dashboardLoading={dashboardLoading}
+    dashboardError={dashboardError}
+    onRetry={() => void loadDashboard()}
+    premiumAccessActive={premiumAccessActive}
+    onStartEnrollment={startEnrollment}
+    onOpenView={setActiveView}
+    onExport={handleExport}
+    exportingRegistry={exportingRegistry}
+    entitlement={entitlement}
+    entitlementLoading={entitlementLoading}
+    entitlementError={entitlementError}
+    registrationId={registrationId}
+    verificationPending={verificationPending}
+    verificationMessage={verificationMessage}
+    onRegistrationIdChange={setRegistrationId}
+    onVerificationRequest={handleVerificationRequest}
+    onRefreshEntitlement={() => void loadEntitlement()}
+  />
+)}
 
           {activeView === "enrollment" && (
             <div className="admin-enrollment-layout">
