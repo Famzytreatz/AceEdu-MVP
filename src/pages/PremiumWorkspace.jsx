@@ -80,6 +80,8 @@ function useResource(loader, dependencies = []) {
   return { data, loading, error, refresh, setData }
 }
 
+import FinanceWorkspaceRedesigned from "./FinanceWorkspaceRedesigned"
+
 function WorkspaceHeading({ eyebrow, title, description, actions }) {
   return (
     <header className="premium-workspace__heading">
@@ -1577,7 +1579,9 @@ function ReportsWorkspace() {
 }
 
 export default function PremiumWorkspace({ mode, school }) {
-  if (mode === "financialManagement") return <FinanceWorkspace />
+if (mode === "financialManagement") {
+  return <FinanceWorkspaceRedesigned school={school} />
+}
 
   if (mode === "parentPortal") return <ParentWorkspace school={school} />
 
