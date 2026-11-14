@@ -81,6 +81,9 @@ function useResource(loader, dependencies = []) {
 }
 
 import FinanceWorkspaceRedesigned from "./FinanceWorkspaceRedesigned"
+import ParentPortalWorkspace from "./ParentPortalWorkspace"
+import ReportsAnalyticsWorkspace from "./ReportsAnalyticsWorkspace"
+import "./AceEduPremiumRedesign.css"
 
 function WorkspaceHeading({ eyebrow, title, description, actions }) {
   return (
@@ -1579,11 +1582,13 @@ function ReportsWorkspace() {
 }
 
 export default function PremiumWorkspace({ mode, school }) {
-if (mode === "financialManagement") {
-  return <FinanceWorkspaceRedesigned school={school} />
-}
+  if (mode === "financialManagement") {
+    return <FinanceWorkspaceRedesigned school={school} />
+  }
 
-  if (mode === "parentPortal") return <ParentWorkspace school={school} />
+  if (mode === "parentPortal") {
+    return <ParentPortalWorkspace school={school} />
+  }
 
-  return <ReportsWorkspace />
+  return <ReportsAnalyticsWorkspace />
 }
