@@ -1723,6 +1723,34 @@ const [theme, setTheme] = useState(() => {
               className="admin-panel admin-registry-panel"
               aria-label={title}
             >
+             <nav className="admin-registry-switcher" aria-label="Registry record type">
+  <button
+    type="button"
+    className={activeView === "registry" ? "is-active" : ""}
+    aria-pressed={activeView === "registry"}
+    onClick={() => setActiveView("registry")}
+  >
+    All records
+  </button>
+
+  <button
+    type="button"
+    className={activeView === "students" ? "is-active" : ""}
+    aria-pressed={activeView === "students"}
+    onClick={() => setActiveView("students")}
+  >
+    Students
+  </button>
+
+  <button
+    type="button"
+    className={activeView === "staff" ? "is-active" : ""}
+    aria-pressed={activeView === "staff"}
+    onClick={() => setActiveView("staff")}
+  >
+    Staff
+  </button>
+</nav>
               <div className="admin-registry-toolbar">
                 <div className="admin-panel__heading">
                   <div>

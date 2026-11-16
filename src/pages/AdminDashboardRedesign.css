@@ -622,3 +622,345 @@
   .ace-action-grid button,
   .admin-nav__item { transition: none !important; }
 }
+
+/* =========================================
+   REGISTRY WORKSPACE — REDESIGN
+========================================= */
+
+.admin-registry-panel {
+  display: grid;
+  gap: 1.35rem;
+  padding: 1.5rem;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--ace-panel, #081b3b);
+  border: 1px solid var(--ace-line, rgba(48, 111, 190, .48));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .12);
+}
+
+.admin-registry-switcher {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  width: fit-content;
+  max-width: 100%;
+  padding: .35rem;
+  border: 1px solid var(--ace-line, #234575);
+  border-radius: 12px;
+  background: var(--ace-panel-2, #0a2148);
+}
+
+.admin-registry-switcher button {
+  min-height: 2.45rem;
+  padding: .55rem 1.1rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ace-muted, #a6bbd9);
+  font: inherit;
+  font-size: .76rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease, box-shadow .18s ease;
+}
+
+.admin-registry-switcher button:hover {
+  color: var(--ace-text, #edf4ff);
+  background: rgba(55, 130, 255, .1);
+}
+
+.admin-registry-switcher button.is-active {
+  color: #fff;
+  background: linear-gradient(120deg, #1765dc, #2785ff);
+  box-shadow: 0 5px 16px rgba(25, 111, 239, .25);
+}
+
+.admin-registry-toolbar {
+  align-items: center;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--ace-line, #234575);
+}
+
+.admin-registry-toolbar .admin-panel__heading {
+  min-width: 0;
+}
+
+.admin-registry-toolbar .admin-panel__heading h2 {
+  color: var(--ace-text, #edf4ff);
+  font-size: 1.05rem;
+  letter-spacing: -.025em;
+}
+
+.admin-count-badge {
+  padding: .38rem .7rem;
+  border: 1px solid var(--ace-line, #234575);
+  border-radius: 30px;
+  background: var(--ace-panel-2, #0a2148);
+  color: var(--ace-muted, #a6bbd9);
+  font-size: .68rem;
+  font-weight: 600;
+}
+
+.admin-registry-panel .admin-search {
+  min-height: 3.15rem;
+  margin: 0;
+  border: 1px solid var(--ace-line, #234575);
+  border-radius: 11px;
+  background: var(--ace-panel-2, #0a2148);
+  box-shadow: none;
+}
+
+.admin-registry-panel .admin-search:focus-within {
+  border-color: #398aff;
+  box-shadow: 0 0 0 3px rgba(57, 138, 255, .13);
+}
+
+.admin-registry-panel .admin-search input {
+  min-width: 0;
+  background: transparent;
+  color: var(--ace-text, #edf4ff);
+}
+
+.admin-registry-panel .admin-search input::placeholder {
+  color: var(--ace-dim, #7992b8);
+}
+
+.admin-registry-panel .admin-search > svg {
+  color: var(--ace-dim, #7992b8);
+}
+
+.admin-registry-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .7rem;
+  margin-top: - .45rem;
+}
+
+.admin-registry-filters label {
+  color: var(--ace-muted, #a6bbd9);
+  font-size: .72rem;
+  font-weight: 600;
+}
+
+.admin-registry-filters select {
+  min-height: 2.35rem;
+  padding: .4rem 2rem .4rem .7rem;
+  border: 1px solid var(--ace-line, #234575);
+  border-radius: 8px;
+  background: var(--ace-panel-2, #0a2148);
+  color: var(--ace-text, #edf4ff);
+  font: inherit;
+  font-size: .72rem;
+}
+
+.admin-registry-filters > span {
+  margin-left: auto;
+  color: var(--ace-dim, #7992b8);
+  font-size: .68rem;
+}
+
+.admin-registry-panel .admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--ace-line, #234575);
+  border-radius: 12px;
+}
+
+.admin-registry-panel .admin-table {
+  min-width: 850px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-registry-panel .admin-table th {
+  padding: .95rem .85rem;
+  background: var(--ace-panel-2, #0a2148);
+  color: var(--ace-muted, #a6bbd9);
+  font-size: .65rem;
+  font-weight: 750;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-registry-panel .admin-table td {
+  padding: .9rem .85rem;
+  border-top: 1px solid var(--ace-line, #234575);
+  color: var(--ace-text, #edf4ff);
+  font-size: .74rem;
+  vertical-align: middle;
+}
+
+.admin-registry-panel .admin-table tbody tr {
+  transition: background .16s ease;
+}
+
+.admin-registry-panel .admin-table tbody tr:hover {
+  background: rgba(39, 133, 255, .07);
+}
+
+.admin-registry-panel .admin-table-name {
+  gap: .7rem;
+  min-width: 175px;
+}
+
+.admin-registry-panel .admin-table-name strong {
+  color: var(--ace-text, #edf4ff);
+  font-size: .75rem;
+  font-weight: 650;
+}
+
+.admin-registry-panel .admin-table-avatar {
+  width: 2.45rem;
+  height: 2.45rem;
+  border: 1px solid var(--ace-line, #234575);
+  background: var(--ace-panel-2, #0a2148);
+  color: #65b4ff;
+}
+
+.admin-registry-panel .admin-role-badge {
+  display: inline-flex;
+  padding: .3rem .55rem;
+  border: 1px solid var(--ace-line, #234575);
+  border-radius: 6px;
+  background: var(--ace-panel-2, #0a2148);
+  color: var(--ace-muted, #a6bbd9);
+  font-size: .65rem;
+  font-weight: 650;
+}
+
+.admin-registry-panel .admin-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .3rem;
+}
+
+.admin-registry-panel .admin-row-actions button {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  place-items: center;
+  border: 1px solid var(--ace-line, #234575);
+  border-radius: 7px;
+  background: var(--ace-panel-2, #0a2148);
+  color: var(--ace-muted, #a6bbd9);
+  cursor: pointer;
+  transition: .18s ease;
+}
+
+.admin-registry-panel .admin-row-actions button:hover {
+  border-color: #398aff;
+  background: rgba(39, 133, 255, .15);
+  color: #70b8ff;
+}
+
+.admin-registry-panel .admin-row-actions button.is-danger:hover {
+  border-color: #a94455;
+  background: rgba(220, 60, 80, .12);
+  color: #ff8293;
+}
+
+.admin-registry-panel .admin-load-more {
+  padding-top: .35rem;
+}
+
+.admin-registry-panel .admin-empty {
+  padding: 3rem 1rem;
+  color: var(--ace-muted, #a6bbd9);
+}
+
+/* Light theme */
+.admin-app[data-theme="light"] .admin-registry-panel {
+  background: #fff;
+  border-color: #dce6f3;
+  box-shadow: 0 12px 35px rgba(25, 55, 95, .06);
+}
+
+.admin-app[data-theme="light"] .admin-registry-switcher {
+  background: #f2f6fc;
+  border-color: #dce6f3;
+}
+
+.admin-app[data-theme="light"] .admin-registry-switcher button {
+  color: #647793;
+}
+
+.admin-app[data-theme="light"] .admin-registry-switcher button.is-active {
+  color: #fff;
+}
+
+.admin-app[data-theme="light"] .admin-registry-toolbar {
+  border-color: #e4ebf5;
+}
+
+.admin-app[data-theme="light"] .admin-registry-toolbar .admin-panel__heading h2,
+.admin-app[data-theme="light"] .admin-registry-panel .admin-table-name strong {
+  color: #142b49;
+}
+
+.admin-app[data-theme="light"] .admin-count-badge,
+.admin-app[data-theme="light"] .admin-registry-panel .admin-role-badge {
+  background: #f3f7fc;
+  border-color: #dce6f3;
+  color: #60748f;
+}
+
+.admin-app[data-theme="light"] .admin-registry-panel .admin-search,
+.admin-app[data-theme="light"] .admin-registry-filters select {
+  background: #f8faff;
+  border-color: #dce6f3;
+  color: #142b49;
+}
+
+.admin-app[data-theme="light"] .admin-registry-panel .admin-search input {
+  color: #142b49;
+}
+
+.admin-app[data-theme="light"] .admin-registry-panel .admin-table-wrap {
+  border-color: #e1e9f4;
+}
+
+.admin-app[data-theme="light"] .admin-registry-panel .admin-table th {
+  background: #f5f8fd;
+  color: #7486a0;
+}
+
+.admin-app[data-theme="light"] .admin-registry-panel .admin-table td {
+  border-color: #e8eef6;
+  color: #344b68;
+}
+
+.admin-app[data-theme="light"] .admin-registry-panel .admin-table-avatar,
+.admin-app[data-theme="light"] .admin-registry-panel .admin-row-actions button {
+  background: #f3f7fd;
+  border-color: #e0e9f5;
+  color: #3479d6;
+}
+
+@media (max-width: 760px) {
+  .admin-registry-panel {
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .admin-registry-switcher {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .admin-registry-switcher button {
+    padding: .5rem .3rem;
+    font-size: .68rem;
+  }
+
+  .admin-registry-toolbar {
+    align-items: flex-start;
+  }
+
+  .admin-registry-filters > span {
+    width: 100%;
+    margin-left: 0;
+  }
+}
