@@ -48,32 +48,44 @@ async function findClassAndTerm(schoolId, classId, termId) {
   return { schoolClass: classResult.data, term: termResult.data }
 }
 
+
 async function getActiveClassStudents(schoolId, classId) {
-  const { data, error } = await supabase
-
-    .from("enrollments")
-
-    .select("id,full_name,designation")
-
+  const { data: roster, error: rosterError } = await supabase
+    .from("school_class_students")
+    .select("student_id")
     .eq("school_id", schoolId)
-
     .eq("class_id", classId)
-
-    .eq("role", "student")
-
-    .eq("status", "Active")
-
-    .order("full_name")
-
+    .eq("is_active", true)
     .limit(501)
 
-  if (error) throw error
+  if (rosterError) throw rosterError
 
-  if (data.length > 500) {
+  if (roster.length > 500) {
     throw new Error(
       "This class has more than 500 active students. Contact support to record attendance safely.",
     )
   }
+
+  const studentIds = roster.map((row) => row.student_id)
+
+  if (!studentIds.length) return []
+
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select("id,full_name,designation")
+    .eq("school_id", schoolId)
+    .eq("role", "student")
+    .in("id", studentIds)
+    .order("full_name")
+
+  if (error) throw error
+
+  return data.map((row) => ({
+    id: String(row.id),
+    fullName: row.full_name,
+    designation: row.designation,
+  }))
+}
 
   return data.map((row) => ({
     id: String(row.id),
@@ -82,7 +94,7 @@ async function getActiveClassStudents(schoolId, classId) {
 
     designation: row.designation,
   }))
-}
+
 
 export async function getAttendanceSession(schoolId, classId, date) {
   const { data: session, error: sessionError } = await supabase
