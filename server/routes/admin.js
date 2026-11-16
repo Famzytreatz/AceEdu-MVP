@@ -30,6 +30,7 @@ import curriculumRouter from "./curriculum.js"
 import financeRouter from "./finance.js"
 import parentsRouter from "./parents.js"
 import communicationsRouter from "./communications.js"
+import registrationRouter from "./registration.js"
 
 import { validateEnrollment, validateSchoolShortName } from "../validation.js"
 
@@ -43,6 +44,7 @@ router.use("/curriculum", curriculumRouter)
 router.use("/finance", financeRouter)
 router.use("/parents", parentsRouter)
 router.use("/communications", communicationsRouter)
+router.use("/registration", registrationRouter)
 
 function csvCell(value) {
   let text = String(value ?? "")
