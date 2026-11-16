@@ -87,13 +87,7 @@ async function getActiveClassStudents(schoolId, classId) {
   }))
 }
 
-  return data.map((row) => ({
-    id: String(row.id),
-
-    fullName: row.full_name,
-
-    designation: row.designation,
-  }))
+ 
 
 
 export async function getAttendanceSession(schoolId, classId, date) {
