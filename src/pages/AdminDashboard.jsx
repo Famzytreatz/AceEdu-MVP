@@ -51,6 +51,7 @@ import PremiumOperations from "./PremiumOperations"
 import PremiumWorkspace from "./PremiumWorkspace"
 import SchoolCurriculumSetup from "./SchoolCurriculumSetup"
 import SchoolSettings from "./SchoolSettings"
+import RegistrationWorkspace from "./RegistrationWorkspace"
 
 import "./AdminDashboard.css"
 import "./PremiumWorkspace.css"
@@ -63,6 +64,7 @@ const navigation = [
   { id: "staff", label: "Staff", Icon: Users },
   { id: "registry", label: "Registry", Icon: IdCard },
   { id: "enrollment", label: "Add record", Icon: Plus },
+  { id: "registrationSetup", label: "Registration setup", Icon: ClipboardList },
   { id: "classes", label: "Classes & subjects", Icon: BookOpen },
   { id: "settings", label: "Settings", Icon: Settings },
 ]
@@ -1101,7 +1103,8 @@ const [theme, setTheme] = useState(() => {
                 {activeView === "dashboard" &&
                   `Your ${school.schoolName} workspace, at a glance.`}
                 {activeView === "enrollment" &&
-                  "Create and manage student and staff registry entries."}
+                  "Create and manage student and staff registry entries."}                {activeView === "registrationSetup" &&
+                  "Configure, preview, save, and publish the student registration form used by your school."}
                 {activeView === "settings" &&
                   "Manage the school structure and preferences for your workspace."}
                 {activeView === "classes" &&
@@ -1133,6 +1136,7 @@ const [theme, setTheme] = useState(() => {
             </div>
             {![
               "enrollment",
+              "registrationSetup",
               "settings",
               "classes",
               "academicRecords",
@@ -1633,6 +1637,9 @@ const [theme, setTheme] = useState(() => {
               schoolType={school.schoolType}
               onSchoolTypeChange={() => setActiveView("settings")}
             />
+          )}
+          {activeView === "registrationSetup" && (
+            <RegistrationWorkspace schoolName={school.schoolName} />
           )}
           {activeView === "settings" && (
             <SchoolSettings
