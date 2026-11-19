@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import {
   assignStudentsToClass,
   createAcademicYear,
@@ -9,7 +9,7 @@ import {
 } from "../data/api"
 import { BookOpen, CalendarDays, GraduationCap, Users } from "lucide-react"
 import LoadingSpinner from "../components/ui/LoadingSpinner"
-import "./PremiumAcademicSetup.css"
+import "./PremiumAcademicSetup.css"`r`nimport "./PremiumAcademicSetupPolish.css"
 
 const emptyYear = { name: "", startsOn: "", endsOn: "", termCount: "3" }
 
@@ -145,7 +145,7 @@ export default function PremiumAcademicSetup({
   if (loading && data.academicYears.length === 0 && data.classes.length === 0) {
     return (
       <div className="premium-academic__loading" role="status">
-        <LoadingSpinner /> Loading academic setup…
+        <LoadingSpinner /> Loading academic setupâ€¦
       </div>
     )
   }
@@ -154,7 +154,7 @@ export default function PremiumAcademicSetup({
     <section className="premium-academic" aria-labelledby="premium-academic-title">
       <header className="premium-academic__heading">
         <div>
-          <p className="admin-eyebrow">PREMIUM · ACADEMIC FOUNDATION</p>
+          <p className="admin-eyebrow">PREMIUM Â· ACADEMIC FOUNDATION</p>
           <h2 id="premium-academic-title">
             {classOnly ? "Session classes and rosters" : "Academic setup"}
           </h2>
@@ -176,7 +176,7 @@ export default function PremiumAcademicSetup({
 
       {error && <p className="premium-academic__message is-error" role="alert">{error}</p>}
       {notice && <p className="premium-academic__message" role="status">{notice}</p>}
-      {loading && <p className="premium-academic__updating" role="status">Refreshing saved setup…</p>}
+      {loading && <p className="premium-academic__updating" role="status">Refreshing saved setupâ€¦</p>}
 
       <div className="premium-academic__grid">
         {!classOnly && (
@@ -202,7 +202,7 @@ export default function PremiumAcademicSetup({
             id="academic-year-name"
             required
             maxLength={80}
-            placeholder="2026–2027"
+            placeholder="2026â€“2027"
             value={yearForm.name}
             onChange={(event) => setYearForm({ ...yearForm, name: event.target.value })}
           />
@@ -266,7 +266,7 @@ export default function PremiumAcademicSetup({
           >
             <option value="">Select a year</option>
             {availableYears.map((year) => (
-              <option value={year.id} key={year.id}>{year.name}{year.isCurrent ? " · Current" : ""}</option>
+              <option value={year.id} key={year.id}>{year.name}{year.isCurrent ? " Â· Current" : ""}</option>
             ))}
           </select>
           <label htmlFor="class-name">Class name</label>
@@ -402,8 +402,8 @@ export default function PremiumAcademicSetup({
             <h3>{classOnly ? "Classes in this session" : "Saved academic structure"}</h3>
             <p>
               {classOnly
-                ? `${availableClasses.length} classes · ${data.subjects.filter((subject) => availableClasses.some((schoolClass) => schoolClass.id === subject.classId)).length} subjects`
-                : `${data.academicYears.length} years · ${data.classes.length} classes · ${data.subjects.length} subjects`}
+                ? `${availableClasses.length} classes Â· ${data.subjects.filter((subject) => availableClasses.some((schoolClass) => schoolClass.id === subject.classId)).length} subjects`
+                : `${data.academicYears.length} years Â· ${data.classes.length} classes Â· ${data.subjects.length} subjects`}
             </p>
           </div>
         </div>
@@ -411,7 +411,7 @@ export default function PremiumAcademicSetup({
           <article className="premium-academic__year" key={year.id}>
             <div>
               <strong>{year.name}</strong>
-              <span>{year.startsOn} — {year.endsOn} · {year.termCount} terms</span>
+              <span>{year.startsOn} â€” {year.endsOn} Â· {year.termCount} terms</span>
             </div>
             {!year.isCurrent && (
               <button
@@ -429,7 +429,7 @@ export default function PremiumAcademicSetup({
             {year.isCurrent && <span className="premium-academic__current">Current year</span>}
             <div className="premium-academic__terms">
               {data.terms.filter((term) => term.academicYearId === year.id).map((term) => (
-                <span key={term.id}>{term.name}: {term.startsOn} – {term.endsOn}</span>
+                <span key={term.id}>{term.name}: {term.startsOn} â€“ {term.endsOn}</span>
               ))}
             </div>
           </article>
@@ -449,3 +449,4 @@ export default function PremiumAcademicSetup({
     </section>
   )
 }
+

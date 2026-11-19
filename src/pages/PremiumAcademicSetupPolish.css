@@ -1,0 +1,203 @@
+﻿/* AceEdu Academic Foundation — visual layer */
+.premium-academic {
+  --academic-accent: var(--admin-blue-strong, #397dff);
+  gap: 1.25rem;
+  animation: academic-enter .45s ease both;
+}
+
+.premium-academic__heading {
+  position: relative;
+  overflow: hidden;
+  align-items: center;
+  padding: 1.35rem;
+  border: 1px solid var(--admin-line);
+  border-radius: 1rem;
+  background:
+    radial-gradient(ellipse at 95% 0%, color-mix(in srgb, var(--academic-accent) 13%, transparent), transparent 48%),
+    var(--admin-surface);
+  box-shadow: 0 8px 30px rgb(20 40 90 / 5%);
+}
+
+.premium-academic__heading h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  letter-spacing: -.055em;
+}
+
+.premium-academic__heading p:last-child {
+  max-width: 42rem;
+  font-size: .82rem;
+}
+
+.premium-academic__grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.1rem;
+}
+
+.premium-academic__panel {
+  position: relative;
+  overflow: hidden;
+  gap: .75rem;
+  padding: 1.25rem;
+  border: 1px solid var(--admin-line);
+  border-radius: .95rem;
+  background: var(--admin-surface);
+  box-shadow: 0 5px 22px rgb(20 40 90 / 4%);
+  transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+  animation: academic-card-enter .5s ease both;
+}
+
+.premium-academic__panel:nth-child(2) { animation-delay: 60ms; }
+.premium-academic__panel:nth-child(3) { animation-delay: 120ms; }
+.premium-academic__panel:nth-child(4) { animation-delay: 180ms; }
+
+.premium-academic__panel:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--academic-accent) 38%, var(--admin-line));
+  box-shadow: 0 13px 34px rgb(20 40 90 / 9%);
+}
+
+.premium-academic__panel h3 {
+  gap: .7rem;
+  margin-bottom: .35rem;
+  font-size: .95rem;
+  letter-spacing: -.02em;
+}
+
+.premium-academic__panel h3 svg {
+  box-sizing: content-box;
+  padding: .55rem;
+  border-radius: .7rem;
+  background: color-mix(in srgb, var(--academic-accent) 10%, var(--admin-surface));
+}
+
+.premium-academic__panel input:not([type="checkbox"]),
+.premium-academic__panel select {
+  min-height: 2.8rem;
+  border-radius: .7rem;
+  font-size: .78rem;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.premium-academic__panel input:focus,
+.premium-academic__panel select:focus {
+  border-color: var(--academic-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--academic-accent) 13%, transparent);
+}
+
+.premium-academic__panel .admin-primary-button {
+  justify-content: center;
+  min-height: 2.8rem;
+  margin-top: .35rem;
+  border-radius: .7rem;
+  transition: transform .18s ease, filter .18s ease;
+}
+
+.premium-academic__panel .admin-primary-button:not(:disabled):hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+.premium-academic__student-list {
+  border-radius: .8rem;
+  background: var(--admin-surface);
+}
+
+.premium-academic__student {
+  min-height: 3rem;
+  transition: background .16s ease;
+}
+
+.premium-academic__student:hover {
+  background: color-mix(in srgb, var(--academic-accent) 7%, var(--admin-surface));
+}
+
+.premium-academic__saved {
+  gap: .9rem;
+  padding: 1.25rem;
+  border: 1px solid var(--admin-line);
+  border-radius: 1rem;
+  box-shadow: 0 7px 26px rgb(20 40 90 / 4%);
+}
+
+.premium-academic__saved-heading {
+  align-items: center;
+  padding-bottom: .7rem;
+  border-bottom: 1px solid var(--admin-line);
+}
+
+.premium-academic__saved-heading h3 {
+  font-size: 1rem;
+}
+
+.premium-academic__year,
+.premium-academic__class {
+  border-radius: .85rem;
+  padding: .95rem;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.premium-academic__year:hover,
+.premium-academic__class:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--academic-accent) 35%, var(--admin-line));
+  box-shadow: 0 8px 22px rgb(20 40 90 / 6%);
+}
+
+.premium-academic__terms {
+  gap: .5rem;
+}
+
+.premium-academic__terms span {
+  padding: .4rem .65rem;
+  background: color-mix(in srgb, var(--academic-accent) 6%, var(--admin-surface));
+}
+
+.premium-academic__message {
+  border: 1px solid color-mix(in srgb, var(--academic-accent) 20%, transparent);
+  border-radius: .8rem;
+  animation: academic-enter .25s ease both;
+}
+
+.premium-academic__loading {
+  min-height: 14rem;
+}
+
+@keyframes academic-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes academic-card-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 850px) {
+  .premium-academic__heading {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  .premium-academic__heading,
+  .premium-academic__panel,
+  .premium-academic__saved {
+    padding: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-academic,
+  .premium-academic__panel,
+  .premium-academic__message {
+    animation: none !important;
+  }
+
+  .premium-academic__panel,
+  .premium-academic__year,
+  .premium-academic__class,
+  .premium-academic__student,
+  .premium-academic__panel .admin-primary-button {
+    transition: none !important;
+  }
+}
