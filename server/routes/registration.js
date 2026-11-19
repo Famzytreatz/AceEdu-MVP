@@ -1,4 +1,4 @@
-import express from "express"
+﻿import express from "express"
 import {
   createRegistrationForm,
   ensureDefaultRegistrationForm,
@@ -7,6 +7,13 @@ import {
   publishRegistrationFormVersion,
   saveRegistrationFormDraft,
 } from "../models/Registration.js"
+import {
+  listRegistrationDocuments,
+  createRegistrationDocumentUpload,
+  completeRegistrationDocumentUpload,
+  createRegistrationDocumentDownload,
+  deleteRegistrationDocument,
+} from "../models/RegistrationDocuments.js"
 import { isValidDatabaseId } from "../ids.js"
 import { asyncRoute } from "../security.js"
 import {
@@ -37,6 +44,11 @@ export function createRegistrationRouter(services = {}) {
     listRegistrationForms,
     publishRegistrationFormVersion,
     saveRegistrationFormDraft,
+    listRegistrationDocuments,
+    createRegistrationDocumentUpload,
+    completeRegistrationDocumentUpload,
+    createRegistrationDocumentDownload,
+    deleteRegistrationDocument,
     ...services,
   }
   const router = express.Router()
@@ -152,7 +164,119 @@ export function createRegistrationRouter(services = {}) {
     }),
   )
 
+  router.get(
+    "/forms/:formId/documents",
+    asyncRoute(async (req, res) => {
+      if (!isValidDatabaseId(req.params.formId)) {
+        return res.status(400).json({ error: "The registration form ID is invalid." })
+      }
+      const documents = await service.listRegistrationDocuments(
+        req.session.schoolId,
+        req.params.formId,
+      )
+      return res.json({ documents })
+    }),
+  )
+
+  router.post(
+    "/forms/:formId/documents",
+    asyncRoute(async (req, res) => {
+      if (!isValidDatabaseId(req.params.formId)) {
+        return res.status(400).json({ error: "The registration form ID is invalid." })
+      }
+      const body = req.body
+      const allowedKeys = ["fileName", "mimeType", "sizeBytes"]
+      if (
+        !body ||
+        typeof body !== "object" ||
+        Array.isArray(body) ||
+        Object.keys(body).some((key) => !allowedKeys.includes(key)) ||
+        typeof body.fileName !== "string" ||
+        typeof body.mimeType !== "string" ||
+        !Number.isSafeInteger(body.sizeBytes)
+      ) {
+        return res.status(400).json({ error: "Provide a valid file name, document type and file size." })
+      }
+      try {
+        const result = await service.createRegistrationDocumentUpload({
+          schoolId: req.session.schoolId,
+          formId: req.params.formId,
+          ...body,
+        })
+        return res.status(201).json(result)
+      } catch (error) {
+        const response = expectedError(res, error)
+        if (response) return response
+        throw error
+      }
+    }),
+  )
+
+  router.post(
+    "/forms/:formId/documents/:documentId/complete",
+    asyncRoute(async (req, res) => {
+      if (
+        !isValidDatabaseId(req.params.formId) ||
+        !isValidDatabaseId(req.params.documentId)
+      ) {
+        return res.status(400).json({ error: "The registration form or document ID is invalid." })
+      }
+      try {
+        const document = await service.completeRegistrationDocumentUpload(
+          req.session.schoolId,
+          req.params.formId,
+          req.params.documentId,
+        )
+        if (!document) return res.status(404).json({ error: "Registration document not found." })
+        return res.json({ document })
+      } catch (error) {
+        const response = expectedError(res, error)
+        if (response) return response
+        throw error
+      }
+    }),
+  )
+
+  router.get(
+    "/forms/:formId/documents/:documentId/download",
+    asyncRoute(async (req, res) => {
+      if (
+        !isValidDatabaseId(req.params.formId) ||
+        !isValidDatabaseId(req.params.documentId)
+      ) {
+        return res.status(400).json({ error: "The registration form or document ID is invalid." })
+      }
+      const download = await service.createRegistrationDocumentDownload(
+        req.session.schoolId,
+        req.params.formId,
+        req.params.documentId,
+      )
+      if (!download) return res.status(404).json({ error: "Uploaded registration document not found." })
+      return res.json(download)
+    }),
+  )
+
+  router.delete(
+    "/forms/:formId/documents/:documentId",
+    asyncRoute(async (req, res) => {
+      if (
+        !isValidDatabaseId(req.params.formId) ||
+        !isValidDatabaseId(req.params.documentId)
+      ) {
+        return res.status(400).json({ error: "The registration form or document ID is invalid." })
+      }
+      const deleted = await service.deleteRegistrationDocument(
+        req.session.schoolId,
+        req.params.formId,
+        req.params.documentId,
+      )
+      if (!deleted) return res.status(404).json({ error: "Registration document not found." })
+      return res.json({ deleted: true })
+    }),
+  )
+
   return router
 }
 
 export default createRegistrationRouter()
+
