@@ -1,0 +1,173 @@
+﻿/* AceEdu Admin Dashboard visual refinement */
+.admin-content:has(.ace-dashboard) {
+  padding: clamp(1rem, 1.8vw, 1.7rem) clamp(1rem, 2vw, 2rem) 2.5rem;
+}
+
+.ace-dashboard {
+  grid-template-columns: minmax(0, 1fr) minmax(285px, 320px);
+  gap: 1.15rem;
+}
+
+.ace-dashboard__primary,
+.ace-dashboard__rail {
+  gap: 1.15rem;
+}
+
+.ace-hero {
+  min-height: 10.25rem;
+  border-radius: 1.1rem;
+  padding: clamp(1.25rem, 2vw, 1.8rem);
+  box-shadow: 0 18px 42px rgba(0, 61, 150, .18),
+    inset 0 1px 0 rgba(255,255,255,.1);
+}
+
+.ace-live-label {
+  font-size: .62rem;
+  letter-spacing: .14em;
+}
+
+.ace-hero h2 {
+  margin-top: .72rem;
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+.ace-hero p { font-size: .82rem; }
+.ace-hero__meta { margin-top: 1.25rem; font-size: .68rem; }
+
+.ace-metrics-grid { gap: .85rem; }
+
+.ace-metric-card {
+  min-height: 9.5rem;
+  border-radius: .95rem;
+  padding: 1rem 1.05rem .95rem;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.ace-metric-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--metric-color) 55%, var(--ace-line));
+  box-shadow: 0 13px 28px rgba(0,0,0,.15);
+}
+
+.ace-metric-card__icon {
+  width: 2.55rem;
+  height: 2.55rem;
+  border-radius: .78rem;
+}
+
+.ace-metric-card__label { font-size: .72rem; }
+.ace-metric-card__value {
+  margin-top: .68rem;
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
+}
+.ace-metric-card__foot { margin-top: .4rem; font-size: .62rem; }
+
+.ace-analytics-grid,
+.ace-lower-grid { gap: .95rem; }
+
+.ace-panel {
+  border-radius: 1rem;
+  box-shadow: 0 10px 28px rgba(0,0,0,.11),
+    inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.ace-chart-panel,
+.ace-records-panel,
+.ace-calendar-panel,
+.ace-quick-panel,
+.ace-activity-panel,
+.ace-access-panel {
+  padding: 1.05rem 1.1rem;
+}
+
+.ace-panel-heading h2 { font-size: .88rem; }
+.ace-panel-heading p { font-size: .66rem; }
+
+.ace-panel-heading__icon {
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: .7rem;
+}
+
+.ace-table th { padding: .68rem .5rem; font-size: .61rem; }
+.ace-table td { padding: .68rem .5rem; font-size: .64rem; }
+.ace-table-person i { width: 1.75rem; height: 1.75rem; }
+.ace-table-person strong { font-size: .65rem; }
+
+.ace-action-grid { gap: .62rem; }
+.ace-action-grid button {
+  min-height: 3.65rem;
+  border-radius: .8rem;
+  padding: .52rem .58rem;
+  font-size: .65rem;
+}
+
+.ace-action-icon { width: 2.2rem; height: 2.2rem; }
+
+.ace-activity-item {
+  grid-template-columns: 2.35rem minmax(0, 1fr) auto;
+  gap: .65rem;
+  padding: .72rem 0;
+}
+
+.ace-activity-icon { width: 2.2rem; height: 2.2rem; }
+.ace-activity-copy strong { font-size: .66rem; }
+.ace-activity-copy small,
+.ace-activity-item time { font-size: .59rem; }
+
+.ace-dashboard button:focus-visible,
+.ace-dashboard a:focus-visible {
+  outline: 3px solid rgba(74,157,255,.75);
+  outline-offset: 3px;
+}
+
+.admin-app[data-theme="light"] .ace-trend-chart__summary span,
+.admin-app[data-theme="light"] .ace-trend-chart__summary small,
+.admin-app[data-theme="light"] .ace-calendar-note {
+  color: #6c819d;
+}
+
+.admin-app[data-theme="light"] .ace-table th { background: #f7faff; }
+
+@media (max-width: 1320px) {
+  .ace-dashboard {
+    grid-template-columns: minmax(0, 1fr) minmax(270px, 295px);
+  }
+}
+
+@media (max-width: 1100px) {
+  .ace-dashboard { grid-template-columns: minmax(0, 1fr); }
+  .ace-dashboard__rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+@media (max-width: 850px) {
+  .admin-content:has(.ace-dashboard) { padding: 1rem .9rem 1.5rem; }
+  .ace-hero { min-height: 9.5rem; }
+  .ace-hero__quote { display: none; }
+  .ace-dashboard__rail { grid-template-columns: minmax(0, 1fr); }
+  .ace-access-panel { grid-column: auto; }
+}
+
+@media (max-width: 520px) {
+  .ace-hero { min-height: auto; padding: 1.15rem; }
+  .ace-hero__meta { gap: .5rem; margin-top: .9rem; font-size: .61rem; }
+  .ace-metric-card { min-height: 8.8rem; padding: .8rem; }
+  .ace-metric-card__icon { width: 2.15rem; height: 2.15rem; }
+  .ace-metric-card__label { font-size: .63rem; }
+  .ace-metric-card__foot { font-size: .56rem; }
+  .ace-chart-panel,
+  .ace-records-panel,
+  .ace-calendar-panel,
+  .ace-quick-panel,
+  .ace-activity-panel,
+  .ace-access-panel { padding: .9rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ace-metric-card,
+  .ace-action-grid button { transition: none; }
+  .ace-metric-card:hover { transform: none; }
+}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+﻿import { useCallback, useEffect, useRef, useState } from "react"
 
 import {
   ArrowUpRight,
@@ -57,6 +57,7 @@ import "./AdminDashboard.css"
 import "./PremiumWorkspace.css"
 import AdminDashboardOverview from "./AdminDashboardOverview"
 import "./AdminDashboardRedesign.css"
+import "./AdminDashboardPolish.css"
 
 const navigation = [
   { id: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
@@ -130,12 +131,12 @@ const emptyForm = {
 }
 
 function formatDate(value) {
-  if (!value) return "—"
+  if (!value) return "â€”"
 
   const date = new Date(value)
 
   return Number.isNaN(date.valueOf())
-    ? "—"
+    ? "â€”"
     : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date)
 }
 
@@ -828,13 +829,13 @@ const [theme, setTheme] = useState(() => {
   return (
     <div className="admin-app" data-theme={theme}>
       <aside className="admin-sidebar">
-        <a className="admin-brand" href="#top" aria-label="Aces Academy admin home">
+        <a className="admin-brand" href="#top" aria-label="AceEdu admin home">
   <span className="admin-brand__mark" aria-hidden="true">
     <span className="admin-brand__letter">A</span>
   </span>
   <span>
-    <strong>Aces Academy</strong>
-    <small>Manage · Educate · Grow</small>
+    <strong>AceEdu</strong>
+    <small>Manage Â· Educate Â· Grow</small>
   </span>
 </a>
 
@@ -1024,7 +1025,7 @@ const [theme, setTheme] = useState(() => {
               value={globalQuery}
               onChange={(event) => setGlobalQuery(event.target.value)}
               aria-label="Search school registry"
-              placeholder="Search people in your school…"
+              placeholder="Search people in your schoolâ€¦"
             />
             <kbd>Enter</kbd>
           </form>
@@ -1082,7 +1083,7 @@ const [theme, setTheme] = useState(() => {
             ) : (
               <LogOut size={17} aria-hidden="true" />
             )}
-            {logoutPending ? "Signing out…" : "Sign out"}
+            {logoutPending ? "Signing outâ€¦" : "Sign out"}
           </button>
         </header>
 
@@ -1289,13 +1290,13 @@ const [theme, setTheme] = useState(() => {
                             required
                             disabled={Boolean(curriculumError)}
                           >
-                            <option value="">Select a class…</option>
+                            <option value="">Select a classâ€¦</option>
                             {classLevels
                               .filter((level) => level.isActive)
                               .map((level) => (
                                 <option value={level.id} key={level.id}>
                                   {level.displayName}
-                                  {level.isOptional ? " · Optional" : ""}
+                                  {level.isOptional ? " Â· Optional" : ""}
                                 </option>
                               ))}
                           </select>
@@ -1510,10 +1511,10 @@ const [theme, setTheme] = useState(() => {
                         <small role={passportPending ? "status" : undefined}>
                           {passportPending ? (
                             <>
-                              <LoadingSpinner /> Optimizing image…
+                              <LoadingSpinner /> Optimizing imageâ€¦
                             </>
                           ) : (
-                            "JPEG, PNG, or WebP · maximum 5 MB"
+                            "JPEG, PNG, or WebP Â· maximum 5 MB"
                           )}
                         </small>
                       </label>
@@ -1530,8 +1531,8 @@ const [theme, setTheme] = useState(() => {
                           )}
                           {enrollmentPending
                             ? form.role === "student"
-                              ? "Registering student…"
-                              : "Creating account…"
+                              ? "Registering studentâ€¦"
+                              : "Creating accountâ€¦"
                             : "Create identity"}
                         </button>
                       </div>
@@ -1719,7 +1720,7 @@ const [theme, setTheme] = useState(() => {
               </div>
               <p className="admin-portal-access__hint">
                 Access requires an active enrollment in this school and the
-                member’s existing school-issued sign-in credentials. Premium
+                memberâ€™s existing school-issued sign-in credentials. Premium
                 access is checked by the server.
               </p>
             </section>
@@ -1768,7 +1769,7 @@ const [theme, setTheme] = useState(() => {
                   </div>
                   <span className="admin-count-badge">
                     {records.length} shown
-                    {nextCursor ? " · more available" : ""}
+                    {nextCursor ? " Â· more available" : ""}
                   </span>
                 </div>
                 <button
@@ -1784,7 +1785,7 @@ const [theme, setTheme] = useState(() => {
                     <ArrowDownToLine size={17} />
                   )}
 
-                  {exportingRegistry ? "Preparing export…" : "Export CSV"}
+                  {exportingRegistry ? "Preparing exportâ€¦" : "Export CSV"}
                 </button>
               </div>
               <form
@@ -1822,7 +1823,7 @@ const [theme, setTheme] = useState(() => {
                   type="submit"
                   disabled={registryLoading}
                 >
-                  {registryLoading ? "Searching…" : "Search"}
+                  {registryLoading ? "Searchingâ€¦" : "Search"}
                 </button>
               </form>
               <div className="admin-registry-filters">
@@ -1868,12 +1869,12 @@ const [theme, setTheme] = useState(() => {
               {registryLoading && records.length > 0 && (
                 <p className="admin-registry-loading" role="status">
                   <LoaderCircle size={15} className="admin-spin" /> Updating
-                  registry…
+                  registryâ€¦
                 </p>
               )}
               {registryLoading && records.length === 0 && (
                 <p className="admin-visually-hidden" role="status">
-                  Loading school records…
+                  Loading school recordsâ€¦
                 </p>
               )}
               <div className="admin-table-wrap">
@@ -1971,7 +1972,7 @@ const [theme, setTheme] = useState(() => {
                             ? record.hasPortalPassword
                               ? "Set"
                               : "Not set"
-                            : "—"}
+                            : "â€”"}
                         </td>
                         <td>
                           <span
@@ -2094,7 +2095,7 @@ const [theme, setTheme] = useState(() => {
                       loadRegistry({ append: true, cursor: nextCursor })
                     }
                   >
-                    {registryLoading ? "Loading…" : "Load more records"}
+                    {registryLoading ? "Loadingâ€¦" : "Load more records"}
                   </button>
                 </div>
               )}
@@ -2201,7 +2202,7 @@ const [theme, setTheme] = useState(() => {
                     shortNamePending || !/^[A-Z]{3}$/.test(shortNameDraft)
                   }
                 >
-                  {shortNamePending ? "Saving code…" : "Save and continue"}
+                  {shortNamePending ? "Saving codeâ€¦" : "Save and continue"}
                   {!shortNamePending && (
                     <ArrowUpRight size={16} aria-hidden="true" />
                   )}
@@ -2268,7 +2269,7 @@ const [theme, setTheme] = useState(() => {
                 <Detail label="Full name" value={selectedRecord.fullName} />
                 <Detail
                   label="Role and designation"
-                  value={`${selectedRecord.role} — ${selectedRecord.designation}`}
+                  value={`${selectedRecord.role} â€” ${selectedRecord.designation}`}
                 />
                 <Detail label="Status" value={selectedRecord.status} />
                 {["student", "teacher"].includes(selectedRecord.role) && (
@@ -2276,7 +2277,7 @@ const [theme, setTheme] = useState(() => {
                     label="Portal password"
                     value={
                       selectedRecord.hasPortalPassword
-                        ? "Set — stored securely; cannot be viewed."
+                        ? "Set â€” stored securely; cannot be viewed."
                         : "Not set"
                     }
                   />
@@ -2335,7 +2336,7 @@ const [theme, setTheme] = useState(() => {
                     <LockKeyhole size={16} />
                   )}
                   {passwordResetPending
-                    ? "Resetting password…"
+                    ? "Resetting passwordâ€¦"
                     : `Reset ${selectedRecord.role} password`}
                 </button>
                 {passwordResetResult?.recordId === selectedRecord._id && (
@@ -2411,7 +2412,7 @@ const [theme, setTheme] = useState(() => {
               <Detail label="Address" value={school.address} />
               <Detail
                 label="School contact"
-                value={`${school.schoolEmail} · ${school.schoolPhone}`}
+                value={`${school.schoolEmail} Â· ${school.schoolPhone}`}
               />
             </dl>
           </section>
@@ -2441,7 +2442,7 @@ function StatCard({ Icon, label, value, loading, error, tone, context }) {
           {loading ? (
             <span className="admin-stat-skeleton" aria-hidden="true" />
           ) : error ? (
-            "—"
+            "â€”"
           ) : (
             (value ?? 0)
           )}
@@ -2627,7 +2628,7 @@ function RegistryCardSkeleton() {
         className="admin-registry-card-skeleton__line is-short"
         aria-hidden="true"
       />
-      <span className="admin-visually-hidden">Loading student records…</span>
+      <span className="admin-visually-hidden">Loading student recordsâ€¦</span>
     </div>
   )
 }
@@ -2675,7 +2676,7 @@ function RegistryRecordCard({
       <dl className="admin-registry-card__details">
         <div>
           <dt>Class / designation</dt>
-          <dd>{record.designation || "—"}</dd>
+          <dd>{record.designation || "â€”"}</dd>
         </div>
         <div>
           <dt>Access code</dt>
@@ -2744,7 +2745,7 @@ function Detail({ label, value }) {
   return (
     <div>
       <dt>{label}</dt>
-      <dd>{value || "—"}</dd>
+      <dd>{value || "â€”"}</dd>
     </div>
   )
 }
@@ -2791,3 +2792,6 @@ function IdentityCard({ record, qrCode = "", printable = false }) {
     </div>
   )
 }
+
+
+

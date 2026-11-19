@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+﻿import { useEffect, useMemo, useState } from "react"
 import {
   Activity,
   ArrowDownToLine,
@@ -39,10 +39,10 @@ function formatMoney(value, currency = "NGN") {
 }
 
 function formatDate(value, options = { day: "2-digit", month: "short", year: "numeric" }) {
-  if (!value) return "—"
+  if (!value) return "â€”"
   const date = new Date(value)
   return Number.isNaN(date.valueOf())
-    ? "—"
+    ? "â€”"
     : new Intl.DateTimeFormat("en-NG", options).format(date)
 }
 
@@ -82,7 +82,7 @@ function MetricCard({ Icon, label, value, detail, tone, loading, locked, error }
         {loading ? (
           <span className="ace-skeleton ace-skeleton--metric" aria-hidden="true" />
         ) : error ? (
-          "—"
+          "â€”"
         ) : locked ? (
           <span className="ace-locked-value"><LockKeyhole size={15} /> Premium</span>
         ) : (
@@ -233,22 +233,22 @@ function SchoolAccessCard({
   onRefreshEntitlement,
 }) {
   const status = entitlementLoading
-    ? "Checking school access…"
+    ? "Checking school accessâ€¦"
     : premiumAccessActive && entitlement?.trialActive
-      ? `Premium trial · ends ${formatDate(entitlement.trialEndsAt)}`
+      ? `Premium trial Â· ends ${formatDate(entitlement.trialEndsAt)}`
       : premiumAccessActive && entitlement?.plan === "premium"
         ? "Premium plan active"
         : entitlement?.trialPreviouslyGranted
-          ? "Trial ended · MVP access active"
+          ? "Trial ended Â· MVP access active"
           : entitlement?.verificationStatus === "pending"
             ? "School verification pending"
             : entitlement?.verificationStatus === "review_required"
               ? "Additional identity review required"
               : entitlement?.verificationStatus === "verified"
-                ? "School verified · MVP access active"
+                ? "School verified Â· MVP access active"
                 : entitlement?.verificationStatus === "rejected"
                   ? "Verification needs another review"
-                  : "MVP plan · default access"
+                  : "MVP plan Â· default access"
 
   const showVerificationForm =
     !entitlementLoading &&
@@ -304,7 +304,7 @@ function SchoolAccessCard({
               disabled={verificationPending}
             />
             <button className="ace-small-primary" type="submit" disabled={verificationPending || registrationId.trim().length < 2}>
-              {verificationPending ? "Submitting…" : "Submit verification request"}
+              {verificationPending ? "Submittingâ€¦" : "Submit verification request"}
             </button>
             <small>Approval is reviewed by an authorized operator. Submitting a request does not activate Premium.</small>
           </form>
@@ -390,16 +390,16 @@ export default function AdminDashboardOverview({
     ? "Multiple"
     : finance.status === "ready"
       ? formatMoney(finance.total, finance.currency)
-      : "—"
+      : "â€”"
   const financeDetail = finance.status === "locked"
     ? "Available with Premium"
     : finance.status === "loading"
-      ? "Loading invoice totals…"
+      ? "Loading invoice totalsâ€¦"
       : finance.status === "error"
         ? "Finance data unavailable"
         : finance.mixed
-          ? `${finance.invoices} invoices · mixed currencies`
-          : `${finance.invoices} issued invoices · ${formatMoney(finance.paid, finance.currency)} collected`
+          ? `${finance.invoices} invoices Â· mixed currencies`
+          : `${finance.invoices} issued invoices Â· ${formatMoney(finance.paid, finance.currency)} collected`
 
   const currentSchoolType = school.schoolType || "School workspace"
   const activityCount = useMemo(() => activity.length, [activity])
@@ -410,7 +410,7 @@ export default function AdminDashboardOverview({
         <div className="ace-dashboard-error" role="alert">
           <span>Dashboard data could not be loaded: {dashboardError}</span>
           <button type="button" onClick={onRetry} disabled={dashboardLoading}>
-            {dashboardLoading ? "Retrying…" : "Try again"}
+            {dashboardLoading ? "Retryingâ€¦" : "Try again"}
           </button>
         </div>
       )}
@@ -418,9 +418,9 @@ export default function AdminDashboardOverview({
       <div className="ace-dashboard__primary">
         <section className="ace-hero">
           <div className="ace-hero__copy">
-            <span className="ace-live-label"><i /> LIVE SCHOOL OVERVIEW</span>
-            <h2>{greeting}, {school.adminName?.trim().split(/\s+/)[0] || "Admin"} <span aria-hidden="true">👋</span></h2>
-            <p>Here’s what’s happening at <strong>{school.schoolName}</strong> today.</p>
+            <span className="ace-live-label"><i /> SCHOOL OVERVIEW</span>
+            <h2>{greeting}, {school.adminName?.trim().split(/\s+/)[0] || "Admin"} <span aria-hidden="true">ðŸ‘‹</span></h2>
+            <p>Hereâ€™s whatâ€™s happening at <strong>{school.schoolName}</strong> today.</p>
             <div className="ace-hero__meta">
               <span><CalendarDays size={15} /> {dateLabel}</span>
               <i />
@@ -430,8 +430,8 @@ export default function AdminDashboardOverview({
             </div>
           </div>
           <div className="ace-hero__quote">
-            <strong>“Better systems.<br />Brighter futures.”</strong>
-            <span>— Aces Academy</span>
+            <strong>â€œBetter systems.<br />Brighter futures.â€</strong>
+            <span>â€” AceEdu</span>
           </div>
           <span className="ace-hero__orb" aria-hidden="true" />
         </section>
@@ -450,7 +450,7 @@ export default function AdminDashboardOverview({
             Icon={Users}
             label="Total Staff"
             value={formatNumber(staff)}
-            detail={`${formatNumber(metrics.teachingStaff)} teaching · ${formatNumber(metrics.administrativeStaff)} admin`}
+            detail={`${formatNumber(metrics.teachingStaff)} teaching Â· ${formatNumber(metrics.administrativeStaff)} admin`}
             tone="violet"
             loading={dashboardLoading}
             error={Boolean(dashboardError)}
@@ -609,7 +609,7 @@ export default function AdminDashboardOverview({
             </button>
             <button type="button" onClick={onExport} disabled={exportingRegistry}>
               <span className="ace-action-icon is-blue"><ArrowDownToLine size={19} /></span>
-              <span>{exportingRegistry ? "Preparing…" : "Download Registry"}</span>
+              <span>{exportingRegistry ? "Preparingâ€¦" : "Download Registry"}</span>
               <ChevronRight size={15} />
             </button>
             <button type="button" onClick={() => onOpenView("settings")}>
@@ -625,7 +625,7 @@ export default function AdminDashboardOverview({
             <div>
               <div>
                 <h2>Recent Activity</h2>
-                <p>Live updates from your school</p>
+                <p>Latest recorded changes</p>
               </div>
             </div>
             <button className="ace-text-action" type="button" onClick={() => onOpenView("registry")}>View all</button>
@@ -641,7 +641,7 @@ export default function AdminDashboardOverview({
                   </span>
                   <span className="ace-activity-copy">
                     <strong>{verified ? "Record verified" : isStudent ? "New student enrolled" : "Staff account created"}</strong>
-                    <small>{item.fullName}{item.designation ? ` · ${item.designation}` : ""}</small>
+                    <small>{item.fullName}{item.designation ? ` Â· ${item.designation}` : ""}</small>
                   </span>
                   <time dateTime={item.occurredAt}>{timeAgo(item.occurredAt)}</time>
                 </article>
@@ -671,3 +671,5 @@ export default function AdminDashboardOverview({
     </section>
   )
 }
+
+
